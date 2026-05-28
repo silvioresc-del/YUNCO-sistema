@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cupones — YUNCO</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --verde:#1a7a3c; --verde2:#27ae60; --fondo:#0d1f33; --card:#162b44; --borde:rgba(255,255,255,.07); --texto:#e8eef5; --muted:#8ba5be; }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Barlow',sans-serif; background:var(--fondo); min-height:100vh; color:var(--texto); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; }
+    body::before { content:''; position:fixed; inset:0; background:radial-gradient(ellipse 60% 50% at 20% 20%, rgba(26,122,60,.35) 0%, transparent 70%); pointer-events:none; }
+    .wrapper { position:relative; width:100%; max-width:520px; text-align:center; animation:fadeUp .6s ease both; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(28px)} to{opacity:1;transform:translateY(0)} }
+    .badge { display:inline-block; background:rgba(26,122,60,.4); border:1px solid rgba(39,174,96,.3); color:#6ecf8e; font-size:11px; font-weight:700; letter-spacing:3px; text-transform:uppercase; padding:5px 14px; border-radius:20px; margin-bottom:16px; }
+    h1 { font-family:'Bebas Neue',sans-serif; font-size:42px; letter-spacing:2px; margin-bottom:10px; }
+    p { color:var(--muted); font-size:15px; margin-bottom:32px; }
+    .volver { display:inline-flex; align-items:center; gap:8px; background:var(--card); border:1px solid var(--borde); color:var(--texto); text-decoration:none; padding:12px 24px; border-radius:10px; font-weight:600; font-size:14px; transition:.2s; }
+    .volver:hover { border-color:rgba(39,174,96,.4); transform:translateY(-2px); }
+    .en-construccion { background:var(--card); border:1px solid var(--borde); border-radius:16px; padding:40px; margin-bottom:24px; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="en-construccion">
+      <div class="badge">Módulo</div>
+      <h1>💳 Cupones</h1>
+      <p>Este módulo está listo para ser desarrollado.<br>Volvé al inicio para navegar el sistema.</p>
+    </div>
+    <a href="index.html" class="volver">← Volver al inicio</a>
+  </div>
+</body>
+</html>
