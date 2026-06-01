@@ -535,8 +535,9 @@ function addItem(bodyId,calcFn){
   const cnt=bodyId==='itemsBody'?++iCnt:++pCnt;
   const id=(bodyId==='itemsBody'?'it':'pi')+cnt;
   const tr=document.createElement('tr');tr.id=id;
-  tr.innerHTML=`<td><input type="text" placeholder="COD"></td>
-<td><input type="text" placeholder="Descripción" oninput="${calcFn}('${id}')"></td>
+  tr.innerHTML=`<td><input type="text" placeholder="COD" id="${id}_cod"></td>
+<td style="position:relative"><input type="text" placeholder="🔍 Escribí para buscar producto..." id="${id}_desc" oninput="buscarProdItem('${id}','${calcFn}')" autocomplete="off">
+<div id="${id}_res" style="display:none;position:absolute;top:100%;left:0;right:0;background:#162b44;border:1px solid rgba(45,127,186,.4);border-radius:8px;z-index:99;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4)"></div></td>
 <td><input type="number" value="1" min="0" step="any" oninput="${calcFn}('${id}')" style="text-align:right"></td>
 <td><input type="text" value="unidad"></td>
 <td><input type="number" value="0" min="0" step="any" oninput="${calcFn}('${id}')" style="text-align:right"></td>
@@ -695,6 +696,56 @@ function buildFacturaHTML(v,esPres){
 <div class="fp-pie">${esPres?'Presupuesto sin valor fiscal — '+EMP.nombre:v.modo==='registrar'?'Comprobante Autorizado — '+EMP.nombre:'⚠️ COMPROBANTE NO OFICIAL — USO INTERNO'}</div>`;
 }
 
+
+// BUSCAR PRODUCTO DEL INVENTARIO EN ITEMS
+function buscarProdItem(id, calcFn){
+  const input=document.getElementById(id+'_desc');
+  const res=document.getElementById(id+'_res');
+  const q=(input?.value||'').toLowerCase();
+  if(!q||q.length<2){if(res)res.style.display='none';calcFn==='recalc'?recalc():recalcPres();return;}
+  let prods=[];
+  try{prods=JSON.parse(localStorage.getItem('yunco_inv')||'[]');}catch{prods=[];}
+  const matches=prods.filter(p=>p.nombre.toLowerCase().includes(q)||p.categoria.toLowerCase().includes(q)).slice(0,8);
+  if(!matches.length){res.innerHTML='<div style="padding:10px 14px;font-size:13px;color:var(--muted)">Sin resultados</div>';res.style.display='block';return;}
+  res.innerHTML=matches.map(p=>{
+    const cls=p.stock===0?'color:#e74c3c':p.stock<=p.min?'color:#f39c12':'color:#2ecc71';
+    const est=p.stock===0?'🚨 SIN STOCK':p.stock<=p.min?'⚠️ '+p.stock+' '+p.unidad:'✅ '+p.stock.toLocaleString('es-AR')+' '+p.unidad;
+    return`<div onclick="selProdItem('${id}',${p.id},'${calcFn}')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);display:flex;justify-content:space-between;align-items:center">
+<div><div style="font-size:13px;font-weight:600">${p.nombre}</div><div style="font-size:11px;color:#8ba5be">${p.categoria}</div></div>
+<div style="text-align:right"><div style="font-size:12px;font-weight:700;${cls}">${est}</div>${p.venta?'<div style="font-size:11px;color:#8ba5be">$'+p.venta.toLocaleString('es-AR')+'</div>':''}</div>
+</div>`;}).join('');
+  res.style.display='block';
+}
+
+function selProdItem(id, prodId, calcFn){
+  let prods=[];
+  try{prods=JSON.parse(localStorage.getItem('yunco_inv')||'[]');}catch{prods=[];}
+  const p=prods.find(x=>x.id===prodId);if(!p)return;
+  const descInput=document.getElementById(id+'_desc');
+  const codInput=document.getElementById(id+'_cod');
+  const res=document.getElementById(id+'_res');
+  const tr=document.getElementById(id);
+  if(descInput)descInput.value=p.nombre;
+  if(codInput)codInput.value=p.id;
+  if(res)res.style.display='none';
+  // Set precio
+  const inputs=tr.querySelectorAll('input');
+  if(inputs.length>=5&&p.venta)inputs[4].value=p.venta;
+  // Para productos por metro mostrar indicador
+  if(p.pm){
+    const umInput=inputs[3];
+    if(umInput)umInput.value='metro';
+  }
+  calcFn==='recalc'?recalc():recalcPres();
+}
+
+// CERRAR RESULTADOS AL CLICK FUERA
+document.addEventListener('click',e=>{
+  if(!e.target.closest('[id$="_desc"]')&&!e.target.closest('[id$="_res"]')){
+    document.querySelectorAll('[id$="_res"]').forEach(r=>{if(r.style)r.style.display='none';});
+  }
+});
+
 function pagoLbl(p){return{efectivo:'Efectivo',transferencia:'Transferencia',qr:'QR',tarjeta:'Tarjeta',cheque:'Cheque',cuenta_corriente:'Cta. Corriente'}[p]||p||'-';}
 
 function procesar(modo){
@@ -706,6 +757,19 @@ function procesar(modo){
   if(modo==='registrar'){
     const nums=S.g('yunco_nums',{B:1228,A:0,NC:0,ND:0,PRES:0});
     nums[data.tipo]=(nums[data.tipo]||0)+1;S.s('yunco_nums',nums);
+    // DESCONTAR STOCK
+    try{
+      let prods=JSON.parse(localStorage.getItem('yunco_inv')||'[]');
+      data.items.forEach(it=>{
+        const cod=parseInt(it.cod);
+        if(!cod)return;
+        const idx=prods.findIndex(p=>p.id===cod);
+        if(idx===-1)return;
+        const cant=parseFloat(it.cant)||0;
+        prods[idx].stock=Math.max(0,prods[idx].stock-cant);
+      });
+      localStorage.setItem('yunco_inv',JSON.stringify(prods));
+    }catch(e){console.error('Error descontando stock:',e);}
     // Abrir ventana de impresión
     const html=buildFacturaHTML(data,false);
     const w=window.open('','_blank','width=900,height=700');
