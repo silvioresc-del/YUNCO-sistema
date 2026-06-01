@@ -290,7 +290,13 @@ const fmt=n=>'$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:
 
 let authCb=null,editProdId=null;
 
-function getCatalogos(){return S.g('yunco_inv',PROD_DEFAULT);}
+function getCatalogos(){
+  const stored=localStorage.getItem('yunco_inv');
+  if(stored){try{return JSON.parse(stored);}catch{}}
+  // Primera vez: guardar defaults en localStorage
+  localStorage.setItem('yunco_inv',JSON.stringify(PROD_DEFAULT));
+  return PROD_DEFAULT;
+}
 function saveProds(p){S.s('yunco_inv',p);}
 
 // AUTH
@@ -558,7 +564,10 @@ function renderConsulta(){
   '</tbody></table></div>';
 }
 
-// INIT
+// INIT - forzar guardado en localStorage al cargar
+if(!localStorage.getItem('yunco_inv')){
+  localStorage.setItem('yunco_inv',JSON.stringify(PROD_DEFAULT));
+}
 fillCatFilter();actualizarStats();renderStock();
 </script>
 </body>
