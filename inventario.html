@@ -125,6 +125,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div class="tab" onclick="goTab('salida')">📤 Salida / Ajuste</div>
     <div class="tab" onclick="goTab('historial')">🕓 Historial</div>
     <div class="tab" onclick="goTab('alertas')">⚠️ Alertas</div>
+    <div class="tab" onclick="goTab('consulta')">🔍 Consulta Rápida</div>
   </div>
 
   <!-- STOCK -->
@@ -232,6 +233,19 @@ tr:hover td{background:rgba(255,255,255,.02);}
   <div class="panel" id="panel-alertas">
     <div id="listaAlertas"></div>
   </div>
+
+  <!-- CONSULTA RAPIDA -->
+  <div class="panel" id="panel-consulta">
+    <div style="max-width:600px">
+      <div class="form-group">
+        <label style="font-size:14px;font-weight:700;color:var(--texto);margin-bottom:10px;display:block">🔍 Buscá cualquier producto</label>
+        <input type="text" id="consultaBusq" placeholder="Escribí nombre o categoría..." oninput="renderConsulta()" 
+          style="width:100%;background:var(--card);border:1px solid var(--borde2);color:var(--texto);padding:14px 18px;border-radius:10px;font-family:'Barlow',sans-serif;font-size:15px;outline:none">
+      </div>
+    </div>
+    <div id="consultaResultados" style="margin-top:16px"></div>
+  </div>
+
 </div>
 
 <!-- MODAL PRODUCTO -->
@@ -291,6 +305,7 @@ function goTab(t){
   document.getElementById('panel-'+t).classList.add('activo');
   if(t==='historial')renderHist();
   if(t==='alertas')renderAlertas();
+  if(t==='consulta'){document.getElementById('consultaBusq').value='';document.getElementById('consultaResultados').innerHTML='<div class="vacio">Escribí para buscar productos.</div>';}
 }
 
 // STATS
@@ -520,6 +535,28 @@ document.addEventListener('click',e=>{
   if(!e.target.closest('#entBusq')&&!e.target.closest('#entRes'))document.getElementById('entRes').innerHTML='';
   if(!e.target.closest('#salBusq')&&!e.target.closest('#salRes'))document.getElementById('salRes').innerHTML='';
 });
+
+
+// CONSULTA RAPIDA
+function renderConsulta(){
+  const q=(document.getElementById('consultaBusq').value||'').toLowerCase();
+  const el=document.getElementById('consultaResultados');
+  if(!q){el.innerHTML='<div class="vacio">Escribí para buscar productos.</div>';return;}
+  const prods=getCatalogos().filter(p=>p.nombre.toLowerCase().includes(q)||p.categoria.toLowerCase().includes(q));
+  if(!prods.length){el.innerHTML='<div class="vacio">No se encontraron productos.</div>';return;}
+  el.innerHTML='<div class="tabla-wrap"><table><thead><tr><th>Producto</th><th>Categoría</th><th>Stock</th><th>Unidad</th><th>Precio Venta</th></tr></thead><tbody>'+
+  prods.map(p=>{
+    const cls=p.stock===0?'stock-cero':p.stock<=p.min?'stock-bajo':'stock-ok';
+    const estado=p.stock===0?'🚨 SIN STOCK':p.stock<=p.min?'⚠️ STOCK BAJO':'✅ DISPONIBLE';
+    return`<tr>
+<td><strong>${p.nombre}</strong>${p.pm?'<br><span class="pm-tag">por metros</span>':''}</td>
+<td><span class="cat-tag">${p.categoria}</span></td>
+<td><span class="${cls}">${p.stock.toLocaleString('es-AR')} ${p.unidad}</span><br><small style="color:var(--muted);font-size:11px">${estado}</small></td>
+<td style="color:var(--muted)">${p.unidad}</td>
+<td style="color:var(--verde3)">${p.venta?fmt(p.venta):'-'}</td>
+</tr>`;}).join('')+
+  '</tbody></table></div>';
+}
 
 // INIT
 fillCatFilter();actualizarStats();renderStock();
