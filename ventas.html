@@ -398,6 +398,17 @@ table.comp tr:hover td{background:rgba(255,255,255,.02);}
   </div>
 </div>
 
+
+  <!-- CONSULTA STOCK -->
+  <div class="panel" id="panel-consulta">
+    <div style="max-width:700px;margin-bottom:16px">
+      <input type="text" id="consultaStockBusq" placeholder="🔍 Buscá cualquier producto del inventario..." 
+        oninput="renderConsultaStock()"
+        style="width:100%;background:var(--card);border:1px solid var(--borde2);color:var(--texto);padding:14px 18px;border-radius:10px;font-family:'Barlow',sans-serif;font-size:15px;outline:none">
+    </div>
+    <div id="consultaStockRes"></div>
+  </div>
+
 <!-- MODAL CLIENTE -->
 <div class="overlay" id="overlayCli">
   <div class="modal">
@@ -468,12 +479,13 @@ function doLogin(){
 function logout(){vAct=null;vRol=null;document.getElementById('loginOverlay').style.display='flex';document.getElementById('loginVendedor').value='';document.getElementById('loginClave').value='';}
 
 function goTab(t){
-  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('activo',['nueva','presupuesto','comprobantes','clientes','config'][i]===t));
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('activo',['nueva','presupuesto','comprobantes','clientes','consulta','config'][i]===t));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('activo'));
   document.getElementById('panel-'+t).classList.add('activo');
   if(t==='comprobantes')renderComp();
   if(t==='clientes')renderClis();
   if(t==='config')renderConfig();
+  if(t==='consulta'){document.getElementById('consultaStockBusq').value='';document.getElementById('consultaStockRes').innerHTML='<div class="vacio"><div class="vacio-icon">🔍</div><p>Escribí para buscar productos.</p></div>';}
 }
 
 function onTipoChange(){updNro();const t=document.getElementById('tipoComp').value;document.getElementById('dolarWrap').style.display=t==='A'?'block':'none';recalc();}
@@ -745,6 +757,32 @@ document.addEventListener('click',e=>{
     document.querySelectorAll('[id$="_res"]').forEach(r=>{if(r.style)r.style.display='none';});
   }
 });
+
+
+// CONSULTA STOCK
+function renderConsultaStock(){
+  const q=(document.getElementById('consultaStockBusq').value||'').toLowerCase();
+  const el=document.getElementById('consultaStockRes');
+  if(!q){el.innerHTML='<div class="vacio"><div class="vacio-icon">🔍</div><p>Escribí para buscar productos.</p></div>';return;}
+  let prods=[];
+  try{prods=JSON.parse(localStorage.getItem('yunco_inv')||'[]');}catch{prods=[];}
+  const matches=prods.filter(p=>p.nombre.toLowerCase().includes(q)||p.categoria.toLowerCase().includes(q));
+  if(!matches.length){el.innerHTML='<div class="vacio"><div class="vacio-icon">📭</div><p>No se encontraron productos.</p></div>';return;}
+  el.innerHTML='<div class="tabla-wrap"><table><thead><tr><th>Producto</th><th>Categoría</th><th>Stock</th><th>Unidad</th><th>Precio Venta</th><th>Estado</th></tr></thead><tbody>'+
+  matches.map(p=>{
+    const cls=p.stock===0?'color:var(--rojo3)':p.stock<=p.min?'color:var(--amarillo3)':'color:var(--verde3)';
+    const estado=p.stock===0?'🚨 SIN STOCK':p.stock<=p.min?'⚠️ STOCK BAJO':'✅ DISPONIBLE';
+    const estadoCls=p.stock===0?'badge-nd':p.stock<=p.min?'badge-nc':'badge-a';
+    return`<tr>
+<td><strong>${p.nombre}</strong>${p.pm?'&nbsp;<span style="font-size:10px;background:rgba(26,122,60,.3);color:var(--verde3);padding:2px 7px;border-radius:5px;font-weight:700">por metros</span>':''}</td>
+<td><span class="badge badge-b">${p.categoria}</span></td>
+<td style="font-weight:700;${cls}">${p.stock.toLocaleString('es-AR')}</td>
+<td style="color:var(--muted)">${p.unidad}</td>
+<td style="color:var(--verde3)">${p.venta?'$'+parseFloat(p.venta).toLocaleString('es-AR'):'-'}</td>
+<td><span class="badge ${estadoCls}">${estado}</span></td>
+</tr>`;}).join('')+
+  '</tbody></table></div>';
+}
 
 function pagoLbl(p){return{efectivo:'Efectivo',transferencia:'Transferencia',qr:'QR',tarjeta:'Tarjeta',cheque:'Cheque',cuenta_corriente:'Cta. Corriente'}[p]||p||'-';}
 
