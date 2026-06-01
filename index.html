@@ -6,193 +6,63 @@
   <title>YUNCO DE FEMO SRL — Sistema de Gestión</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --azul:     #1F4E78;
-      --azul2:    #2d7fba;
-      --verde:    #1a7a3c;
-      --verde2:   #27ae60;
-      --naranja:  #c0580a;
-      --naranja2: #e67e22;
-      --fondo:    #0d1f33;
-      --card:     #162b44;
-      --borde:    rgba(255,255,255,.07);
-      --texto:    #e8eef5;
-      --muted:    #8ba5be;
-    }
-
-    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-
-    body {
-      font-family: 'Barlow', sans-serif;
-      background: var(--fondo);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      overflow-x: hidden;
-    }
-
-    /* fondo decorativo */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background:
-        radial-gradient(ellipse 60% 50% at 20% 20%, rgba(31,78,120,.45) 0%, transparent 70%),
-        radial-gradient(ellipse 50% 40% at 80% 80%, rgba(26,122,60,.25) 0%, transparent 70%);
-      pointer-events: none;
-    }
-
-    .wrapper {
-      position: relative;
-      width: 100%;
-      max-width: 520px;
-      animation: fadeUp .6s ease both;
-    }
-
-    @keyframes fadeUp {
-      from { opacity:0; transform:translateY(28px); }
-      to   { opacity:1; transform:translateY(0); }
-    }
-
-    /* cabecera */
-    .header {
-      text-align: center;
-      margin-bottom: 36px;
-    }
-    .logo-label {
-      display: inline-block;
-      background: rgba(31,78,120,.5);
-      border: 1px solid rgba(45,127,186,.4);
-      color: #7ab8e8;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      padding: 5px 14px;
-      border-radius: 20px;
-      margin-bottom: 14px;
-    }
-    .titulo {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(38px, 8vw, 54px);
-      color: var(--texto);
-      letter-spacing: 2px;
-      line-height: 1;
-      margin-bottom: 6px;
-    }
-    .subtitulo {
-      color: var(--muted);
-      font-size: 14px;
-      letter-spacing: 1px;
-    }
-
-    /* grilla de módulos */
-    .grid {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .modulo {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      background: var(--card);
-      border: 1px solid var(--borde);
-      border-radius: 14px;
-      padding: 22px 24px;
-      text-decoration: none;
-      cursor: pointer;
-      transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
-      animation: fadeUp .6s ease both;
-    }
-    .modulo:nth-child(1) { animation-delay:.1s; }
-    .modulo:nth-child(2) { animation-delay:.2s; }
-    .modulo:nth-child(3) { animation-delay:.3s; }
-
-    .modulo:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 40px rgba(0,0,0,.4);
-    }
-
-    .modulo.azul:hover   { border-color: rgba(45,127,186,.6); box-shadow: 0 12px 40px rgba(31,78,120,.45); }
-    .modulo.verde:hover  { border-color: rgba(39,174,96,.5);  box-shadow: 0 12px 40px rgba(26,122,60,.35); }
-    .modulo.naranja:hover{ border-color: rgba(230,126,34,.5); box-shadow: 0 12px 40px rgba(192,88,10,.35); }
-
-    .icono-wrap {
-      width: 52px;
-      height: 52px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      font-size: 24px;
-    }
-    .azul    .icono-wrap { background: rgba(31,78,120,.5);   border: 1px solid rgba(45,127,186,.35); }
-    .verde   .icono-wrap { background: rgba(26,122,60,.45);  border: 1px solid rgba(39,174,96,.3); }
-    .naranja .icono-wrap { background: rgba(192,88,10,.4);   border: 1px solid rgba(230,126,34,.3); }
-
-    .mod-info { flex: 1; }
-    .mod-nombre {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 22px;
-      letter-spacing: 1px;
-      color: var(--texto);
-      line-height: 1;
-      margin-bottom: 4px;
-    }
-    .mod-desc {
-      font-size: 13px;
-      color: var(--muted);
-    }
-
-    .flecha {
-      color: var(--muted);
-      font-size: 18px;
-      transition: transform .2s, color .2s;
-    }
-    .modulo:hover .flecha { transform: translateX(4px); color: var(--texto); }
-
-    /* pie */
-    .pie {
-      text-align: center;
-      margin-top: 28px;
-      color: var(--muted);
-      font-size: 12px;
-      letter-spacing: .5px;
-      animation: fadeUp .6s .4s ease both;
-    }
+    :root{--azul:#1F4E78;--azul2:#2d7fba;--verde:#1a7a3c;--verde2:#27ae60;--naranja:#c0580a;--naranja2:#e67e22;--violeta:#5a2d82;--violeta2:#8e44ad;--fondo:#0d1f33;--card:#162b44;--borde:rgba(255,255,255,.07);--texto:#e8eef5;--muted:#8ba5be;}
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Barlow',sans-serif;background:var(--fondo);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;overflow-x:hidden;}
+    body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 50% at 20% 20%,rgba(31,78,120,.45) 0%,transparent 70%),radial-gradient(ellipse 50% 40% at 80% 80%,rgba(26,122,60,.25) 0%,transparent 70%);pointer-events:none;}
+    .wrapper{position:relative;width:100%;max-width:560px;animation:fadeUp .6s ease both;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+    .header{text-align:center;margin-bottom:36px;}
+    .logo-label{display:inline-block;background:rgba(31,78,120,.5);border:1px solid rgba(45,127,186,.4);color:#7ab8e8;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:5px 14px;border-radius:20px;margin-bottom:14px;}
+    .titulo{font-family:'Bebas Neue',sans-serif;font-size:clamp(38px,8vw,54px);color:var(--texto);letter-spacing:2px;line-height:1;margin-bottom:6px;}
+    .subtitulo{color:var(--muted);font-size:14px;letter-spacing:1px;}
+    .grid{display:flex;flex-direction:column;gap:14px;}
+    .modulo{display:flex;align-items:center;gap:20px;background:var(--card);border:1px solid var(--borde);border-radius:14px;padding:22px 24px;text-decoration:none;cursor:pointer;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease;animation:fadeUp .6s ease both;}
+    .modulo:nth-child(1){animation-delay:.1s}
+    .modulo:nth-child(2){animation-delay:.2s}
+    .modulo:nth-child(3){animation-delay:.3s}
+    .modulo:nth-child(4){animation-delay:.4s}
+    .modulo:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.4);}
+    .modulo.azul:hover{border-color:rgba(45,127,186,.6);box-shadow:0 12px 40px rgba(31,78,120,.45);}
+    .modulo.verde:hover{border-color:rgba(39,174,96,.5);box-shadow:0 12px 40px rgba(26,122,60,.35);}
+    .modulo.naranja:hover{border-color:rgba(230,126,34,.5);box-shadow:0 12px 40px rgba(192,88,10,.35);}
+    .modulo.violeta:hover{border-color:rgba(142,68,173,.5);box-shadow:0 12px 40px rgba(90,45,130,.35);}
+    .icono-wrap{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:24px;}
+    .azul .icono-wrap{background:rgba(31,78,120,.5);border:1px solid rgba(45,127,186,.35);}
+    .verde .icono-wrap{background:rgba(26,122,60,.45);border:1px solid rgba(39,174,96,.3);}
+    .naranja .icono-wrap{background:rgba(192,88,10,.4);border:1px solid rgba(230,126,34,.3);}
+    .violeta .icono-wrap{background:rgba(90,45,130,.4);border:1px solid rgba(142,68,173,.3);}
+    .mod-info{flex:1;}
+    .mod-nombre{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--texto);line-height:1;margin-bottom:4px;}
+    .mod-desc{font-size:13px;color:var(--muted);}
+    .flecha{color:var(--muted);font-size:18px;transition:transform .2s,color .2s;}
+    .modulo:hover .flecha{transform:translateX(4px);color:var(--texto);}
+    .pie{text-align:center;margin-top:28px;color:var(--muted);font-size:12px;letter-spacing:.5px;animation:fadeUp .6s .5s ease both;}
   </style>
 </head>
 <body>
   <div class="wrapper">
-
     <div class="header">
       <div class="logo-label">Sistema de Gestión</div>
       <div class="titulo">YUNCO DE FEMO SRL</div>
       <div class="subtitulo">Seleccioná un módulo para comenzar</div>
     </div>
-
     <div class="grid">
 
       <a href="ventas.html" class="modulo azul">
-        <div class="icono-wrap">📦</div>
+        <div class="icono-wrap">💵</div>
         <div class="mod-info">
-          <div class="mod-nombre">Inventario y Ventas</div>
-          <div class="mod-desc">Stock de productos · Registrar movimientos</div>
+          <div class="mod-nombre">Ventas y Facturación</div>
+          <div class="mod-desc">Emitir comprobantes · Presupuestos · Clientes</div>
         </div>
         <span class="flecha">›</span>
       </a>
 
-      <a href="cupones.html" class="modulo verde">
-        <div class="icono-wrap">💳</div>
+      <a href="inventario.html" class="modulo verde">
+        <div class="icono-wrap">📦</div>
         <div class="mod-info">
-          <div class="mod-nombre">Cupones de Tarjeta</div>
-          <div class="mod-desc">Seguimiento de cuotas · Pagos pendientes</div>
+          <div class="mod-nombre">Inventario y Stock</div>
+          <div class="mod-desc">Consulta de stock · Entradas y salidas · Alertas</div>
         </div>
         <span class="flecha">›</span>
       </a>
@@ -201,13 +71,21 @@
         <div class="icono-wrap">🧾</div>
         <div class="mod-info">
           <div class="mod-nombre">Cierre de Caja</div>
-          <div class="mod-desc">Resumen diario · Ingresos y egresos</div>
+          <div class="mod-desc">Resumen diario · Ingresos y egresos · WhatsApp</div>
+        </div>
+        <span class="flecha">›</span>
+      </a>
+
+      <a href="cupones.html" class="modulo violeta">
+        <div class="icono-wrap">💳</div>
+        <div class="mod-info">
+          <div class="mod-nombre">Cupones de Tarjeta</div>
+          <div class="mod-desc">Seguimiento de cuotas · Pagos pendientes</div>
         </div>
         <span class="flecha">›</span>
       </a>
 
     </div>
-
     <div class="pie">YUNCO DE FEMO SRL &nbsp;·&nbsp; Uso interno</div>
   </div>
 </body>
