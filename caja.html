@@ -309,7 +309,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 </div>
 
 <script>
-const CD={'1':'1111','2':'2222','3':'3333','4':'4444','5':'5555','6':'6666','7':'7777','8':'8888','9':'9999','gerente':'gerente2024','admin':'yunco2024'};
+const CD={'1':'1111','2':'2222','3':'3333','4':'4444','5':'5555','6':'6666','7':'7777','8':'8888','9':'9999','gerente':'gerente2024','dueno':'yunco2024','admin':'yunco2024'};
 const S={g:(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}},s:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
 const fmt=n=>'$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:0});
 const fmtFull=n=>'$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2});
@@ -328,12 +328,12 @@ function doLogin(){
   if(!v){document.getElementById('loginErr').style.display='block';return;}
   const claves={...CD,...S.g('yunco_claves',{})};
   if(c!==claves[v]){document.getElementById('loginErr').style.display='block';return;}
-  vAct=v;vRol=v==='admin'?'admin':v==='gerente'?'gerente':'vendedor';
+  vAct=v;vRol=v==='admin'?'admin':v==='gerente'?'gerente':v==='dueno'?'dueno':'vendedor';
   const vends=S.g('yunco_vend',{});
   document.getElementById('vendedorInfo').textContent='👤 '+(vends[v]?.nombre||(v==='admin'?'Admin':v==='gerente'?'Gerente':'Vendedor '+v));
   document.getElementById('loginOverlay').style.display='none';
   // Permisos
-  if(vRol==='vendedor'){
+  if(vRol==='vendedor'||vRol==='admin'){
     document.getElementById('botonesGerente').style.display='none';
     document.querySelectorAll('.tab-gerente').forEach(t=>t.style.display='none');
   }
@@ -363,7 +363,7 @@ function initCaja(){
     document.getElementById('viewCerrada').style.display='block';
     document.getElementById('viewAbierta').style.display='none';
     // Solo gerente/admin puede abrir
-    if(vRol==='vendedor'){
+    if(vRol==='vendedor'||vRol==='admin'){
       document.getElementById('btnAbrirWrap').innerHTML='<div style="color:var(--muted);font-size:14px">Solo el gerente o administrador puede abrir la caja.</div>';
     }
   }
