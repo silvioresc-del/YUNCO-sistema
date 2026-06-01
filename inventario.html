@@ -1,815 +1,528 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Inventario — YUNCO</title>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --azul:#1F4E78; --azul2:#2d7fba; --azul3:#4a9fd4;
-      --fondo:#0d1f33; --card:#162b44; --card2:#1a3352;
-      --borde:rgba(255,255,255,.07); --borde2:rgba(45,127,186,.25);
-      --texto:#e8eef5; --muted:#8ba5be; --muted2:#5a7a99;
-      --verde:#1a7a3c; --verde2:#27ae60; --verde3:#2ecc71;
-      --rojo:#8b1a1a; --rojo2:#c0392b; --rojo3:#e74c3c;
-      --amarillo:#7a5a0a; --amarillo2:#e67e22; --amarillo3:#f39c12;
-    }
-    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:'Barlow',sans-serif; background:var(--fondo); min-height:100vh; color:var(--texto); padding:0; overflow-x:hidden; }
-    body::before {
-      content:''; position:fixed; inset:0; pointer-events:none;
-      background:
-        radial-gradient(ellipse 70% 50% at 10% 10%, rgba(31,78,120,.4) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 40% at 90% 90%, rgba(26,122,60,.15) 0%, transparent 60%);
-    }
-
-    /* TOPBAR */
-    .topbar {
-      position:sticky; top:0; z-index:100;
-      background:rgba(13,31,51,.92); backdrop-filter:blur(12px);
-      border-bottom:1px solid var(--borde2);
-      display:flex; align-items:center; justify-content:space-between;
-      padding:14px 24px; gap:16px;
-    }
-    .topbar-left { display:flex; align-items:center; gap:14px; }
-    .back-btn {
-      display:flex; align-items:center; gap:6px;
-      background:var(--card); border:1px solid var(--borde);
-      color:var(--muted); text-decoration:none;
-      padding:7px 14px; border-radius:8px; font-size:13px; font-weight:600;
-      transition:.2s;
-    }
-    .back-btn:hover { border-color:var(--borde2); color:var(--texto); }
-    .topbar-title { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:2px; color:var(--texto); }
-    .topbar-badge { background:rgba(31,78,120,.5); border:1px solid rgba(45,127,186,.4); color:#7ab8e8; font-size:10px; font-weight:700; letter-spacing:2px; padding:3px 10px; border-radius:20px; }
-    .topbar-right { display:flex; align-items:center; gap:10px; }
-
-    /* ALERTAS BADGE */
-    .alerta-badge {
-      display:none; align-items:center; gap:6px;
-      background:rgba(192,57,43,.25); border:1px solid rgba(231,76,60,.4);
-      color:#ff8a7a; font-size:12px; font-weight:700;
-      padding:5px 12px; border-radius:8px; cursor:pointer;
-      animation:pulse 2s infinite;
-    }
-    .alerta-badge.visible { display:flex; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.7} }
-
-    /* CONTENIDO */
-    .contenido { max-width:1100px; margin:0 auto; padding:28px 24px; }
-
-    /* RESUMEN STATS */
-    .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:28px; }
-    .stat-card {
-      background:var(--card); border:1px solid var(--borde);
-      border-radius:14px; padding:18px 20px;
-      display:flex; align-items:center; gap:14px;
-      animation:fadeUp .5s ease both;
-    }
-    .stat-card:nth-child(1){animation-delay:.05s}
-    .stat-card:nth-child(2){animation-delay:.1s}
-    .stat-card:nth-child(3){animation-delay:.15s}
-    .stat-card:nth-child(4){animation-delay:.2s}
-    .stat-icon { font-size:28px; flex-shrink:0; }
-    .stat-info {}
-    .stat-num { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:1px; line-height:1; }
-    .stat-label { font-size:12px; color:var(--muted); margin-top:2px; }
-
-    /* TABS */
-    .tabs { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
-    .tab {
-      padding:8px 18px; border-radius:8px; font-size:13px; font-weight:600;
-      border:1px solid var(--borde); background:var(--card);
-      color:var(--muted); cursor:pointer; transition:.2s;
-    }
-    .tab:hover { border-color:var(--borde2); color:var(--texto); }
-    .tab.activo { background:rgba(31,78,120,.5); border-color:rgba(45,127,186,.5); color:#7ab8e8; }
-
-    /* PANEL */
-    .panel { display:none; animation:fadeUp .4s ease both; }
-    .panel.activo { display:block; }
-    @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
-
-    /* TOOLBAR */
-    .toolbar { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
-    .toolbar input, .toolbar select {
-      background:var(--card); border:1px solid var(--borde);
-      color:var(--texto); padding:9px 14px; border-radius:8px;
-      font-family:'Barlow',sans-serif; font-size:13px;
-      outline:none; transition:.2s;
-    }
-    .toolbar input { flex:1; min-width:200px; }
-    .toolbar input:focus, .toolbar select:focus { border-color:var(--borde2); }
-    .toolbar select option { background:var(--card); }
-    .btn {
-      display:inline-flex; align-items:center; gap:6px;
-      padding:9px 18px; border-radius:8px; font-family:'Barlow',sans-serif;
-      font-size:13px; font-weight:700; cursor:pointer; border:none;
-      transition:.2s; letter-spacing:.3px;
-    }
-    .btn-primario { background:var(--azul2); color:#fff; }
-    .btn-primario:hover { background:var(--azul3); transform:translateY(-1px); }
-    .btn-verde { background:rgba(26,122,60,.5); border:1px solid rgba(39,174,96,.4); color:var(--verde3); }
-    .btn-verde:hover { background:rgba(39,174,96,.3); }
-    .btn-rojo { background:rgba(139,26,26,.4); border:1px solid rgba(192,57,43,.4); color:#ff8a7a; }
-    .btn-rojo:hover { background:rgba(192,57,43,.3); }
-    .btn-outline { background:var(--card); border:1px solid var(--borde); color:var(--muted); }
-    .btn-outline:hover { border-color:var(--borde2); color:var(--texto); }
-    .btn-sm { padding:6px 12px; font-size:12px; }
-
-    /* TABLA */
-    .tabla-wrap { overflow-x:auto; border-radius:14px; border:1px solid var(--borde); }
-    table { width:100%; border-collapse:collapse; }
-    thead { background:rgba(31,78,120,.3); }
-    th { padding:12px 16px; text-align:left; font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--borde); white-space:nowrap; }
-    td { padding:13px 16px; font-size:14px; border-bottom:1px solid var(--borde); vertical-align:middle; }
-    tr:last-child td { border-bottom:none; }
-    tr:hover td { background:rgba(255,255,255,.02); }
-    .tag-categoria {
-      display:inline-block; font-size:11px; font-weight:700; letter-spacing:.5px;
-      padding:3px 9px; border-radius:6px;
-    }
-    .stock-ok { color:var(--verde3); font-weight:700; }
-    .stock-bajo { color:var(--amarillo3); font-weight:700; }
-    .stock-critico { color:var(--rojo3); font-weight:700; }
-    .stock-bar-wrap { width:80px; height:6px; background:rgba(255,255,255,.1); border-radius:3px; display:inline-block; vertical-align:middle; margin-left:8px; }
-    .stock-bar { height:100%; border-radius:3px; transition:.5s; }
-
-    .acciones { display:flex; gap:6px; }
-
-    /* MODAL */
-    .overlay {
-      display:none; position:fixed; inset:0; z-index:200;
-      background:rgba(0,0,0,.7); backdrop-filter:blur(4px);
-      align-items:center; justify-content:center; padding:20px;
-    }
-    .overlay.abierto { display:flex; }
-    .modal {
-      background:var(--card); border:1px solid var(--borde2);
-      border-radius:18px; padding:28px; width:100%; max-width:480px;
-      max-height:90vh; overflow-y:auto;
-      animation:fadeUp .3s ease;
-    }
-    .modal h2 { font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:1px; margin-bottom:20px; }
-    .form-group { margin-bottom:16px; }
-    .form-group label { display:block; font-size:12px; font-weight:700; letter-spacing:.5px; color:var(--muted); margin-bottom:6px; text-transform:uppercase; }
-    .form-group input, .form-group select, .form-group textarea {
-      width:100%; background:rgba(13,31,51,.8); border:1px solid var(--borde);
-      color:var(--texto); padding:10px 14px; border-radius:8px;
-      font-family:'Barlow',sans-serif; font-size:14px; outline:none; transition:.2s;
-    }
-    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:var(--azul2); }
-    .form-group select option { background:#162b44; }
-    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-    .modal-footer { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
-
-    /* HISTORIAL */
-    .historial-item {
-      display:flex; align-items:center; gap:14px;
-      padding:13px 16px; background:var(--card);
-      border:1px solid var(--borde); border-radius:10px; margin-bottom:8px;
-    }
-    .hist-icon { font-size:20px; flex-shrink:0; }
-    .hist-info { flex:1; }
-    .hist-titulo { font-size:14px; font-weight:600; }
-    .hist-sub { font-size:12px; color:var(--muted); margin-top:2px; }
-    .hist-cantidad { font-family:'Bebas Neue',sans-serif; font-size:18px; }
-    .hist-entrada { color:var(--verde3); }
-    .hist-salida { color:var(--rojo3); }
-    .hist-venta { color:var(--azul3); }
-    .hist-fecha { font-size:11px; color:var(--muted2); text-align:right; }
-
-    /* ALERTAS PANEL */
-    .alerta-item {
-      display:flex; align-items:center; gap:14px;
-      padding:14px 18px; border-radius:12px; margin-bottom:10px;
-    }
-    .alerta-critica { background:rgba(139,26,26,.25); border:1px solid rgba(192,57,43,.35); }
-    .alerta-baja { background:rgba(122,90,10,.25); border:1px solid rgba(230,126,34,.35); }
-    .alerta-icon { font-size:22px; flex-shrink:0; }
-    .alerta-info { flex:1; }
-    .alerta-nombre { font-size:14px; font-weight:700; }
-    .alerta-detalle { font-size:12px; color:var(--muted); margin-top:2px; }
-
-    /* VACIO */
-    .vacio { text-align:center; padding:48px 20px; color:var(--muted); }
-    .vacio .vacio-icon { font-size:48px; margin-bottom:12px; }
-    .vacio p { font-size:14px; }
-
-    /* RESUMEN VALOR */
-    .resumen-valor {
-      background:var(--card); border:1px solid var(--borde2);
-      border-radius:14px; padding:20px 24px; margin-bottom:16px;
-      display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;
-    }
-    .rv-label { font-size:13px; color:var(--muted); }
-    .rv-num { font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:1px; color:var(--azul3); }
-
-    /* TOOLTIP */
-    .tooltip-wrap { position:relative; display:inline-block; }
-    .tooltip-wrap .tooltip {
-      display:none; position:absolute; bottom:110%; left:50%; transform:translateX(-50%);
-      background:#0d1f33; border:1px solid var(--borde2); color:var(--texto);
-      font-size:11px; padding:4px 8px; border-radius:6px; white-space:nowrap; z-index:10;
-    }
-    .tooltip-wrap:hover .tooltip { display:block; }
-
-    @media(max-width:600px){
-      .form-row { grid-template-columns:1fr; }
-      .stats-grid { grid-template-columns:1fr 1fr; }
-      .topbar-title { font-size:18px; }
-      .rv-num { font-size:24px; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventario — YUNCO</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--azul:#1F4E78;--azul2:#2d7fba;--azul3:#4a9fd4;--fondo:#0d1f33;--card:#162b44;--borde:rgba(255,255,255,.07);--borde2:rgba(45,127,186,.25);--texto:#e8eef5;--muted:#8ba5be;--verde3:#2ecc71;--rojo3:#e74c3c;--amarillo3:#f39c12;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Barlow',sans-serif;background:var(--fondo);min-height:100vh;color:var(--texto);overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse 70% 50% at 10% 10%,rgba(31,78,120,.4) 0%,transparent 60%);}
+.topbar{position:sticky;top:0;z-index:100;background:rgba(13,31,51,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--borde2);display:flex;align-items:center;justify-content:space-between;padding:12px 24px;gap:16px;}
+.topbar-left{display:flex;align-items:center;gap:14px;}
+.back-btn{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--borde);color:var(--muted);text-decoration:none;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;}
+.back-btn:hover{border-color:var(--borde2);color:var(--texto);}
+.topbar-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;}
+.topbar-badge{background:rgba(31,78,120,.5);border:1px solid rgba(45,127,186,.4);color:#7ab8e8;font-size:10px;font-weight:700;letter-spacing:2px;padding:3px 10px;border-radius:20px;}
+.alerta-badge{display:none;align-items:center;gap:6px;background:rgba(192,57,43,.25);border:1px solid rgba(231,76,60,.4);color:#ff8a7a;font-size:12px;font-weight:700;padding:5px 12px;border-radius:8px;cursor:pointer;}
+.alerta-badge.visible{display:flex;}
+.contenido{max-width:1200px;margin:0 auto;padding:24px;}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px;}
+.stat-card{background:var(--card);border:1px solid var(--borde);border-radius:12px;padding:16px 18px;display:flex;align-items:center;gap:12px;}
+.stat-icon{font-size:26px;flex-shrink:0;}
+.stat-num{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;line-height:1;}
+.stat-label{font-size:11px;color:var(--muted);margin-top:2px;}
+.tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.tab{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;border:1px solid var(--borde);background:var(--card);color:var(--muted);cursor:pointer;transition:.2s;}
+.tab:hover{border-color:var(--borde2);color:var(--texto);}
+.tab.activo{background:rgba(31,78,120,.5);border-color:rgba(45,127,186,.5);color:#7ab8e8;}
+.panel{display:none;animation:fadeUp .4s ease both;}
+.panel.activo{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.toolbar input,.toolbar select{background:var(--card);border:1px solid var(--borde);color:var(--texto);padding:9px 14px;border-radius:8px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;}
+.toolbar input{flex:1;min-width:200px;}
+.toolbar input:focus,.toolbar select:focus{border-color:var(--borde2);}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;font-family:'Barlow',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:.2s;}
+.btn-primario{background:var(--azul2);color:#fff;}
+.btn-primario:hover{background:var(--azul3);}
+.btn-rojo{background:rgba(139,26,26,.4);border:1px solid rgba(192,57,43,.4);color:#ff8a7a;}
+.btn-outline{background:var(--card);border:1px solid var(--borde);color:var(--muted);}
+.btn-outline:hover{border-color:var(--borde2);color:var(--texto);}
+.btn-verde{background:rgba(26,122,60,.5);border:1px solid rgba(39,174,96,.4);color:var(--verde3);}
+.btn-amarillo{background:rgba(122,90,10,.4);border:1px solid rgba(230,126,34,.4);color:var(--amarillo3);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.tabla-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--borde);}
+table{width:100%;border-collapse:collapse;}
+thead{background:rgba(31,78,120,.3);}
+th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--borde);white-space:nowrap;}
+td{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--borde);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.02);}
+.cat-tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px;background:rgba(31,78,120,.4);border:1px solid rgba(45,127,186,.3);color:#7ab8e8;}
+.pm-tag{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;background:rgba(26,122,60,.3);border:1px solid rgba(39,174,96,.3);color:var(--verde3);}
+.stock-ok{color:var(--verde3);font-weight:700;}
+.stock-bajo{color:var(--amarillo3);font-weight:700;}
+.stock-cero{color:var(--rojo3);font-weight:700;}
+.form-card{background:var(--card);border:1px solid var(--borde);border-radius:14px;padding:24px;margin-bottom:16px;max-width:560px;}
+.form-card h3{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;margin-bottom:16px;color:var(--azul3);}
+.form-group{margin-bottom:14px;}
+.form-group label{display:block;font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;}
+.form-group input,.form-group select{width:100%;background:rgba(13,31,51,.8);border:1px solid var(--borde);color:var(--texto);padding:10px 14px;border-radius:8px;font-family:'Barlow',sans-serif;font-size:14px;outline:none;}
+.form-group input:focus,.form-group select:focus{border-color:var(--azul2);}
+.form-group select option{background:#162b44;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px;}
+.overlay.abierto{display:flex;}
+.modal{background:var(--card);border:1px solid var(--borde2);border-radius:18px;padding:28px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;}
+.modal h2{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;margin-bottom:20px;}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;}
+.auth-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);align-items:center;justify-content:center;}
+.auth-overlay.abierto{display:flex;}
+.auth-box{background:var(--card);border:2px solid rgba(192,57,43,.5);border-radius:16px;padding:32px;width:100%;max-width:340px;text-align:center;}
+.auth-box h3{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--rojo3);margin-bottom:8px;}
+.auth-box p{color:var(--muted);font-size:13px;margin-bottom:18px;}
+.auth-box input{width:100%;background:rgba(13,31,51,.8);border:1px solid var(--borde);color:var(--texto);padding:12px;border-radius:8px;font-size:15px;outline:none;text-align:center;letter-spacing:4px;margin-bottom:10px;}
+.auth-error{color:var(--rojo3);font-size:12px;margin-bottom:8px;display:none;}
+.msg-ok{color:var(--verde3);font-size:13px;margin-top:10px;display:none;}
+.msg-err{color:var(--rojo3);font-size:13px;margin-top:10px;display:none;}
+.alerta-item{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:10px;margin-bottom:8px;}
+.alerta-cero{background:rgba(139,26,26,.2);border:1px solid rgba(192,57,43,.3);}
+.alerta-bajo{background:rgba(122,90,10,.2);border:1px solid rgba(230,126,34,.3);}
+.vacio{text-align:center;padding:40px;color:var(--muted);}
+.hist-item{display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--card);border:1px solid var(--borde);border-radius:9px;margin-bottom:7px;}
+.hist-tipo-entrada{color:var(--verde3);}
+.hist-tipo-salida{color:var(--rojo3);}
+@media(max-width:600px){.form-row{grid-template-columns:1fr;}.stats-grid{grid-template-columns:1fr 1fr;}}
+</style>
 </head>
 <body>
 
-<!-- TOPBAR -->
-<div class="topbar">
-  <div class="topbar-left">
-    <a href="index.html" class="back-btn">← Inicio</a>
-    <div>
-      <div class="topbar-badge">MÓDULO</div>
-      <div class="topbar-title">📦 INVENTARIO Y VENTAS</div>
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-box">
+    <h3>🔐 Autorización Requerida</h3>
+    <p id="authMsg">Ingresá la clave maestra.</p>
+    <input type="password" id="authClave" placeholder="••••••••" onkeydown="if(event.key==='Enter')confirmarAuth()">
+    <div class="auth-error" id="authErr">Clave incorrecta.</div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline" style="flex:1" onclick="cancelarAuth()">Cancelar</button>
+      <button class="btn btn-primario" style="flex:1" onclick="confirmarAuth()">Confirmar</button>
     </div>
-  </div>
-  <div class="topbar-right">
-    <div class="alerta-badge" id="alertaBadge" onclick="irAlertas()">⚠️ <span id="alertaCount">0</span> alertas</div>
   </div>
 </div>
 
+<div class="topbar">
+  <div class="topbar-left">
+    <a href="index.html" class="back-btn">← Inicio</a>
+    <div><div class="topbar-badge">MÓDULO</div><div class="topbar-title">📦 INVENTARIO Y STOCK</div></div>
+  </div>
+  <div class="alerta-badge" id="alertaBadge" onclick="goTab('alertas')">⚠️ <span id="alertaCnt">0</span> alertas</div>
+</div>
+
 <div class="contenido">
-
-  <!-- STATS -->
-  <div class="stats-grid" id="statsGrid">
-    <div class="stat-card">
-      <div class="stat-icon">📦</div>
-      <div class="stat-info">
-        <div class="stat-num" id="statProductos">0</div>
-        <div class="stat-label">Productos</div>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">🔢</div>
-      <div class="stat-info">
-        <div class="stat-num" id="statUnidades">0</div>
-        <div class="stat-label">Unidades totales</div>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">💰</div>
-      <div class="stat-info">
-        <div class="stat-num" id="statValor">$0</div>
-        <div class="stat-label">Valor en stock</div>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">⚠️</div>
-      <div class="stat-info">
-        <div class="stat-num" id="statAlertas">0</div>
-        <div class="stat-label">Stock bajo</div>
-      </div>
-    </div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-icon">📦</div><div><div class="stat-num" id="stProd">0</div><div class="stat-label">Productos</div></div></div>
+    <div class="stat-card"><div class="stat-icon">🔢</div><div><div class="stat-num" id="stUnid">0</div><div class="stat-label">Unidades totales</div></div></div>
+    <div class="stat-card"><div class="stat-icon">⚠️</div><div><div class="stat-num" id="stAlerta">0</div><div class="stat-label">Stock bajo</div></div></div>
+    <div class="stat-card"><div class="stat-icon">🚨</div><div><div class="stat-num" id="stCero">0</div><div class="stat-label">Sin stock</div></div></div>
   </div>
 
-  <!-- TABS -->
   <div class="tabs">
-    <div class="tab activo" onclick="cambiarTab('stock')">📋 Stock</div>
-    <div class="tab" onclick="cambiarTab('movimiento')">↕️ Movimiento</div>
-    <div class="tab" onclick="cambiarTab('historial')">🕓 Historial</div>
-    <div class="tab" onclick="cambiarTab('alertas')" id="tabAlertas">⚠️ Alertas</div>
-    <div class="tab" onclick="cambiarTab('reporte')">📊 Reporte</div>
+    <div class="tab activo" onclick="goTab('stock')">📋 Stock</div>
+    <div class="tab" onclick="goTab('entrada')">📥 Entrada mercadería</div>
+    <div class="tab" onclick="goTab('salida')">📤 Salida / Ajuste</div>
+    <div class="tab" onclick="goTab('historial')">🕓 Historial</div>
+    <div class="tab" onclick="goTab('alertas')">⚠️ Alertas</div>
   </div>
 
-  <!-- PANEL STOCK -->
+  <!-- STOCK -->
   <div class="panel activo" id="panel-stock">
     <div class="toolbar">
-      <input type="text" id="busqueda" placeholder="🔍 Buscar producto..." oninput="renderTabla()">
-      <select id="filtroCategoria" onchange="renderTabla()">
-        <option value="">Todas las categorías</option>
-        <option>Silobolsas</option>
-        <option>Colchones</option>
-        <option>Sommiers</option>
-        <option>Almohadas</option>
-        <option>Sogas</option>
-        <option>Plásticos</option>
-      </select>
-      <button class="btn btn-primario" onclick="abrirModalProducto()">+ Nuevo producto</button>
+      <input type="text" id="busqStock" placeholder="🔍 Buscar producto..." oninput="renderStock()">
+      <select id="filtCat" onchange="renderStock()"><option value="">Todas las categorías</option></select>
+      <button class="btn btn-primario" onclick="solAuth('Agregar producto',abrirModalProd)">+ Nuevo producto</button>
     </div>
     <div class="tabla-wrap">
       <table>
-        <thead>
-          <tr>
-            <th>Producto</th>
-            <th>Categoría</th>
-            <th>Stock</th>
-            <th>Mín.</th>
-            <th>Precio costo</th>
-            <th>Precio venta</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
+        <thead><tr>
+          <th>Producto</th><th>Categoría</th><th>Unidad</th>
+          <th>Stock</th><th>Mín.</th><th>Precio venta</th><th>Acciones</th>
+        </tr></thead>
         <tbody id="tablaStock"></tbody>
       </table>
     </div>
   </div>
 
-  <!-- PANEL MOVIMIENTO -->
-  <div class="panel" id="panel-movimiento">
-    <div style="background:var(--card);border:1px solid var(--borde);border-radius:14px;padding:24px;max-width:480px">
-      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;margin-bottom:20px;">Registrar Movimiento</h2>
+  <!-- ENTRADA -->
+  <div class="panel" id="panel-entrada">
+    <div class="form-card">
+      <h3>📥 Entrada de Mercadería</h3>
       <div class="form-group">
-        <label>Tipo de movimiento</label>
-        <select id="movTipo">
-          <option value="entrada">📥 Entrada (compra/recepción)</option>
-          <option value="salida">📤 Salida (uso/pérdida)</option>
-          <option value="venta">💵 Venta</option>
-        </select>
+        <label>Buscar producto</label>
+        <input type="text" id="entBusq" placeholder="Escribí para buscar..." oninput="buscarProdMov('entBusq','entRes','entId')" autocomplete="off">
+        <div id="entRes" class="busq-res" style="position:relative"></div>
+        <input type="hidden" id="entId">
       </div>
-      <div class="form-group">
-        <label>Producto</label>
-        <select id="movProducto"></select>
+      <div id="entInfo" style="display:none;background:rgba(26,122,60,.15);border:1px solid rgba(39,174,96,.3);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--verde3)"></div>
+      <div class="form-group" id="entMetrosWrap" style="display:none">
+        <label>¿Cuántos metros entraron?</label>
+        <input type="number" id="entMetros" min="0" step="0.01" placeholder="0.00">
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Cantidad</label>
-          <input type="number" id="movCantidad" min="1" value="1" placeholder="0">
-        </div>
-        <div class="form-group" id="movPrecioGroup">
-          <label>Precio unitario ($)</label>
-          <input type="number" id="movPrecio" min="0" placeholder="0">
-        </div>
+      <div class="form-group" id="entCantWrap">
+        <label id="entCantLabel">Cantidad que ingresó</label>
+        <input type="number" id="entCant" min="0" step="any" value="1">
       </div>
       <div class="form-group">
         <label>Observación (opcional)</label>
-        <input type="text" id="movObs" placeholder="Ej: Proveedor Pérez, Lote 12...">
+        <input type="text" id="entObs" placeholder="Ej: Proveedor García, Factura 001...">
       </div>
-      <div style="margin-top:20px;display:flex;gap:10px;">
-        <button class="btn btn-primario" onclick="registrarMovimiento()" style="flex:1">✔ Registrar</button>
-      </div>
-      <div id="movMensaje" style="margin-top:12px;font-size:13px;display:none;"></div>
+      <button class="btn btn-verde" onclick="registrarEntrada()">✅ Registrar entrada</button>
+      <div class="msg-ok" id="entOk">✅ Entrada registrada correctamente.</div>
+      <div class="msg-err" id="entErr">❌ Seleccioná un producto.</div>
     </div>
   </div>
 
-  <!-- PANEL HISTORIAL -->
+  <!-- SALIDA -->
+  <div class="panel" id="panel-salida">
+    <div class="form-card">
+      <h3>📤 Salida / Ajuste de Stock</h3>
+      <div class="form-group">
+        <label>Buscar producto</label>
+        <input type="text" id="salBusq" placeholder="Escribí para buscar..." oninput="buscarProdMov('salBusq','salRes','salId')" autocomplete="off">
+        <div id="salRes" style="position:relative"></div>
+        <input type="hidden" id="salId">
+      </div>
+      <div id="salInfo" style="display:none;background:rgba(139,26,26,.15);border:1px solid rgba(192,57,43,.3);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#ff8a7a"></div>
+      <div class="form-group" id="salMetrosWrap" style="display:none">
+        <label>¿Cuántos metros salieron?</label>
+        <input type="number" id="salMetros" min="0" step="0.01" placeholder="0.00">
+      </div>
+      <div class="form-group" id="salCantWrap">
+        <label id="salCantLabel">Cantidad que salió</label>
+        <input type="number" id="salCant" min="0" step="any" value="1">
+      </div>
+      <div class="form-group">
+        <label>Motivo</label>
+        <select id="salMotivo">
+          <option>Venta manual</option>
+          <option>Ajuste de inventario</option>
+          <option>Pérdida / daño</option>
+          <option>Devolución a proveedor</option>
+          <option>Otro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Observación (opcional)</label>
+        <input type="text" id="salObs" placeholder="Observaciones...">
+      </div>
+      <button class="btn btn-rojo" onclick="solAuth('Registrar salida',registrarSalida)">🔐 Registrar salida</button>
+      <div class="msg-ok" id="salOk">✅ Salida registrada.</div>
+      <div class="msg-err" id="salErr">❌ Verificá los datos.</div>
+    </div>
+  </div>
+
+  <!-- HISTORIAL -->
   <div class="panel" id="panel-historial">
     <div class="toolbar">
-      <select id="filtroHistTipo" onchange="renderHistorial()">
-        <option value="">Todos los movimientos</option>
+      <input type="text" id="busqHist" placeholder="🔍 Buscar..." oninput="renderHist()">
+      <select id="filtHistTipo" onchange="renderHist()">
+        <option value="">Todos</option>
         <option value="entrada">📥 Entradas</option>
         <option value="salida">📤 Salidas</option>
         <option value="venta">💵 Ventas</option>
       </select>
-      <select id="filtroHistProd" onchange="renderHistorial()">
-        <option value="">Todos los productos</option>
-      </select>
-      <button class="btn btn-outline btn-sm" onclick="limpiarHistorial()">🗑 Limpiar historial</button>
+      <button class="btn btn-outline btn-sm" onclick="solAuth('Limpiar historial',()=>{S.s('yunco_hist_inv',[]);renderHist();})">🗑 Limpiar</button>
     </div>
-    <div id="listaHistorial"></div>
+    <div id="listaHist"></div>
   </div>
 
-  <!-- PANEL ALERTAS -->
+  <!-- ALERTAS -->
   <div class="panel" id="panel-alertas">
     <div id="listaAlertas"></div>
   </div>
-
-  <!-- PANEL REPORTE -->
-  <div class="panel" id="panel-reporte">
-    <div class="resumen-valor">
-      <div>
-        <div class="rv-label">Valor total en stock (costo)</div>
-        <div class="rv-num" id="reporteValorCosto">$0</div>
-      </div>
-      <div>
-        <div class="rv-label">Valor total en stock (venta)</div>
-        <div class="rv-num" id="reporteValorVenta">$0</div>
-      </div>
-    </div>
-    <div class="tabla-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Categoría</th>
-            <th>Productos</th>
-            <th>Unidades</th>
-            <th>Valor costo</th>
-            <th>Valor venta</th>
-          </tr>
-        </thead>
-        <tbody id="tablaReporte"></tbody>
-      </table>
-    </div>
-    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
-      <button class="btn btn-outline" onclick="exportarCSV()">⬇ Exportar CSV</button>
-      <button class="btn btn-outline" onclick="window.print()">🖨 Imprimir</button>
-    </div>
-  </div>
-
 </div>
 
 <!-- MODAL PRODUCTO -->
-<div class="overlay" id="overlayProducto">
+<div class="overlay" id="overlayProd">
   <div class="modal">
-    <h2 id="modalTitulo">➕ Nuevo Producto</h2>
+    <h2 id="modalProdTit">➕ Nuevo Producto</h2>
+    <div class="form-group"><label>Nombre</label><input type="text" id="mpNom" placeholder="Ej: Soga Numero 5"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Categoría</label>
+        <select id="mpCat"><option>Manga de Riego</option><option>Plasticos</option><option>Sogas</option><option>Rafia</option><option>Silobolsas</option><option>Media Sombra</option><option>Carpas</option><option>Flejes</option><option>Bolsas</option><option>Sommiers</option><option>Colchones</option><option>Colchones Espuma</option><option>Almohadas</option><option>Sabanas</option><option>Sillas</option><option>Otros</option></select>
+      </div>
+      <div class="form-group"><label>Unidad</label>
+        <select id="mpUnidad"><option>unidad</option><option>metro</option><option>rollo</option><option>caja</option><option>bobina</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Stock actual</label><input type="number" id="mpStock" value="0" min="0"></div>
+      <div class="form-group"><label>Stock mínimo</label><input type="number" id="mpMin" value="5" min="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Precio costo ($)</label><input type="number" id="mpCosto" value="0" min="0"></div>
+      <div class="form-group"><label>Precio venta ($)</label><input type="number" id="mpVenta" value="0" min="0"></div>
+    </div>
     <div class="form-group">
-      <label>Nombre del producto</label>
-      <input type="text" id="pNombre" placeholder="Ej: Silobolsa 60m 9 pies">
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Categoría</label>
-        <select id="pCategoria">
-          <option>Silobolsas</option>
-          <option>Colchones</option>
-          <option>Sommiers</option>
-          <option>Almohadas</option>
-          <option>Sogas</option>
-          <option>Plásticos</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Unidad</label>
-        <input type="text" id="pUnidad" placeholder="Ej: unidad, metro, rollo">
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Stock actual</label>
-        <input type="number" id="pStock" min="0" value="0">
-      </div>
-      <div class="form-group">
-        <label>Stock mínimo (alerta)</label>
-        <input type="number" id="pMin" min="0" value="5">
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Precio de costo ($)</label>
-        <input type="number" id="pCosto" min="0" value="0" placeholder="0">
-      </div>
-      <div class="form-group">
-        <label>Precio de venta ($)</label>
-        <input type="number" id="pVenta" min="0" value="0" placeholder="0">
-      </div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="mpPm" style="width:auto;margin:0"> Se vende por metros
+      </label>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
-      <button class="btn btn-primario" onclick="guardarProducto()">💾 Guardar</button>
+      <button class="btn btn-outline" onclick="cerrarModalProd()">Cancelar</button>
+      <button class="btn btn-primario" onclick="guardarProd()">💾 Guardar</button>
     </div>
   </div>
 </div>
 
 <script>
-// ── DATOS INICIALES ─────────────────────────────────────────────
-const PRODUCTOS_DEFAULT = [
-  { id:1, nombre:'Silobolsa 60m 9 pies',  categoria:'Silobolsas', unidad:'unidad', stock:12, min:3,  costo:85000,  venta:110000 },
-  { id:2, nombre:'Silobolsa 75m 9 pies',  categoria:'Silobolsas', unidad:'unidad', stock:8,  min:3,  costo:95000,  venta:125000 },
-  { id:3, nombre:'Silobolsa 60m 12 pies', categoria:'Silobolsas', unidad:'unidad', stock:2,  min:3,  costo:120000, venta:155000 },
-  { id:4, nombre:'Colchón 1 plaza',        categoria:'Colchones',  unidad:'unidad', stock:6,  min:2,  costo:45000,  venta:65000  },
-  { id:5, nombre:'Colchón 2 plazas',       categoria:'Colchones',  unidad:'unidad', stock:4,  min:2,  costo:72000,  venta:98000  },
-  { id:6, nombre:'Sommier 2 plazas',       categoria:'Sommiers',   unidad:'unidad', stock:3,  min:2,  costo:95000,  venta:135000 },
-  { id:7, nombre:'Sommier 1 plaza',        categoria:'Sommiers',   unidad:'unidad', stock:1,  min:2,  costo:65000,  venta:90000  },
-  { id:8, nombre:'Almohada estándar',      categoria:'Almohadas',  unidad:'unidad', stock:20, min:5,  costo:8000,   venta:13000  },
-  { id:9, nombre:'Almohada viscoelástica', categoria:'Almohadas',  unidad:'unidad', stock:4,  min:5,  costo:18000,  venta:28000  },
-  { id:10,nombre:'Soga polipropileno 6mm', categoria:'Sogas',      unidad:'metro',  stock:500,min:100,costo:180,    venta:280    },
-  { id:11,nombre:'Soga polipropileno 8mm', categoria:'Sogas',      unidad:'metro',  stock:80, min:100,costo:250,    venta:390    },
-  { id:12,nombre:'Plástico negro 100mic',  categoria:'Plásticos',  unidad:'metro',  stock:200,min:50, costo:120,    venta:190    },
-  { id:13,nombre:'Plástico transparente',  categoria:'Plásticos',  unidad:'metro',  stock:150,min:50, costo:100,    venta:160    },
-];
+const PROD_DEFAULT = [{"id": 1, "nombre": "Manga de Riego 1.5\"", "categoria": "Manga de Riego", "unidad": "rollo", "stock": 10, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 2, "nombre": "Manga de Riego 2\"", "categoria": "Manga de Riego", "unidad": "rollo", "stock": 6, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 3, "nombre": "Manga de Riego 2.25\"", "categoria": "Manga de Riego", "unidad": "rollo", "stock": 10, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 4, "nombre": "Manga de Riego 3\"", "categoria": "Manga de Riego", "unidad": "rollo", "stock": 6, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 5, "nombre": "Manga de Riego 3.5\"", "categoria": "Manga de Riego", "unidad": "rollo", "stock": 6, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 6, "nombre": "Manga de Riego 4\"", "categoria": "Manga de Riego", "unidad": "rollo", "stock": 5, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 7, "nombre": "Manga de Riego 5\"", "categoria": "Manga de Riego", "unidad": "rollo", "stock": 4, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 8, "nombre": "Manga de Riego 6\"", "categoria": "Manga de Riego", "unidad": "rollo", "stock": 2, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 9, "nombre": "Manga de Riego 8\"", "categoria": "Manga de Riego", "unidad": "rollo", "stock": 10, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 10, "nombre": "Manga de Riego 10\"", "categoria": "Manga de Riego", "unidad": "rollo", "stock": 9, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 11, "nombre": "Manga de Riego 12\"", "categoria": "Manga de Riego", "unidad": "rollo", "stock": 4, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 12, "nombre": "Manga de Riego Especial 10\"", "categoria": "Manga de Riego", "unidad": "rollo", "stock": 1, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 13, "nombre": "Manga de Riego Especial 12\"", "categoria": "Manga de Riego", "unidad": "rollo", "stock": 4, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 20, "nombre": "Plastico Negro 100x100", "categoria": "Plasticos", "unidad": "metro", "stock": 11, "min": 5, "costo": 0, "venta": 0, "pm": true}, {"id": 21, "nombre": "Plastico Transparente 100x100", "categoria": "Plasticos", "unidad": "metro", "stock": 3, "min": 5, "costo": 0, "venta": 0, "pm": true}, {"id": 22, "nombre": "Plastico Negro 200x50", "categoria": "Plasticos", "unidad": "metro", "stock": 7, "min": 5, "costo": 0, "venta": 0, "pm": true}, {"id": 23, "nombre": "Plastico Transparente 200x50", "categoria": "Plasticos", "unidad": "metro", "stock": 11, "min": 5, "costo": 0, "venta": 0, "pm": true}, {"id": 24, "nombre": "Plastico LDT 100x100", "categoria": "Plasticos", "unidad": "rollo", "stock": 9, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 25, "nombre": "Plastico LDT 100x50", "categoria": "Plasticos", "unidad": "rollo", "stock": 7, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 26, "nombre": "Plastico UL Negro 1x1000", "categoria": "Plasticos", "unidad": "rollo", "stock": 1, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 27, "nombre": "Plastico UL Negro 2x1000", "categoria": "Plasticos", "unidad": "rollo", "stock": 6, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 28, "nombre": "Plastico UL Negro 3x1000", "categoria": "Plasticos", "unidad": "rollo", "stock": 6, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 29, "nombre": "Stretch", "categoria": "Plasticos", "unidad": "caja", "stock": 51, "min": 10, "costo": 0, "venta": 0, "pm": false}, {"id": 30, "nombre": "Bicapa blanco/negro", "categoria": "Plasticos", "unidad": "caja", "stock": 35, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 40, "nombre": "Soga Numero 3", "categoria": "Sogas", "unidad": "metro", "stock": 36, "min": 10, "costo": 0, "venta": 0, "pm": true}, {"id": 41, "nombre": "Soga Numero 4", "categoria": "Sogas", "unidad": "metro", "stock": 59, "min": 10, "costo": 0, "venta": 0, "pm": true}, {"id": 42, "nombre": "Soga Numero 5", "categoria": "Sogas", "unidad": "metro", "stock": 31, "min": 10, "costo": 0, "venta": 0, "pm": true}, {"id": 43, "nombre": "Soga Numero 6", "categoria": "Sogas", "unidad": "metro", "stock": 33, "min": 10, "costo": 0, "venta": 0, "pm": true}, {"id": 44, "nombre": "Soga Numero 7", "categoria": "Sogas", "unidad": "metro", "stock": 16, "min": 5, "costo": 0, "venta": 0, "pm": true}, {"id": 45, "nombre": "Soga Numero 8", "categoria": "Sogas", "unidad": "metro", "stock": 5, "min": 5, "costo": 0, "venta": 0, "pm": true}, {"id": 46, "nombre": "Soga Numero 10", "categoria": "Sogas", "unidad": "metro", "stock": 5, "min": 5, "costo": 0, "venta": 0, "pm": true}, {"id": 47, "nombre": "Soga Numero 12", "categoria": "Sogas", "unidad": "metro", "stock": 6, "min": 5, "costo": 0, "venta": 0, "pm": true}, {"id": 48, "nombre": "Soga Numero 14", "categoria": "Sogas", "unidad": "metro", "stock": 5, "min": 5, "costo": 0, "venta": 0, "pm": true}, {"id": 49, "nombre": "Soga Numero 16", "categoria": "Sogas", "unidad": "metro", "stock": 2, "min": 2, "costo": 0, "venta": 0, "pm": true}, {"id": 50, "nombre": "Soga Numero 18", "categoria": "Sogas", "unidad": "metro", "stock": 3, "min": 2, "costo": 0, "venta": 0, "pm": true}, {"id": 51, "nombre": "Soga Numero 20", "categoria": "Sogas", "unidad": "metro", "stock": 6, "min": 2, "costo": 0, "venta": 0, "pm": true}, {"id": 52, "nombre": "Soga Numero 22", "categoria": "Sogas", "unidad": "metro", "stock": 1, "min": 1, "costo": 0, "venta": 0, "pm": true}, {"id": 53, "nombre": "Soga Numero 24", "categoria": "Sogas", "unidad": "metro", "stock": 1, "min": 1, "costo": 0, "venta": 0, "pm": true}, {"id": 54, "nombre": "Soga Pickup", "categoria": "Sogas", "unidad": "rollo", "stock": 21, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 55, "nombre": "Soga 4 cabos", "categoria": "Sogas", "unidad": "unidad", "stock": 41, "min": 10, "costo": 0, "venta": 0, "pm": false}, {"id": 56, "nombre": "Soga 6 cabos", "categoria": "Sogas", "unidad": "unidad", "stock": 3, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 57, "nombre": "Soga Revestida 4mm", "categoria": "Sogas", "unidad": "rollo", "stock": 6, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 58, "nombre": "Soga Revestida 5mm", "categoria": "Sogas", "unidad": "rollo", "stock": 6, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 59, "nombre": "Soga Revestida 6mm", "categoria": "Sogas", "unidad": "rollo", "stock": 1, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 60, "nombre": "Soga Corrugado", "categoria": "Sogas", "unidad": "rollo", "stock": 22, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 61, "nombre": "Soga Persiana", "categoria": "Sogas", "unidad": "rollo", "stock": 6, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 62, "nombre": "Hilo grande", "categoria": "Sogas", "unidad": "bobina", "stock": 12, "min": 3, "costo": 0, "venta": 0, "pm": false}, {"id": 63, "nombre": "Hilo chico", "categoria": "Sogas", "unidad": "caja", "stock": 60, "min": 10, "costo": 0, "venta": 0, "pm": false}, {"id": 64, "nombre": "Cordon blanco sin alma", "categoria": "Sogas", "unidad": "caja", "stock": 6, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 65, "nombre": "Cordon negro sin alma", "categoria": "Sogas", "unidad": "caja", "stock": 12, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 70, "nombre": "Rafia 1x100mts", "categoria": "Rafia", "unidad": "metro", "stock": 8700, "min": 500, "costo": 0, "venta": 0, "pm": true}, {"id": 71, "nombre": "Rafia 1x300mts", "categoria": "Rafia", "unidad": "metro", "stock": 3000, "min": 300, "costo": 0, "venta": 0, "pm": true}, {"id": 72, "nombre": "Rafia 2x200mts", "categoria": "Rafia", "unidad": "metro", "stock": 0, "min": 200, "costo": 0, "venta": 0, "pm": true}, {"id": 73, "nombre": "Rafia 3x200mts", "categoria": "Rafia", "unidad": "metro", "stock": 0, "min": 200, "costo": 0, "venta": 0, "pm": true}, {"id": 80, "nombre": "Silobolsa Blanca 6 pies", "categoria": "Silobolsas", "unidad": "unidad", "stock": 28, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 81, "nombre": "Silobolsa Blanca 9 pies", "categoria": "Silobolsas", "unidad": "unidad", "stock": 46500, "min": 100, "costo": 0, "venta": 0, "pm": false}, {"id": 82, "nombre": "Silobolsa Marron 9 pies", "categoria": "Silobolsas", "unidad": "unidad", "stock": 0, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 83, "nombre": "Silobolsa Verde 9 pies", "categoria": "Silobolsas", "unidad": "unidad", "stock": 7000, "min": 100, "costo": 0, "venta": 0, "pm": false}, {"id": 84, "nombre": "Silobolsa Azul 9 pies", "categoria": "Silobolsas", "unidad": "unidad", "stock": 1800, "min": 50, "costo": 0, "venta": 0, "pm": false}, {"id": 85, "nombre": "Silobolsa Amarilla 9 pies", "categoria": "Silobolsas", "unidad": "unidad", "stock": 10000, "min": 100, "costo": 0, "venta": 0, "pm": false}, {"id": 86, "nombre": "Silobolsa Roja 9 pies", "categoria": "Silobolsas", "unidad": "unidad", "stock": 10100, "min": 100, "costo": 0, "venta": 0, "pm": false}, {"id": 87, "nombre": "Silobolsa Blanca 9.3 pies", "categoria": "Silobolsas", "unidad": "unidad", "stock": 9300, "min": 100, "costo": 0, "venta": 0, "pm": false}, {"id": 88, "nombre": "Silobolsa Marron 9.3 pies", "categoria": "Silobolsas", "unidad": "unidad", "stock": 24300, "min": 100, "costo": 0, "venta": 0, "pm": false}, {"id": 89, "nombre": "Silobolsa Verde 9.3 pies", "categoria": "Silobolsas", "unidad": "unidad", "stock": 19800, "min": 100, "costo": 0, "venta": 0, "pm": false}, {"id": 90, "nombre": "Silobolsa Azul 9.3 pies", "categoria": "Silobolsas", "unidad": "unidad", "stock": 8400, "min": 100, "costo": 0, "venta": 0, "pm": false}, {"id": 91, "nombre": "Silobolsa Amarilla 9.3 pies", "categoria": "Silobolsas", "unidad": "unidad", "stock": 7500, "min": 100, "costo": 0, "venta": 0, "pm": false}, {"id": 92, "nombre": "Silobolsa Roja 9.3 pies", "categoria": "Silobolsas", "unidad": "unidad", "stock": 11100, "min": 100, "costo": 0, "venta": 0, "pm": false}, {"id": 93, "nombre": "Silobolsa Blanca 6.2 pies", "categoria": "Silobolsas", "unidad": "unidad", "stock": 6200, "min": 50, "costo": 0, "venta": 0, "pm": false}, {"id": 94, "nombre": "Silobolsa Blanca 15mts", "categoria": "Silobolsas", "unidad": "unidad", "stock": 15000, "min": 100, "costo": 0, "venta": 0, "pm": false}, {"id": 95, "nombre": "Silobolsa Blanca 34.1", "categoria": "Silobolsas", "unidad": "unidad", "stock": 34100, "min": 100, "costo": 0, "venta": 0, "pm": false}, {"id": 96, "nombre": "Silobolsa Blanca 14.1", "categoria": "Silobolsas", "unidad": "unidad", "stock": 14100, "min": 50, "costo": 0, "venta": 0, "pm": false}, {"id": 97, "nombre": "Silobolsa Blanca 6.6", "categoria": "Silobolsas", "unidad": "unidad", "stock": 6600, "min": 50, "costo": 0, "venta": 0, "pm": false}, {"id": 98, "nombre": "Silobolsa Roja 1.2", "categoria": "Silobolsas", "unidad": "unidad", "stock": 1200, "min": 50, "costo": 0, "venta": 0, "pm": false}, {"id": 99, "nombre": "Silobolsa Blanca 23.54", "categoria": "Silobolsas", "unidad": "unidad", "stock": 23540, "min": 100, "costo": 0, "venta": 0, "pm": false}, {"id": 100, "nombre": "Silobolsa Blanca 40mts", "categoria": "Silobolsas", "unidad": "unidad", "stock": 40, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 110, "nombre": "Media Sombra Negra 90%", "categoria": "Media Sombra", "unidad": "rollo", "stock": 34, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 111, "nombre": "Media Sombra Verde 90%", "categoria": "Media Sombra", "unidad": "rollo", "stock": 51, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 112, "nombre": "Media Sombra Azul 90%", "categoria": "Media Sombra", "unidad": "rollo", "stock": 15, "min": 3, "costo": 0, "venta": 0, "pm": false}, {"id": 113, "nombre": "Media Sombra Beige 90%", "categoria": "Media Sombra", "unidad": "rollo", "stock": 3, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 114, "nombre": "Lona Avicola Amarilla", "categoria": "Media Sombra", "unidad": "rollo", "stock": 2, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 115, "nombre": "Lona Avicola Verde", "categoria": "Media Sombra", "unidad": "rollo", "stock": 1, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 120, "nombre": "Carpa Rafialon 2x2", "categoria": "Carpas", "unidad": "unidad", "stock": 4, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 121, "nombre": "Carpa Rafialon 3x3", "categoria": "Carpas", "unidad": "unidad", "stock": 4, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 122, "nombre": "Carpa Rafialon 4x2", "categoria": "Carpas", "unidad": "unidad", "stock": 6, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 123, "nombre": "Carpa Rafialon 4x4", "categoria": "Carpas", "unidad": "unidad", "stock": 6, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 124, "nombre": "Carpa Rafialon 6x4", "categoria": "Carpas", "unidad": "unidad", "stock": 0, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 125, "nombre": "Carpa Rafialon 8x4", "categoria": "Carpas", "unidad": "unidad", "stock": 2, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 126, "nombre": "Carpa Rafialon 8x10", "categoria": "Carpas", "unidad": "unidad", "stock": 1, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 130, "nombre": "Fleje 10mm", "categoria": "Flejes", "unidad": "rollo", "stock": 12, "min": 3, "costo": 0, "venta": 0, "pm": false}, {"id": 131, "nombre": "Fleje 13mm", "categoria": "Flejes", "unidad": "rollo", "stock": 2, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 135, "nombre": "Bolsas Changuito 6 pies", "categoria": "Bolsas", "unidad": "caja", "stock": 28, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 136, "nombre": "Bolsas Changuito 9 pies", "categoria": "Bolsas", "unidad": "caja", "stock": 34, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 137, "nombre": "Moquitera Verde", "categoria": "Bolsas", "unidad": "rollo", "stock": 4, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 138, "nombre": "Gogopor", "categoria": "Bolsas", "unidad": "unidad", "stock": 70, "min": 10, "costo": 0, "venta": 0, "pm": false}, {"id": 150, "nombre": "Sommier Crepusculo 1.40", "categoria": "Sommiers", "unidad": "unidad", "stock": 13, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 151, "nombre": "Sommier Crepusculo 1.50", "categoria": "Sommiers", "unidad": "unidad", "stock": 1, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 152, "nombre": "Sommier Crepusculo 1.60", "categoria": "Sommiers", "unidad": "unidad", "stock": 5, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 153, "nombre": "Sommier Crepusculo 1.80", "categoria": "Sommiers", "unidad": "unidad", "stock": 5, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 154, "nombre": "Sommier Crepusculo 2.00", "categoria": "Sommiers", "unidad": "unidad", "stock": 6, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 155, "nombre": "Sommier Esmeralda 0.80", "categoria": "Sommiers", "unidad": "unidad", "stock": 7, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 156, "nombre": "Sommier Esmeralda 1.00", "categoria": "Sommiers", "unidad": "unidad", "stock": 6, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 157, "nombre": "Sommier Leicester 1.40", "categoria": "Sommiers", "unidad": "unidad", "stock": 1, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 158, "nombre": "Sommier Silencio 1.40", "categoria": "Sommiers", "unidad": "unidad", "stock": 6, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 159, "nombre": "Sommier Silencio 1.60", "categoria": "Sommiers", "unidad": "unidad", "stock": 3, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 160, "nombre": "Sommier Silencio 1.80", "categoria": "Sommiers", "unidad": "unidad", "stock": 1, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 161, "nombre": "Sommier Silencio 2.00", "categoria": "Sommiers", "unidad": "unidad", "stock": 5, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 170, "nombre": "Colchon Espejo 0.90", "categoria": "Colchones", "unidad": "unidad", "stock": 4, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 171, "nombre": "Colchon Espejo 1.00", "categoria": "Colchones", "unidad": "unidad", "stock": 5, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 172, "nombre": "Colchon Espejo 1.40", "categoria": "Colchones", "unidad": "unidad", "stock": 4, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 173, "nombre": "Colchon Gani con Pillow 0.90", "categoria": "Colchones", "unidad": "unidad", "stock": 3, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 174, "nombre": "Colchon Gani con Pillow 1.00", "categoria": "Colchones", "unidad": "unidad", "stock": 2, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 175, "nombre": "Colchon Silencio Maxi King", "categoria": "Colchones", "unidad": "unidad", "stock": 1, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 180, "nombre": "Colchon Superior 0.80", "categoria": "Colchones Espuma", "unidad": "unidad", "stock": 10, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 181, "nombre": "Colchon Superior 0.90", "categoria": "Colchones Espuma", "unidad": "unidad", "stock": 12, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 182, "nombre": "Colchon Superior 1.00", "categoria": "Colchones Espuma", "unidad": "unidad", "stock": 16, "min": 3, "costo": 0, "venta": 0, "pm": false}, {"id": 183, "nombre": "Colchon Superior 1.40", "categoria": "Colchones Espuma", "unidad": "unidad", "stock": 4, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 184, "nombre": "Colchon Zafiro 0.80", "categoria": "Colchones Espuma", "unidad": "unidad", "stock": 4, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 185, "nombre": "Colchon Zafiro 1.00", "categoria": "Colchones Espuma", "unidad": "unidad", "stock": 2, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 186, "nombre": "Colchon Zafiro 1.40", "categoria": "Colchones Espuma", "unidad": "unidad", "stock": 6, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 187, "nombre": "Colchon Brisa 0.80", "categoria": "Colchones Espuma", "unidad": "unidad", "stock": 5, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 188, "nombre": "Colchon Brisa 0.90", "categoria": "Colchones Espuma", "unidad": "unidad", "stock": 3, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 189, "nombre": "Colchon Brisa 1.00", "categoria": "Colchones Espuma", "unidad": "unidad", "stock": 4, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 190, "nombre": "Colchon Brisa 1.40", "categoria": "Colchones Espuma", "unidad": "unidad", "stock": 3, "min": 1, "costo": 0, "venta": 0, "pm": false}, {"id": 200, "nombre": "Almohada Suamir", "categoria": "Almohadas", "unidad": "unidad", "stock": 33, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 201, "nombre": "Almohada Almohar", "categoria": "Almohadas", "unidad": "unidad", "stock": 50, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 202, "nombre": "Almohada Eternity", "categoria": "Almohadas", "unidad": "unidad", "stock": 26, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 203, "nombre": "Almohada Alma", "categoria": "Almohadas", "unidad": "unidad", "stock": 18, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 204, "nombre": "Almohada Duvetina", "categoria": "Almohadas", "unidad": "unidad", "stock": 17, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 205, "nombre": "Almohada Duvela 0.70", "categoria": "Almohadas", "unidad": "unidad", "stock": 28, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 206, "nombre": "Almohada Duvela 0.80", "categoria": "Almohadas", "unidad": "unidad", "stock": 33, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 207, "nombre": "Almohada Duvela 0.90", "categoria": "Almohadas", "unidad": "unidad", "stock": 9, "min": 3, "costo": 0, "venta": 0, "pm": false}, {"id": 208, "nombre": "Almohada Merlin", "categoria": "Almohadas", "unidad": "unidad", "stock": 44, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 209, "nombre": "Almohada Supless 0.70", "categoria": "Almohadas", "unidad": "unidad", "stock": 18, "min": 3, "costo": 0, "venta": 0, "pm": false}, {"id": 210, "nombre": "Almohada Supless 0.80", "categoria": "Almohadas", "unidad": "unidad", "stock": 8, "min": 3, "costo": 0, "venta": 0, "pm": false}, {"id": 211, "nombre": "Almohada Supless 0.90", "categoria": "Almohadas", "unidad": "unidad", "stock": 10, "min": 3, "costo": 0, "venta": 0, "pm": false}, {"id": 212, "nombre": "Almohada Supless 1.00", "categoria": "Almohadas", "unidad": "unidad", "stock": 10, "min": 3, "costo": 0, "venta": 0, "pm": false}, {"id": 213, "nombre": "Almohada Inteligente viaje", "categoria": "Almohadas", "unidad": "unidad", "stock": 18, "min": 3, "costo": 0, "venta": 0, "pm": false}, {"id": 214, "nombre": "Almohada Inteligente 0.65", "categoria": "Almohadas", "unidad": "unidad", "stock": 23, "min": 3, "costo": 0, "venta": 0, "pm": false}, {"id": 215, "nombre": "Almohada Inteligente 0.70", "categoria": "Almohadas", "unidad": "unidad", "stock": 67, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 216, "nombre": "Almohada Inteligente 0.80", "categoria": "Almohadas", "unidad": "unidad", "stock": 13, "min": 3, "costo": 0, "venta": 0, "pm": false}, {"id": 217, "nombre": "Almohada Inteligente 0.90", "categoria": "Almohadas", "unidad": "unidad", "stock": 11, "min": 3, "costo": 0, "venta": 0, "pm": false}, {"id": 218, "nombre": "Almohada Cervical 0.70", "categoria": "Almohadas", "unidad": "unidad", "stock": 18, "min": 3, "costo": 0, "venta": 0, "pm": false}, {"id": 219, "nombre": "Almohada Inteligente Cilindro", "categoria": "Almohadas", "unidad": "unidad", "stock": 6, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 230, "nombre": "Sabanas 0.90", "categoria": "Sabanas", "unidad": "unidad", "stock": 24, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 231, "nombre": "Sabanas 1.00", "categoria": "Sabanas", "unidad": "unidad", "stock": 28, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 232, "nombre": "Sabanas 2 1/2", "categoria": "Sabanas", "unidad": "unidad", "stock": 19, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 233, "nombre": "Sabanas Queen", "categoria": "Sabanas", "unidad": "unidad", "stock": 41, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 234, "nombre": "Sabanas King Size", "categoria": "Sabanas", "unidad": "unidad", "stock": 26, "min": 5, "costo": 0, "venta": 0, "pm": false}, {"id": 240, "nombre": "Silla Picolo Blanca", "categoria": "Sillas", "unidad": "unidad", "stock": 16, "min": 3, "costo": 0, "venta": 0, "pm": false}, {"id": 241, "nombre": "Silla Picolo Verde", "categoria": "Sillas", "unidad": "unidad", "stock": 7, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 242, "nombre": "Silla Picolo Roja", "categoria": "Sillas", "unidad": "unidad", "stock": 24, "min": 3, "costo": 0, "venta": 0, "pm": false}, {"id": 243, "nombre": "Banqueta Verde", "categoria": "Sillas", "unidad": "unidad", "stock": 7, "min": 2, "costo": 0, "venta": 0, "pm": false}, {"id": 244, "nombre": "Banqueta Blanca", "categoria": "Sillas", "unidad": "unidad", "stock": 12, "min": 2, "costo": 0, "venta": 0, "pm": false}];
+const CM_KEY = 'yunco_cm';
+function getCM(){return localStorage.getItem(CM_KEY)||'SANTINO15';}
+const S={g:(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}},s:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
+const fmt=n=>'$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:0});
 
-const COLORES_CAT = {
-  'Silobolsas': 'rgba(31,78,120,.5)|rgba(45,127,186,.4)|#7ab8e8',
-  'Colchones':  'rgba(26,122,60,.4)|rgba(39,174,96,.3)|#5ddf8a',
-  'Sommiers':   'rgba(75,50,120,.4)|rgba(140,90,200,.3)|#c39bff',
-  'Almohadas':  'rgba(120,60,20,.4)|rgba(200,120,40,.3)|#ffb56b',
-  'Sogas':      'rgba(20,90,90,.4)|rgba(40,170,170,.3)|#5ee8e8',
-  'Plásticos':  'rgba(80,80,20,.4)|rgba(160,160,40,.3)|#e8e85a',
-};
+let authCb=null,editProdId=null;
 
-function catColor(cat, idx) { const p=(COLORES_CAT[cat]||'rgba(50,50,50,.4)|rgba(100,100,100,.3)|#aaa').split('|'); return p[idx]||'#aaa'; }
+function getCatalogos(){return S.g('yunco_inv',PROD_DEFAULT);}
+function saveProds(p){S.s('yunco_inv',p);}
 
-// ── STORAGE ─────────────────────────────────────────────────────
-function cargarProductos() {
-  const s = localStorage.getItem('yunco_productos');
-  if (s) return JSON.parse(s);
-  localStorage.setItem('yunco_productos', JSON.stringify(PRODUCTOS_DEFAULT));
-  return PRODUCTOS_DEFAULT;
-}
-function guardarProductos(p) { localStorage.setItem('yunco_productos', JSON.stringify(p)); }
-function cargarHistorial() { return JSON.parse(localStorage.getItem('yunco_historial')||'[]'); }
-function guardarHistorial(h) { localStorage.setItem('yunco_historial', JSON.stringify(h)); }
+// AUTH
+function solAuth(msg,cb){authCb=cb;document.getElementById('authClave').value='';document.getElementById('authErr').style.display='none';document.getElementById('authMsg').textContent=msg+' — Ingresá la clave maestra.';document.getElementById('authOverlay').classList.add('abierto');setTimeout(()=>document.getElementById('authClave').focus(),100);}
+function confirmarAuth(){if(document.getElementById('authClave').value===getCM()){document.getElementById('authOverlay').classList.remove('abierto');if(authCb)authCb();authCb=null;}else{document.getElementById('authErr').style.display='block';document.getElementById('authClave').value='';}}
+function cancelarAuth(){document.getElementById('authOverlay').classList.remove('abierto');authCb=null;}
 
-let editandoId = null;
-
-// ── STATS ────────────────────────────────────────────────────────
-function actualizarStats() {
-  const productos = cargarProductos();
-  const historial = cargarHistorial();
-  const totalUnidades = productos.reduce((a,p)=>a+p.stock,0);
-  const valorCosto = productos.reduce((a,p)=>a+p.stock*p.costo,0);
-  const bajos = productos.filter(p=>p.stock<=p.min).length;
-  document.getElementById('statProductos').textContent = productos.length;
-  document.getElementById('statUnidades').textContent = totalUnidades.toLocaleString('es-AR');
-  document.getElementById('statValor').textContent = '$'+Math.round(valorCosto/1000)+'K';
-  document.getElementById('statAlertas').textContent = bajos;
-  const badge = document.getElementById('alertaBadge');
-  document.getElementById('alertaCount').textContent = bajos;
-  badge.classList.toggle('visible', bajos>0);
-}
-
-// ── TABS ─────────────────────────────────────────────────────────
-function cambiarTab(tab) {
-  document.querySelectorAll('.tab').forEach((t,i)=>{
-    const ids=['stock','movimiento','historial','alertas','reporte'];
-    t.classList.toggle('activo', ids[i]===tab);
-  });
+// TABS
+function goTab(t){
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('activo',['stock','entrada','salida','historial','alertas'][i]===t));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('activo'));
-  document.getElementById('panel-'+tab).classList.add('activo');
-  if(tab==='movimiento') llenarSelectMovimiento();
-  if(tab==='historial')  { llenarFiltroHistProd(); renderHistorial(); }
-  if(tab==='alertas')    renderAlertas();
-  if(tab==='reporte')    renderReporte();
-}
-function irAlertas() { cambiarTab('alertas'); }
-
-// ── TABLA STOCK ──────────────────────────────────────────────────
-function renderTabla() {
-  const q = document.getElementById('busqueda').value.toLowerCase();
-  const cat = document.getElementById('filtroCategoria').value;
-  const productos = cargarProductos().filter(p=>{
-    return (!q || p.nombre.toLowerCase().includes(q)) && (!cat || p.categoria===cat);
-  });
-  const tbody = document.getElementById('tablaStock');
-  if(!productos.length){
-    tbody.innerHTML='<tr><td colspan="7"><div class="vacio"><div class="vacio-icon">📭</div><p>No hay productos que coincidan.</p></div></td></tr>';
-    return;
-  }
-  tbody.innerHTML = productos.map(p=>{
-    const pct = Math.min(100,Math.round((p.stock/Math.max(p.min*3,1))*100));
-    const cls = p.stock===0?'stock-critico':p.stock<=p.min?'stock-bajo':'stock-ok';
-    const barColor = p.stock===0?'var(--rojo3)':p.stock<=p.min?'var(--amarillo3)':'var(--verde3)';
-    const bg = catColor(p.categoria,0), border = catColor(p.categoria,1), color = catColor(p.categoria,2);
-    return `<tr>
-      <td><strong>${p.nombre}</strong><br><small style="color:var(--muted);font-size:11px">${p.unidad}</small></td>
-      <td><span class="tag-categoria" style="background:${bg};border:1px solid ${border};color:${color}">${p.categoria}</span></td>
-      <td>
-        <span class="${cls}">${p.stock}</span>
-        <span class="stock-bar-wrap tooltip-wrap">
-          <span class="stock-bar" style="width:${pct}%;background:${barColor}"></span>
-          <span class="tooltip">${pct}% del nivel óptimo</span>
-        </span>
-      </td>
-      <td style="color:var(--muted)">${p.min}</td>
-      <td>$${p.costo.toLocaleString('es-AR')}</td>
-      <td style="color:var(--verde3)">$${p.venta.toLocaleString('es-AR')}</td>
-      <td><div class="acciones">
-        <button class="btn btn-outline btn-sm" onclick="editarProducto(${p.id})">✏️</button>
-        <button class="btn btn-rojo btn-sm" onclick="eliminarProducto(${p.id})">🗑</button>
-      </div></td>
-    </tr>`;
-  }).join('');
+  document.getElementById('panel-'+t).classList.add('activo');
+  if(t==='historial')renderHist();
+  if(t==='alertas')renderAlertas();
 }
 
-// ── MODAL PRODUCTO ───────────────────────────────────────────────
-function abrirModalProducto(id=null) {
-  editandoId = id;
-  document.getElementById('modalTitulo').textContent = id ? '✏️ Editar Producto' : '➕ Nuevo Producto';
-  if(id){
-    const p = cargarProductos().find(x=>x.id===id);
-    document.getElementById('pNombre').value   = p.nombre;
-    document.getElementById('pCategoria').value= p.categoria;
-    document.getElementById('pUnidad').value   = p.unidad;
-    document.getElementById('pStock').value    = p.stock;
-    document.getElementById('pMin').value      = p.min;
-    document.getElementById('pCosto').value    = p.costo;
-    document.getElementById('pVenta').value    = p.venta;
-  } else {
-    ['pNombre','pUnidad'].forEach(f=>document.getElementById(f).value='');
-    document.getElementById('pStock').value=0;
-    document.getElementById('pMin').value=5;
-    document.getElementById('pCosto').value=0;
-    document.getElementById('pVenta').value=0;
-  }
-  document.getElementById('overlayProducto').classList.add('abierto');
-}
-function editarProducto(id){ abrirModalProducto(id); }
-function cerrarModal(){ document.getElementById('overlayProducto').classList.remove('abierto'); editandoId=null; }
-
-function guardarProducto(){
-  const nombre=document.getElementById('pNombre').value.trim();
-  if(!nombre){ alert('Ingresá el nombre del producto.'); return; }
-  const productos = cargarProductos();
-  const prod = {
-    id: editandoId || Date.now(),
-    nombre,
-    categoria: document.getElementById('pCategoria').value,
-    unidad:    document.getElementById('pUnidad').value||'unidad',
-    stock:     parseInt(document.getElementById('pStock').value)||0,
-    min:       parseInt(document.getElementById('pMin').value)||0,
-    costo:     parseFloat(document.getElementById('pCosto').value)||0,
-    venta:     parseFloat(document.getElementById('pVenta').value)||0,
-  };
-  if(editandoId){
-    const idx=productos.findIndex(p=>p.id===editandoId);
-    productos[idx]=prod;
-  } else {
-    productos.push(prod);
-  }
-  guardarProductos(productos);
-  cerrarModal();
-  renderTabla();
-  actualizarStats();
+// STATS
+function actualizarStats(){
+  const prods=getCatalogos();
+  const cero=prods.filter(p=>p.stock===0).length;
+  const bajo=prods.filter(p=>p.stock>0&&p.stock<=p.min).length;
+  document.getElementById('stProd').textContent=prods.length;
+  document.getElementById('stUnid').textContent=prods.reduce((a,p)=>a+p.stock,0).toLocaleString('es-AR');
+  document.getElementById('stAlerta').textContent=bajo;
+  document.getElementById('stCero').textContent=cero;
+  const total=bajo+cero;
+  document.getElementById('alertaCnt').textContent=total;
+  document.getElementById('alertaBadge').classList.toggle('visible',total>0);
 }
 
-function eliminarProducto(id){
-  if(!confirm('¿Eliminar este producto?')) return;
-  guardarProductos(cargarProductos().filter(p=>p.id!==id));
-  renderTabla();
-  actualizarStats();
+// FILL CATEGORIAS FILTER
+function fillCatFilter(){
+  const prods=getCatalogos();
+  const cats=[...new Set(prods.map(p=>p.categoria))].sort();
+  const sel=document.getElementById('filtCat');
+  sel.innerHTML='<option value="">Todas las categorías</option>'+cats.map(c=>`<option>${c}</option>`).join('');
 }
 
-// ── MOVIMIENTO ───────────────────────────────────────────────────
-function llenarSelectMovimiento(){
-  const sel = document.getElementById('movProducto');
-  const productos = cargarProductos();
-  sel.innerHTML = productos.map(p=>`<option value="${p.id}">${p.nombre} (stock: ${p.stock})</option>`).join('');
+// STOCK TABLE
+function renderStock(){
+  const q=(document.getElementById('busqStock').value||'').toLowerCase();
+  const cat=document.getElementById('filtCat').value;
+  let prods=getCatalogos();
+  if(q)prods=prods.filter(p=>p.nombre.toLowerCase().includes(q)||p.categoria.toLowerCase().includes(q));
+  if(cat)prods=prods.filter(p=>p.categoria===cat);
+  const tbody=document.getElementById('tablaStock');
+  if(!prods.length){tbody.innerHTML='<tr><td colspan="7"><div class="vacio">No hay productos que coincidan.</div></td></tr>';return;}
+  tbody.innerHTML=prods.map(p=>{
+    const cls=p.stock===0?'stock-cero':p.stock<=p.min?'stock-bajo':'stock-ok';
+    return`<tr>
+<td><strong>${p.nombre}</strong>${p.pm?'<br><span class="pm-tag">por metros</span>':''}</td>
+<td><span class="cat-tag">${p.categoria}</span></td>
+<td style="color:var(--muted)">${p.unidad}</td>
+<td><span class="${cls}">${p.stock.toLocaleString('es-AR')}</span></td>
+<td style="color:var(--muted)">${p.min}</td>
+<td style="color:var(--verde3)">${p.venta?fmt(p.venta):'-'}</td>
+<td><div style="display:flex;gap:5px">
+  <button class="btn btn-outline btn-sm" onclick="solAuth('Editar producto',()=>abrirEditar(${p.id}))">✏️</button>
+  <button class="btn btn-rojo btn-sm" onclick="solAuth('Eliminar producto',()=>eliminarProd(${p.id}))">🗑</button>
+</div></td>
+</tr>`;}).join('');
 }
 
-function registrarMovimiento(){
-  const tipo  = document.getElementById('movTipo').value;
-  const pid   = parseInt(document.getElementById('movProducto').value);
-  const cant  = parseInt(document.getElementById('movCantidad').value)||0;
-  const precio= parseFloat(document.getElementById('movPrecio').value)||0;
-  const obs   = document.getElementById('movObs').value.trim();
-  const msg   = document.getElementById('movMensaje');
-
-  if(cant<=0){ mostrarMsg(msg,'⚠️ Ingresá una cantidad válida.','#f39c12'); return; }
-
-  const productos = cargarProductos();
-  const idx = productos.findIndex(p=>p.id===pid);
-  if(idx===-1) return;
-
-  if((tipo==='salida'||tipo==='venta') && productos[idx].stock<cant){
-    mostrarMsg(msg,`❌ Stock insuficiente. Disponible: ${productos[idx].stock}`,'var(--rojo3)'); return;
-  }
-
-  if(tipo==='entrada') productos[idx].stock+=cant;
-  else productos[idx].stock-=cant;
-
-  guardarProductos(productos);
-
-  const historial = cargarHistorial();
-  historial.unshift({
-    id: Date.now(),
-    tipo, pid,
-    nombre: productos[idx].nombre,
-    categoria: productos[idx].categoria,
-    cantidad: cant,
-    precio,
-    obs,
-    fecha: new Date().toISOString()
-  });
-  guardarHistorial(historial);
-
-  const tipoLabel = tipo==='entrada'?'Entrada':tipo==='venta'?'Venta':'Salida';
-  mostrarMsg(msg,`✅ ${tipoLabel} registrada. Nuevo stock: ${productos[idx].stock}`,'var(--verde3)');
-  llenarSelectMovimiento();
-  actualizarStats();
-  document.getElementById('movCantidad').value=1;
-  document.getElementById('movPrecio').value='';
-  document.getElementById('movObs').value='';
+// BUSCAR PROD MOV
+function buscarProdMov(inputId,resId,hiddenId){
+  const q=document.getElementById(inputId).value.trim().toLowerCase();
+  const resEl=document.getElementById(resId);
+  if(!q){resEl.innerHTML='';return;}
+  const prods=getCatalogos().filter(p=>p.nombre.toLowerCase().includes(q)||p.categoria.toLowerCase().includes(q));
+  if(!prods.length){resEl.innerHTML='<div style="padding:8px 12px;font-size:13px;color:var(--muted);background:var(--card);border:1px solid var(--borde);border-radius:8px;margin-top:4px">Sin resultados</div>';return;}
+  resEl.innerHTML='<div style="background:var(--card);border:1px solid var(--borde2);border-radius:8px;margin-top:4px;max-height:200px;overflow-y:auto">'+
+    prods.slice(0,10).map(p=>`<div onclick="selProdMov(${p.id},'${inputId}','${resId}','${hiddenId}')" style="padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--borde)">${p.nombre} <span style="color:var(--muted);font-size:11px">${p.categoria} · ${p.stock.toLocaleString()} ${p.unidad}</span></div>`).join('')+
+  '</div>';
 }
 
-function mostrarMsg(el,txt,color){
-  el.textContent=txt; el.style.color=color; el.style.display='block';
-  setTimeout(()=>el.style.display='none',4000);
+function selProdMov(id,inputId,resId,hiddenId){
+  const p=getCatalogos().find(x=>x.id===id);if(!p)return;
+  document.getElementById(inputId).value=p.nombre;
+  document.getElementById(resId).innerHTML='';
+  document.getElementById(hiddenId).value=id;
+  const isEnt=hiddenId==='entId';
+  const prefix=isEnt?'ent':'sal';
+  const infoEl=document.getElementById(prefix+'Info');
+  infoEl.style.display='block';
+  infoEl.textContent=`${p.nombre} — Stock actual: ${p.stock.toLocaleString()} ${p.unidad}${p.pm?' (se vende por metros)':''}`;
+  // mostrar campo metros si aplica
+  document.getElementById(prefix+'MetrosWrap').style.display=p.pm?'block':'none';
+  document.getElementById(prefix+'CantWrap').style.display=p.pm?'none':'block';
+  document.getElementById(prefix+'CantLabel').textContent=isEnt?'Cantidad que ingresó':'Cantidad que salió';
 }
 
-// ── HISTORIAL ────────────────────────────────────────────────────
-function llenarFiltroHistProd(){
-  const sel = document.getElementById('filtroHistProd');
-  const productos = cargarProductos();
-  sel.innerHTML = '<option value="">Todos los productos</option>'+
-    productos.map(p=>`<option value="${p.id}">${p.nombre}</option>`).join('');
+// ENTRADA
+function registrarEntrada(){
+  const id=parseInt(document.getElementById('entId').value);
+  if(!id){showMsg('entErr');return;}
+  const prods=getCatalogos();
+  const idx=prods.findIndex(p=>p.id===id);if(idx===-1)return;
+  const p=prods[idx];
+  const cant=p.pm?parseFloat(document.getElementById('entMetros').value)||0:parseFloat(document.getElementById('entCant').value)||0;
+  if(cant<=0){showMsg('entErr');return;}
+  prods[idx].stock+=cant;
+  saveProds(prods);
+  addHist({tipo:'entrada',pid:id,nombre:p.nombre,cantidad:cant,unidad:p.unidad,obs:document.getElementById('entObs').value,fecha:new Date().toISOString()});
+  actualizarStats();renderStock();
+  showMsg('entOk');
+  document.getElementById('entBusq').value='';document.getElementById('entId').value='';
+  document.getElementById('entInfo').style.display='none';document.getElementById('entObs').value='';
+  document.getElementById('entMetros').value='';document.getElementById('entCant').value=1;
+  document.getElementById('entMetrosWrap').style.display='none';document.getElementById('entCantWrap').style.display='block';
 }
 
-function renderHistorial(){
-  const tipo = document.getElementById('filtroHistTipo').value;
-  const pid  = document.getElementById('filtroHistProd').value;
-  let h = cargarHistorial();
-  if(tipo) h=h.filter(x=>x.tipo===tipo);
-  if(pid)  h=h.filter(x=>x.pid===parseInt(pid));
-  const el = document.getElementById('listaHistorial');
-  if(!h.length){
-    el.innerHTML='<div class="vacio"><div class="vacio-icon">🕓</div><p>No hay movimientos registrados.</p></div>';
-    return;
-  }
-  el.innerHTML=h.slice(0,100).map(x=>{
-    const icons={entrada:'📥',salida:'📤',venta:'💵'};
-    const cls={entrada:'hist-entrada',salida:'hist-salida',venta:'hist-venta'};
-    const labels={entrada:'Entrada',salida:'Salida',venta:'Venta'};
-    const d=new Date(x.fecha);
-    const fecha=`${d.toLocaleDateString('es-AR')} ${d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})}`;
+// SALIDA
+function registrarSalida(){
+  const id=parseInt(document.getElementById('salId').value);
+  if(!id){showMsg('salErr');return;}
+  const prods=getCatalogos();
+  const idx=prods.findIndex(p=>p.id===id);if(idx===-1)return;
+  const p=prods[idx];
+  const cant=p.pm?parseFloat(document.getElementById('salMetros').value)||0:parseFloat(document.getElementById('salCant').value)||0;
+  if(cant<=0){showMsg('salErr');return;}
+  if(prods[idx].stock<cant){alert('Stock insuficiente. Disponible: '+prods[idx].stock+' '+p.unidad);return;}
+  prods[idx].stock-=cant;
+  saveProds(prods);
+  addHist({tipo:'salida',pid:id,nombre:p.nombre,cantidad:cant,unidad:p.unidad,motivo:document.getElementById('salMotivo').value,obs:document.getElementById('salObs').value,fecha:new Date().toISOString()});
+  actualizarStats();renderStock();
+  showMsg('salOk');
+  document.getElementById('salBusq').value='';document.getElementById('salId').value='';
+  document.getElementById('salInfo').style.display='none';document.getElementById('salObs').value='';
+  document.getElementById('salMetros').value='';document.getElementById('salCant').value=1;
+  document.getElementById('salMetrosWrap').style.display='none';document.getElementById('salCantWrap').style.display='block';
+}
+
+function showMsg(id){
+  const el=document.getElementById(id);el.style.display='block';
+  setTimeout(()=>el.style.display='none',3000);
+}
+
+// HISTORIAL
+function addHist(entry){const h=S.g('yunco_hist_inv',[]);h.unshift(entry);S.s('yunco_hist_inv',h);}
+function renderHist(){
+  const q=(document.getElementById('busqHist').value||'').toLowerCase();
+  const tipo=document.getElementById('filtHistTipo').value;
+  let h=S.g('yunco_hist_inv',[]);
+  if(q)h=h.filter(x=>(x.nombre||'').toLowerCase().includes(q));
+  if(tipo)h=h.filter(x=>x.tipo===tipo);
+  const el=document.getElementById('listaHist');
+  if(!h.length){el.innerHTML='<div class="vacio">No hay movimientos registrados.</div>';return;}
+  const icons={entrada:'📥',salida:'📤',venta:'💵'};
+  el.innerHTML=h.slice(0,200).map(x=>{
+    const f=new Date(x.fecha).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
     const signo=x.tipo==='entrada'?'+':'-';
-    return `<div class="historial-item">
-      <div class="hist-icon">${icons[x.tipo]}</div>
-      <div class="hist-info">
-        <div class="hist-titulo">${x.nombre}</div>
-        <div class="hist-sub">${labels[x.tipo]}${x.obs?' · '+x.obs:''}${x.precio?' · $'+x.precio.toLocaleString('es-AR'):''}</div>
-      </div>
-      <div>
-        <div class="hist-cantidad ${cls[x.tipo]}">${signo}${x.cantidad}</div>
-        <div class="hist-fecha">${fecha}</div>
-      </div>
-    </div>`;
-  }).join('');
+    const cls=x.tipo==='entrada'?'hist-tipo-entrada':'hist-tipo-salida';
+    return`<div class="hist-item">
+<span style="font-size:18px">${icons[x.tipo]||'📦'}</span>
+<div style="flex:1"><div style="font-size:14px;font-weight:600">${x.nombre}</div>
+<div style="font-size:12px;color:var(--muted)">${x.motivo||x.obs||''}</div></div>
+<div style="text-align:right"><div class="${cls}" style="font-family:'Bebas Neue',sans-serif;font-size:18px">${signo}${x.cantidad} ${x.unidad}</div>
+<div style="font-size:11px;color:var(--muted)">${f}</div></div>
+</div>`;}).join('');
 }
 
-function limpiarHistorial(){
-  if(!confirm('¿Limpiar todo el historial?')) return;
-  guardarHistorial([]);
-  renderHistorial();
-}
-
-// ── ALERTAS ──────────────────────────────────────────────────────
+// ALERTAS
 function renderAlertas(){
-  const productos = cargarProductos();
-  const criticos = productos.filter(p=>p.stock===0);
-  const bajos    = productos.filter(p=>p.stock>0&&p.stock<=p.min);
-  const el = document.getElementById('listaAlertas');
-  if(!criticos.length&&!bajos.length){
-    el.innerHTML='<div class="vacio"><div class="vacio-icon">✅</div><p>Todo el stock está en niveles normales.</p></div>';
-    return;
-  }
+  const prods=getCatalogos();
+  const cero=prods.filter(p=>p.stock===0);
+  const bajo=prods.filter(p=>p.stock>0&&p.stock<=p.min);
+  const el=document.getElementById('listaAlertas');
+  if(!cero.length&&!bajo.length){el.innerHTML='<div class="vacio">✅ Todo el stock en niveles normales.</div>';return;}
   let html='';
-  if(criticos.length){
-    html+=`<div style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--rojo3);margin-bottom:8px;text-transform:uppercase">SIN STOCK (${criticos.length})</div>`;
-    html+=criticos.map(p=>`<div class="alerta-item alerta-critica">
-      <div class="alerta-icon">🚨</div>
-      <div class="alerta-info">
-        <div class="alerta-nombre">${p.nombre}</div>
-        <div class="alerta-detalle">${p.categoria} · Stock: 0 · Mínimo: ${p.min}</div>
-      </div>
-      <button class="btn btn-outline btn-sm" onclick="cambiarTab('movimiento')">+ Cargar</button>
-    </div>`).join('');
+  if(cero.length){
+    html+=`<div style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--rojo3);margin-bottom:8px;text-transform:uppercase">SIN STOCK (${cero.length})</div>`;
+    html+=cero.map(p=>`<div class="alerta-item alerta-cero">
+<span style="font-size:20px">🚨</span>
+<div style="flex:1"><div style="font-weight:700">${p.nombre}</div><div style="font-size:12px;color:var(--muted)">${p.categoria} · Stock: 0 · Mínimo: ${p.min}</div></div>
+<button class="btn btn-outline btn-sm" onclick="goTab('entrada')">+ Cargar</button>
+</div>`).join('');
   }
-  if(bajos.length){
-    html+=`<div style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--amarillo3);margin:${criticos.length?'16px':0} 0 8px;text-transform:uppercase">STOCK BAJO (${bajos.length})</div>`;
-    html+=bajos.map(p=>`<div class="alerta-item alerta-baja">
-      <div class="alerta-icon">⚠️</div>
-      <div class="alerta-info">
-        <div class="alerta-nombre">${p.nombre}</div>
-        <div class="alerta-detalle">${p.categoria} · Stock: ${p.stock} · Mínimo: ${p.min}</div>
-      </div>
-      <button class="btn btn-outline btn-sm" onclick="cambiarTab('movimiento')">+ Cargar</button>
-    </div>`).join('');
+  if(bajo.length){
+    html+=`<div style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--amarillo3);margin:${cero.length?'16px':0} 0 8px;text-transform:uppercase">STOCK BAJO (${bajo.length})</div>`;
+    html+=bajo.map(p=>`<div class="alerta-item alerta-bajo">
+<span style="font-size:20px">⚠️</span>
+<div style="flex:1"><div style="font-weight:700">${p.nombre}</div><div style="font-size:12px;color:var(--muted)">${p.categoria} · Stock: ${p.stock.toLocaleString()} · Mínimo: ${p.min}</div></div>
+<button class="btn btn-outline btn-sm" onclick="goTab('entrada')">+ Cargar</button>
+</div>`).join('');
   }
   el.innerHTML=html;
 }
 
-// ── REPORTE ───────────────────────────────────────────────────────
-function renderReporte(){
-  const productos = cargarProductos();
-  const cats = [...new Set(productos.map(p=>p.categoria))];
-  let totalCosto=0, totalVenta=0;
-  const filas=cats.map(cat=>{
-    const prods=productos.filter(p=>p.categoria===cat);
-    const unds=prods.reduce((a,p)=>a+p.stock,0);
-    const vc=prods.reduce((a,p)=>a+p.stock*p.costo,0);
-    const vv=prods.reduce((a,p)=>a+p.stock*p.venta,0);
-    totalCosto+=vc; totalVenta+=vv;
-    return `<tr>
-      <td><span class="tag-categoria" style="background:${catColor(cat,0)};border:1px solid ${catColor(cat,1)};color:${catColor(cat,2)}">${cat}</span></td>
-      <td>${prods.length}</td>
-      <td>${unds.toLocaleString('es-AR')}</td>
-      <td>$${vc.toLocaleString('es-AR')}</td>
-      <td style="color:var(--verde3)">$${vv.toLocaleString('es-AR')}</td>
-    </tr>`;
-  });
-  document.getElementById('tablaReporte').innerHTML=filas.join('');
-  document.getElementById('reporteValorCosto').textContent='$'+totalCosto.toLocaleString('es-AR');
-  document.getElementById('reporteValorVenta').textContent='$'+totalVenta.toLocaleString('es-AR');
+// MODAL PRODUCTO
+function abrirModalProd(){
+  editProdId=null;
+  document.getElementById('modalProdTit').textContent='➕ Nuevo Producto';
+  ['mpNom'].forEach(f=>document.getElementById(f).value='');
+  document.getElementById('mpStock').value=0;document.getElementById('mpMin').value=5;
+  document.getElementById('mpCosto').value=0;document.getElementById('mpVenta').value=0;
+  document.getElementById('mpPm').checked=false;
+  document.getElementById('overlayProd').classList.add('abierto');
+}
+function abrirEditar(id){
+  const p=getCatalogos().find(x=>x.id===id);if(!p)return;
+  editProdId=id;
+  document.getElementById('modalProdTit').textContent='✏️ Editar Producto';
+  document.getElementById('mpNom').value=p.nombre;
+  document.getElementById('mpCat').value=p.categoria;
+  document.getElementById('mpUnidad').value=p.unidad;
+  document.getElementById('mpStock').value=p.stock;
+  document.getElementById('mpMin').value=p.min;
+  document.getElementById('mpCosto').value=p.costo;
+  document.getElementById('mpVenta').value=p.venta;
+  document.getElementById('mpPm').checked=!!p.pm;
+  document.getElementById('overlayProd').classList.add('abierto');
+}
+function cerrarModalProd(){document.getElementById('overlayProd').classList.remove('abierto');editProdId=null;}
+function guardarProd(){
+  const nom=document.getElementById('mpNom').value.trim();
+  if(!nom){alert('Ingresá el nombre.');return;}
+  const prods=getCatalogos();
+  const obj={
+    id:editProdId||Date.now(),
+    nombre:nom,
+    categoria:document.getElementById('mpCat').value,
+    unidad:document.getElementById('mpUnidad').value,
+    stock:parseFloat(document.getElementById('mpStock').value)||0,
+    min:parseFloat(document.getElementById('mpMin').value)||0,
+    costo:parseFloat(document.getElementById('mpCosto').value)||0,
+    venta:parseFloat(document.getElementById('mpVenta').value)||0,
+    pm:document.getElementById('mpPm').checked
+  };
+  if(editProdId){const i=prods.findIndex(p=>p.id===editProdId);prods[i]=obj;}
+  else prods.push(obj);
+  saveProds(prods);cerrarModalProd();renderStock();actualizarStats();fillCatFilter();
+}
+function eliminarProd(id){
+  if(!confirm('¿Eliminar este producto?'))return;
+  saveProds(getCatalogos().filter(p=>p.id!==id));
+  renderStock();actualizarStats();fillCatFilter();
 }
 
-// ── EXPORTAR CSV ──────────────────────────────────────────────────
-function exportarCSV(){
-  const productos=cargarProductos();
-  const header='Nombre,Categoría,Unidad,Stock,Mínimo,Precio Costo,Precio Venta\n';
-  const rows=productos.map(p=>`"${p.nombre}","${p.categoria}","${p.unidad}",${p.stock},${p.min},${p.costo},${p.venta}`).join('\n');
-  const blob=new Blob([header+rows],{type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download='inventario_yunco.csv'; a.click();
-}
-
-// ── CERRAR MODAL AL CLICK FUERA ──────────────────────────────────
-document.getElementById('overlayProducto').addEventListener('click',function(e){
-  if(e.target===this) cerrarModal();
+document.getElementById('overlayProd').addEventListener('click',function(e){if(e.target===this)cerrarModalProd();});
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#entBusq')&&!e.target.closest('#entRes'))document.getElementById('entRes').innerHTML='';
+  if(!e.target.closest('#salBusq')&&!e.target.closest('#salRes'))document.getElementById('salRes').innerHTML='';
 });
 
-// ── INIT ──────────────────────────────────────────────────────────
-actualizarStats();
-renderTabla();
+// INIT
+fillCatFilter();actualizarStats();renderStock();
 </script>
 </body>
 </html>
