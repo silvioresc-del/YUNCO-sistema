@@ -454,6 +454,46 @@ let vAct=null,vRol=null,authCb=null,editCli=null,iCnt=0,pCnt=0,previewData=null;
 
 function getCM(){return S.g('yunco_cm','SANTINO15');}
 
+
+// CONSULTA PUBLICA
+function renderPubStock(){
+  const q=(document.getElementById('pubBusq').value||'').toLowerCase();
+  const el=document.getElementById('pubResultados');
+  if(!q){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)"><div style="font-size:48px;margin-bottom:12px">🔍</div><p>Escribí para buscar productos</p></div>';return;}
+  let prods=[];
+  try{prods=JSON.parse(localStorage.getItem('yunco_inv')||'[]');}catch{prods=[];}
+  const matches=prods.filter(p=>p.nombre.toLowerCase().includes(q)||p.categoria.toLowerCase().includes(q));
+  if(!matches.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)"><div style="font-size:48px;margin-bottom:12px">📭</div><p>Sin resultados</p></div>';return;}
+  el.innerHTML='<div style="overflow-x:auto;border-radius:12px;border:1px solid var(--borde)"><table style="width:100%;border-collapse:collapse"><thead style="background:rgba(31,78,120,.3)"><tr><th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--borde)">Producto</th><th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--borde)">Categoría</th><th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--borde)">Stock</th><th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--borde)">Estado</th></tr></thead><tbody>'+
+  matches.map((p,i)=>{
+    const cls=p.stock===0?'color:var(--rojo3)':p.stock<=p.min?'color:var(--amarillo3)':'color:var(--verde3)';
+    const estado=p.stock===0?'🚨 Sin stock':p.stock<=p.min?'⚠️ Stock bajo':'✅ Disponible';
+    return`<tr style="${i%2?'background:rgba(255,255,255,.02)':''}">
+<td style="padding:11px 14px;font-size:13px;border-bottom:1px solid var(--borde)"><strong>${p.nombre}</strong></td>
+<td style="padding:11px 14px;font-size:13px;border-bottom:1px solid var(--borde);color:var(--muted)">${p.categoria}</td>
+<td style="padding:11px 14px;font-size:13px;border-bottom:1px solid var(--borde);font-weight:700;${cls}">${p.stock.toLocaleString('es-AR')} ${p.unidad}</td>
+<td style="padding:11px 14px;font-size:13px;border-bottom:1px solid var(--borde);${cls}">${estado}</td>
+</tr>`;}).join('')+
+  '</tbody></table></div>';
+}
+
+
+function mostrarConsulta(){
+  document.getElementById('opcionesIniciales').style.display='none';
+  document.getElementById('panelConsultaStock').style.display='flex';
+  setTimeout(()=>document.getElementById('pubBusq').focus(),100);
+}
+function volverOpciones(){
+  document.getElementById('panelConsultaStock').style.display='none';
+  document.getElementById('opcionesIniciales').style.display='flex';
+  document.getElementById('pubBusq').value='';
+  document.getElementById('pubResultados').innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)"><div style="font-size:48px;margin-bottom:12px">🔍</div><p>Escribí para buscar productos</p></div>';
+}
+function irAVentas(){
+  document.getElementById('consultaPublica').style.display='none';
+  document.getElementById('loginOverlay').style.display='flex';
+}
+
 function solAuth(msg,cb){authCb=cb;document.getElementById('authClave').value='';document.getElementById('authErr').style.display='none';document.getElementById('authMsg').textContent=msg||'Ingresá la clave maestra.';document.getElementById('authOverlay').classList.add('abierto');setTimeout(()=>document.getElementById('authClave').focus(),100);}
 function confirmarAuth(){if(document.getElementById('authClave').value===getCM()){document.getElementById('authOverlay').classList.remove('abierto');if(authCb)authCb();authCb=null;}else{document.getElementById('authErr').style.display='block';document.getElementById('authClave').value='';}}
 function cancelarAuth(){document.getElementById('authOverlay').classList.remove('abierto');authCb=null;}
