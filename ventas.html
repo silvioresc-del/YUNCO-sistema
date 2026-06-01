@@ -136,8 +136,9 @@ table.comp tr:hover td{background:rgba(255,255,255,.02);}
       <option value="5">Vendedor 5</option><option value="6">Vendedor 6</option>
       <option value="7">Vendedor 7</option><option value="8">Vendedor 8</option>
       <option value="9">Vendedor 9</option>
-      <option value="gerente">📊 Gerente</option>
-      <option value="admin">🔧 Administrador</option>
+      <option value="gerente">📊 Gerente General</option>
+      <option value="dueno">👑 Dueño</option>
+      <option value="admin">🔧 Admin Técnico</option>
     </select>
     <input type="password" id="loginClave" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLogin()">
     <button class="login-btn" onclick="doLogin()">Ingresar →</button>
@@ -446,7 +447,51 @@ table.comp tr:hover td{background:rgba(255,255,255,.02);}
 <script>
 const EMP={nombre:'FEMO SRL',marca:'Yunco',cuit:'30-718081463-3',dom:'Av. Juan B. Justo 1223',ciudad:'San Miguel de Tucumán, CP 4000',iibb:'30718081463',iniAct:'01/05/2023',iva:'IVA Responsable Inscripto',tel:'(381) 3 17 55 43',wa:'381 6 24 41 05',mail:'yuncosrl@hotmail.com',pv:'0006'};
 const CD={'1':'1111','2':'2222','3':'3333','4':'4444','5':'5555','6':'6666','7':'7777','8':'8888','9':'9999','gerente':'gerente2024','admin':'yunco2024'};
-const ROLES={admin:'admin',gerente:'gerente',1:'vendedor',2:'vendedor',3:'vendedor',4:'vendedor',5:'vendedor',6:'vendedor',7:'vendedor',8:'vendedor',9:'vendedor'};
+
+const ROLES = {
+  admin:    'admin',
+  gerente:  'gerente',
+  dueno:    'dueno',
+  1:'vendedor',2:'vendedor',3:'vendedor',4:'vendedor',5:'vendedor',
+  6:'vendedor',7:'vendedor',8:'vendedor',9:'vendedor'
+};
+
+// Permisos por rol
+const PERMISOS = {
+  vendedor: {
+    tabs:         ['nueva','presupuesto','consulta','clientes'],
+    comprobantes: ['A','B','PRES'],   // NO puede NC ni ND
+    verTodosComp: false,
+    eliminarComp: false,
+    config:       false,
+  },
+  gerente: {
+    tabs:         ['nueva','presupuesto','comprobantes','consulta','clientes'],
+    comprobantes: ['A','B','PRES','NC','ND'],
+    verTodosComp: true,
+    eliminarComp: true,
+    config:       false,
+  },
+  dueno: {
+    tabs:         ['nueva','presupuesto','comprobantes','consulta','clientes','config'],
+    comprobantes: ['A','B','PRES','NC','ND'],
+    verTodosComp: true,
+    eliminarComp: true,
+    config:       true,
+    gestionUsuarios: true,
+  },
+  admin: {
+    tabs:         ['nueva','presupuesto','comprobantes','consulta','clientes','config'],
+    comprobantes: ['A','B','PRES','NC','ND'],
+    verTodosComp: true,
+    eliminarComp: true,
+    config:       true,
+    soloTecnico:  true,
+  },
+};
+
+function getPerm(key){ return PERMISOS[vRol]?.[key]; }
+
 const S={g:(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}},s:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
 const fmt=n=>'$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2});
 
@@ -456,43 +501,12 @@ function getCM(){return S.g('yunco_cm','SANTINO15');}
 
 
 // CONSULTA PUBLICA
-function renderPubStock(){
-  const q=(document.getElementById('pubBusq').value||'').toLowerCase();
-  const el=document.getElementById('pubResultados');
-  if(!q){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)"><div style="font-size:48px;margin-bottom:12px">🔍</div><p>Escribí para buscar productos</p></div>';return;}
-  let prods=[];
-  try{prods=JSON.parse(localStorage.getItem('yunco_inv')||'[]');}catch{prods=[];}
-  const matches=prods.filter(p=>p.nombre.toLowerCase().includes(q)||p.categoria.toLowerCase().includes(q));
-  if(!matches.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)"><div style="font-size:48px;margin-bottom:12px">📭</div><p>Sin resultados</p></div>';return;}
-  el.innerHTML='<div style="overflow-x:auto;border-radius:12px;border:1px solid var(--borde)"><table style="width:100%;border-collapse:collapse"><thead style="background:rgba(31,78,120,.3)"><tr><th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--borde)">Producto</th><th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--borde)">Categoría</th><th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--borde)">Stock</th><th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--borde)">Estado</th></tr></thead><tbody>'+
-  matches.map((p,i)=>{
-    const cls=p.stock===0?'color:var(--rojo3)':p.stock<=p.min?'color:var(--amarillo3)':'color:var(--verde3)';
-    const estado=p.stock===0?'🚨 Sin stock':p.stock<=p.min?'⚠️ Stock bajo':'✅ Disponible';
-    return`<tr style="${i%2?'background:rgba(255,255,255,.02)':''}">
-<td style="padding:11px 14px;font-size:13px;border-bottom:1px solid var(--borde)"><strong>${p.nombre}</strong></td>
-<td style="padding:11px 14px;font-size:13px;border-bottom:1px solid var(--borde);color:var(--muted)">${p.categoria}</td>
-<td style="padding:11px 14px;font-size:13px;border-bottom:1px solid var(--borde);font-weight:700;${cls}">${p.stock.toLocaleString('es-AR')} ${p.unidad}</td>
-<td style="padding:11px 14px;font-size:13px;border-bottom:1px solid var(--borde);${cls}">${estado}</td>
-</tr>`;}).join('')+
-  '</tbody></table></div>';
-}
 
 
-function mostrarConsulta(){
-  document.getElementById('opcionesIniciales').style.display='none';
-  document.getElementById('panelConsultaStock').style.display='flex';
-  setTimeout(()=>document.getElementById('pubBusq').focus(),100);
-}
-function volverOpciones(){
-  document.getElementById('panelConsultaStock').style.display='none';
-  document.getElementById('opcionesIniciales').style.display='flex';
-  document.getElementById('pubBusq').value='';
-  document.getElementById('pubResultados').innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)"><div style="font-size:48px;margin-bottom:12px">🔍</div><p>Escribí para buscar productos</p></div>';
-}
-function irAVentas(){
-  document.getElementById('consultaPublica').style.display='none';
-  document.getElementById('loginOverlay').style.display='flex';
-}
+
+
+
+
 
 function solAuth(msg,cb){authCb=cb;document.getElementById('authClave').value='';document.getElementById('authErr').style.display='none';document.getElementById('authMsg').textContent=msg||'Ingresá la clave maestra.';document.getElementById('authOverlay').classList.add('abierto');setTimeout(()=>document.getElementById('authClave').focus(),100);}
 function confirmarAuth(){if(document.getElementById('authClave').value===getCM()){document.getElementById('authOverlay').classList.remove('abierto');if(authCb)authCb();authCb=null;}else{document.getElementById('authErr').style.display='block';document.getElementById('authClave').value='';}}
@@ -519,7 +533,7 @@ function doLogin(){
 function logout(){vAct=null;vRol=null;document.getElementById('loginOverlay').style.display='flex';document.getElementById('loginVendedor').value='';document.getElementById('loginClave').value='';}
 
 function goTab(t){
-  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('activo',['nueva','presupuesto','comprobantes','clientes','consulta','config'][i]===t));
+  const _allTabs=['nueva','presupuesto','comprobantes','clientes','consulta','config'];document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('activo',_allTabs[i]===t));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('activo'));
   document.getElementById('panel-'+t).classList.add('activo');
   if(t==='comprobantes')renderComp();
@@ -531,6 +545,34 @@ function goTab(t){
 function onTipoChange(){updNro();const t=document.getElementById('tipoComp').value;document.getElementById('dolarWrap').style.display=t==='A'?'block':'none';recalc();}
 function updNro(){const t=document.getElementById('tipoComp')?.value||'B';const n=S.g('yunco_nums',{B:1228,A:0,NC:0,ND:0,PRES:0});if(document.getElementById('nroComp'))document.getElementById('nroComp').value=EMP.pv+'-'+String((n[t]||0)+1).padStart(8,'0');}
 function updNroPres(){const n=S.g('yunco_nums',{B:1228,A:0,NC:0,ND:0,PRES:0});if(document.getElementById('nroPres'))document.getElementById('nroPres').value='PRES-'+String((n.PRES||0)+1).padStart(6,'0');}
+
+
+// ACTUALIZAR OPCIONES DE COMPROBANTE SEGUN ROL
+function actualizarOpcionesComprobante(){
+  const sel = document.getElementById('tipoComp');
+  if(!sel) return;
+  const perm = PERMISOS[vRol] || PERMISOS['vendedor'];
+  const opciones = {
+    'B':    'Factura B',
+    'A':    'Factura A',
+    'NC':   'Nota de Crédito',
+    'ND':   'Nota de Débito',
+    'PRES': 'Presupuesto',
+  };
+  // Limpiar y reconstruir
+  const current = sel.value;
+  sel.innerHTML = '';
+  ['B','A','NC','ND'].forEach(tipo => {
+    if(perm.comprobantes.includes(tipo)){
+      const opt = document.createElement('option');
+      opt.value = tipo;
+      opt.textContent = opciones[tipo];
+      sel.appendChild(opt);
+    }
+  });
+  // Restaurar valor si sigue disponible
+  if(perm.comprobantes.includes(current)) sel.value = current;
+}
 
 // BUSQUEDA DINAMICA CLIENTE
 function buscarCliente(){
@@ -589,7 +631,7 @@ function addItem(bodyId,calcFn){
   const tr=document.createElement('tr');tr.id=id;
   tr.innerHTML=`<td><input type="text" placeholder="COD" id="${id}_cod"></td>
 <td style="position:relative"><input type="text" placeholder="🔍 Escribí para buscar producto..." id="${id}_desc" oninput="buscarProdItem('${id}','${calcFn}')" autocomplete="off">
-<div id="${id}_res" style="display:none;position:absolute;top:100%;left:0;right:0;background:#162b44;border:1px solid rgba(45,127,186,.4);border-radius:8px;z-index:99;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4)"></div></td>
+<div id="${id}_res" style="display:none;position:absolute;top:100%;left:0;right:0;background:#162b44;border:1px solid rgba(45,127,186,.4);border-radius:8px;z-index:9999;max-height:220px;overflow-y:auto;box-shadow:0 12px 32px rgba(0,0,0,.6)"></div></td>
 <td><input type="number" value="1" min="0" step="any" oninput="${calcFn}('${id}')" style="text-align:right"></td>
 <td><input type="text" value="unidad"></td>
 <td><input type="number" value="0" min="0" step="any" oninput="${calcFn}('${id}')" style="text-align:right"></td>
@@ -829,6 +871,23 @@ function pagoLbl(p){return{efectivo:'Efectivo',transferencia:'Transferencia',qr:
 function procesar(modo){
   const items=getItemsFrom('itemsBody');
   if(!items.length){alert('Agregá al menos un producto.');return;}
+  // VALIDACION STOCK INSUFICIENTE
+  let prods=[];
+  try{prods=JSON.parse(localStorage.getItem('yunco_inv')||'[]');}catch{}
+  const sinStock=[];
+  items.forEach(it=>{
+    const cod=parseInt(it.cod);
+    if(!cod)return;
+    const p=prods.find(x=>x.id===cod);
+    if(!p)return;
+    if(p.stock<parseFloat(it.cant)){
+      sinStock.push(p.nombre+' (disponible: '+p.stock.toLocaleString('es-AR')+' '+p.unidad+', pedido: '+it.cant+')');
+    }
+  });
+  if(sinStock.length){
+    alert('⚠️ Stock insuficiente para los siguientes productos:\n\n'+sinStock.join('\n')+'\n\nCorregí las cantidades antes de continuar.');
+    return;
+  }
   const data=getVentaData();
   data.modo=modo;
   const comp=S.g('yunco_comp',[]);comp.unshift(data);S.s('yunco_comp',comp);
@@ -898,6 +957,8 @@ function renderComp(){
   const q=(document.getElementById('busqComp').value||'').toLowerCase();
   const tipo=document.getElementById('filtTipo').value,est=document.getElementById('filtEstado').value;
   let comp=S.g('yunco_comp',[]);
+  // Vendedor solo ve sus propios comprobantes
+  if(vRol==='vendedor') comp=comp.filter(c=>c.vend===vAct);
   if(q)comp=comp.filter(c=>(c.cli?.nom||'').toLowerCase().includes(q)||(c.nro||'').includes(q));
   if(tipo)comp=comp.filter(c=>c.tipo===tipo);
   if(est)comp=comp.filter(c=>c.modo===est);
