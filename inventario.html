@@ -86,9 +86,48 @@ tr:hover td{background:rgba(255,255,255,.02);}
 .hist-tipo-entrada{color:var(--verde3);}
 .hist-tipo-salida{color:var(--rojo3);}
 @media(max-width:600px){.form-row{grid-template-columns:1fr;}.stats-grid{grid-template-columns:1fr 1fr;}}
+
+.login-overlay{position:fixed;inset:0;z-index:999;background:var(--fondo);display:flex;align-items:center;justify-content:center;padding:20px;}
+.login-box{background:var(--card);border:1px solid var(--borde2);border-radius:20px;padding:40px;width:100%;max-width:380px;text-align:center;animation:fadeUp .5s ease;}
+.login-logo{font-size:52px;font-weight:900;color:#c0392b;-webkit-text-stroke:3px #555;letter-spacing:2px;margin-bottom:4px;}
+.login-sub{color:var(--muted);font-size:13px;margin-bottom:28px;}
+.login-box select,.login-box input{width:100%;background:rgba(13,31,51,.8);border:1px solid var(--borde);color:var(--texto);padding:12px 16px;border-radius:10px;font-family:'Barlow',sans-serif;font-size:14px;outline:none;margin-bottom:12px;}
+.login-box select option{background:#162b44;}
+.login-btn{width:100%;background:var(--azul2);color:#fff;border:none;padding:13px;border-radius:10px;font-family:'Barlow',sans-serif;font-size:15px;font-weight:700;cursor:pointer;}
+.login-btn:hover{background:var(--azul3);}
+.login-error{color:var(--rojo3);font-size:13px;margin-top:8px;display:none;}
+
+
+.vendedor-info{background:rgba(26,122,60,.2);border:1px solid rgba(39,174,96,.3);padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;color:var(--verde3);}
+.logout-btn{background:var(--card);border:1px solid var(--borde);color:var(--muted);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;}
+.logout-btn:hover{color:var(--rojo3);}
+
 </style>
 </head>
 <body>
+
+<!-- LOGIN INVENTARIO -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="login-logo">Yunco</div>
+    <div class="login-sub">Inventario y Stock · Ingresá con tu usuario</div>
+    <select id="loginVendedor">
+      <option value="">— Seleccioná tu usuario —</option>
+      <option value="1">Vendedor 1</option><option value="2">Vendedor 2</option>
+      <option value="3">Vendedor 3</option><option value="4">Vendedor 4</option>
+      <option value="5">Vendedor 5</option><option value="6">Vendedor 6</option>
+      <option value="7">Vendedor 7</option><option value="8">Vendedor 8</option>
+      <option value="9">Vendedor 9</option>
+      <option value="gerente">📊 Gerente General</option>
+      <option value="dueno">👑 Dueño</option>
+      <option value="admin">🔧 Admin Técnico</option>
+    </select>
+    <input type="password" id="loginClave" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Ingresar →</button>
+    <div class="login-error" id="loginErr">Usuario o contraseña incorrectos.</div>
+  </div>
+</div>
+
 
 <div class="auth-overlay" id="authOverlay">
   <div class="auth-box">
@@ -108,7 +147,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <a href="index.html" class="back-btn">← Inicio</a>
     <div><div class="topbar-badge">MÓDULO</div><div class="topbar-title">📦 INVENTARIO Y STOCK</div></div>
   </div>
-  <div class="alerta-badge" id="alertaBadge" onclick="goTab('alertas')">⚠️ <span id="alertaCnt">0</span> alertas</div>
+  <div style="display:flex;align-items:center;gap:10px"><div class="vendedor-info" id="vendedorInfo">👤 —</div><div class="alerta-badge" id="alertaBadge" onclick="goTab('alertas')">⚠️ <span id="alertaCnt">0</span> alertas</div><button class="logout-btn" onclick="logout()">Salir</button></div>
 </div>
 
 <div class="contenido">
@@ -137,9 +176,9 @@ tr:hover td{background:rgba(255,255,255,.02);}
     </div>
     <div class="tabla-wrap">
       <table>
-        <thead><tr>
-          <th>Producto</th><th>Categoría</th><th>Unidad</th>
-          <th>Stock</th><th>Mín.</th><th>Precio venta</th><th>Acciones</th>
+        <thead id="stockThead"><tr>
+          <th>Producto</th><th>Categoría</th><th>Stock</th>
+          <th>Unidad</th><th id="thCosto" style="display:none">Costo</th><th>Precio venta</th><th>Acciones</th>
         </tr></thead>
         <tbody id="tablaStock"></tbody>
       </table>
@@ -562,6 +601,52 @@ function renderConsulta(){
 <td style="color:var(--verde3)">${p.venta?fmt(p.venta):'-'}</td>
 </tr>`;}).join('')+
   '</tbody></table></div>';
+}
+
+
+// ROLES INVENTARIO
+const CD_INV={'1':'1111','2':'2222','3':'3333','4':'4444','5':'5555','6':'6666','7':'7777','8':'8888','9':'9999','gerente':'gerente2024','dueno':'yunco2024','admin':'yunco2024'};
+const ROLES_INV={
+  vendedor: {tabs:['consulta','alertas'],          verCostos:false, verPrecioVenta:true,  modificar:false},
+  gerente:  {tabs:['stock','entrada','salida','historial','alertas','consulta'], verCostos:false, verPrecioVenta:true,  modificar:true},
+  dueno:    {tabs:['stock','entrada','salida','historial','alertas','consulta'], verCostos:true,  verPrecioVenta:true,  modificar:true},
+  admin:    {tabs:['stock','entrada','salida','historial','alertas','consulta'], verCostos:true,  verPrecioVenta:true,  modificar:true},
+};
+let vActInv=null, vRolInv=null;
+
+function doLogin(){
+  const v=document.getElementById('loginVendedor').value;
+  const c=document.getElementById('loginClave').value;
+  if(!v){document.getElementById('loginErr').style.display='block';return;}
+  const claves={...CD_INV,...S.g('yunco_claves',{})};
+  if(c!==claves[v]){document.getElementById('loginErr').style.display='block';return;}
+  vActInv=v;
+  const rolMap={gerente:'gerente',dueno:'dueno',admin:'admin'};
+  vRolInv=rolMap[v]||'vendedor';
+  const vends=S.g('yunco_vend',{});
+  const nombre=vends[v]?.nombre||(v==='admin'?'Admin Técnico':v==='gerente'?'Gerente':v==='dueno'?'Dueño':'Vendedor '+v);
+  document.getElementById('vendedorInfo').textContent='👤 '+nombre;
+  document.getElementById('loginErr').style.display='none';
+  document.getElementById('loginOverlay').style.display='none';
+  // Aplicar tabs segun rol
+  const perm=ROLES_INV[vRolInv];
+  const allTabs=['stock','entrada','salida','historial','alertas','consulta'];
+  document.querySelectorAll('.tab').forEach((el,i)=>{
+    if(allTabs[i]) el.style.display=perm.tabs.includes(allTabs[i])?'':'none';
+  });
+  // Ir al primer tab permitido
+  const primerTab=perm.tabs[0]||'consulta';
+  goTab(primerTab);
+  // Si es vendedor, ir directo a consulta
+  if(vRolInv==='vendedor') goTab('consulta');
+}
+
+function logout(){
+  vActInv=null;vRolInv=null;
+  document.getElementById('loginOverlay').style.display='flex';
+  document.getElementById('loginVendedor').value='';
+  document.getElementById('loginClave').value='';
+  document.getElementById('vendedorInfo').textContent='👤 —';
 }
 
 // INIT - forzar guardado en localStorage al cargar
