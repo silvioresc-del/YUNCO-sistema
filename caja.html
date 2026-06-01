@@ -1,33 +1,703 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Caja — YUNCO</title>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root { --naranja:#c0580a; --naranja2:#e67e22; --fondo:#0d1f33; --card:#162b44; --borde:rgba(255,255,255,.07); --texto:#e8eef5; --muted:#8ba5be; }
-    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:'Barlow',sans-serif; background:var(--fondo); min-height:100vh; color:var(--texto); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; }
-    body::before { content:''; position:fixed; inset:0; background:radial-gradient(ellipse 60% 50% at 20% 20%, rgba(192,88,10,.35) 0%, transparent 70%); pointer-events:none; }
-    .wrapper { position:relative; width:100%; max-width:520px; text-align:center; animation:fadeUp .6s ease both; }
-    @keyframes fadeUp { from{opacity:0;transform:translateY(28px)} to{opacity:1;transform:translateY(0)} }
-    .badge { display:inline-block; background:rgba(192,88,10,.4); border:1px solid rgba(230,126,34,.3); color:#f0a96a; font-size:11px; font-weight:700; letter-spacing:3px; text-transform:uppercase; padding:5px 14px; border-radius:20px; margin-bottom:16px; }
-    h1 { font-family:'Bebas Neue',sans-serif; font-size:42px; letter-spacing:2px; margin-bottom:10px; }
-    p { color:var(--muted); font-size:15px; margin-bottom:32px; }
-    .volver { display:inline-flex; align-items:center; gap:8px; background:var(--card); border:1px solid var(--borde); color:var(--texto); text-decoration:none; padding:12px 24px; border-radius:10px; font-weight:600; font-size:14px; transition:.2s; }
-    .volver:hover { border-color:rgba(230,126,34,.4); transform:translateY(-2px); }
-    .en-construccion { background:var(--card); border:1px solid var(--borde); border-radius:16px; padding:40px; margin-bottom:24px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cierre de Caja — YUNCO</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--azul:#1F4E78;--azul2:#2d7fba;--azul3:#4a9fd4;--fondo:#0d1f33;--card:#162b44;--borde:rgba(255,255,255,.07);--borde2:rgba(45,127,186,.25);--texto:#e8eef5;--muted:#8ba5be;--verde3:#2ecc71;--rojo3:#e74c3c;--amarillo3:#f39c12;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Barlow',sans-serif;background:var(--fondo);min-height:100vh;color:var(--texto);overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse 70% 50% at 10% 10%,rgba(31,78,120,.4) 0%,transparent 60%),radial-gradient(ellipse 50% 40% at 90% 90%,rgba(26,122,60,.1) 0%,transparent 60%);}
+.topbar{position:sticky;top:0;z-index:100;background:rgba(13,31,51,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--borde2);display:flex;align-items:center;justify-content:space-between;padding:12px 24px;gap:16px;}
+.topbar-left{display:flex;align-items:center;gap:14px;}
+.back-btn{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--borde);color:var(--muted);text-decoration:none;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;}
+.back-btn:hover{border-color:var(--borde2);color:var(--texto);}
+.topbar-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;}
+.topbar-badge{background:rgba(192,88,10,.4);border:1px solid rgba(230,126,34,.4);color:var(--amarillo3);font-size:10px;font-weight:700;letter-spacing:2px;padding:3px 10px;border-radius:20px;}
+.vendedor-info{background:rgba(26,122,60,.2);border:1px solid rgba(39,174,96,.3);padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;color:var(--verde3);}
+.logout-btn{background:var(--card);border:1px solid var(--borde);color:var(--muted);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;}
+.logout-btn:hover{color:var(--rojo3);}
+
+/* LOGIN */
+.login-overlay{position:fixed;inset:0;z-index:999;background:var(--fondo);display:flex;align-items:center;justify-content:center;padding:20px;}
+.login-box{background:var(--card);border:1px solid var(--borde2);border-radius:20px;padding:40px;width:100%;max-width:380px;text-align:center;}
+.login-logo{font-size:52px;font-weight:900;color:#c0392b;-webkit-text-stroke:3px #555;letter-spacing:2px;margin-bottom:4px;}
+.login-sub{color:var(--muted);font-size:13px;margin-bottom:28px;}
+.login-box select,.login-box input{width:100%;background:rgba(13,31,51,.8);border:1px solid var(--borde);color:var(--texto);padding:12px 16px;border-radius:10px;font-family:'Barlow',sans-serif;font-size:14px;outline:none;margin-bottom:12px;}
+.login-box select option{background:#162b44;}
+.login-btn{width:100%;background:var(--azul2);color:#fff;border:none;padding:13px;border-radius:10px;font-family:'Barlow',sans-serif;font-size:15px;font-weight:700;cursor:pointer;}
+.login-btn:hover{background:var(--azul3);}
+.login-error{color:var(--rojo3);font-size:13px;margin-top:8px;display:none;}
+
+.contenido{max-width:1100px;margin:0 auto;padding:24px;}
+
+/* ESTADO CAJA */
+.caja-cerrada{text-align:center;padding:60px 20px;}
+.caja-cerrada-icon{font-size:64px;margin-bottom:16px;}
+.caja-cerrada h2{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;margin-bottom:8px;}
+.caja-cerrada p{color:var(--muted);font-size:15px;margin-bottom:28px;}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:24px;}
+.stat-card{background:var(--card);border:1px solid var(--borde);border-radius:12px;padding:16px 18px;display:flex;align-items:center;gap:12px;}
+.stat-icon{font-size:26px;flex-shrink:0;}
+.stat-num{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;line-height:1;}
+.stat-label{font-size:11px;color:var(--muted);margin-top:2px;}
+.stat-card.verde{border-color:rgba(39,174,96,.3);background:rgba(26,122,60,.1);}
+.stat-card.rojo{border-color:rgba(192,57,43,.3);background:rgba(139,26,26,.1);}
+.stat-card.azul{border-color:rgba(45,127,186,.3);}
+.stat-card.naranja{border-color:rgba(230,126,34,.3);background:rgba(192,88,10,.1);}
+
+/* TABS */
+.tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.tab{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;border:1px solid var(--borde);background:var(--card);color:var(--muted);cursor:pointer;transition:.2s;}
+.tab:hover{border-color:var(--borde2);color:var(--texto);}
+.tab.activo{background:rgba(31,78,120,.5);border-color:rgba(45,127,186,.5);color:#7ab8e8;}
+.panel{display:none;animation:fadeUp .4s ease both;}
+.panel.activo{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* FORMS */
+.form-card{background:var(--card);border:1px solid var(--borde);border-radius:14px;padding:24px;margin-bottom:16px;}
+.form-card h3{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;margin-bottom:16px;color:var(--azul3);}
+.form-group{margin-bottom:14px;}
+.form-group label{display:block;font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;}
+.form-group input,.form-group select,.form-group textarea{width:100%;background:rgba(13,31,51,.8);border:1px solid var(--borde);color:var(--texto);padding:10px 14px;border-radius:8px;font-family:'Barlow',sans-serif;font-size:14px;outline:none;transition:.2s;}
+.form-group input:focus,.form-group select:focus{border-color:var(--azul2);}
+.form-group select option{background:#162b44;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;font-family:'Barlow',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:.2s;}
+.btn-primario{background:var(--azul2);color:#fff;}
+.btn-primario:hover{background:var(--azul3);}
+.btn-verde{background:rgba(26,122,60,.5);border:1px solid rgba(39,174,96,.4);color:var(--verde3);}
+.btn-verde:hover{background:rgba(39,174,96,.3);}
+.btn-rojo{background:rgba(139,26,26,.4);border:1px solid rgba(192,57,43,.4);color:#ff8a7a;}
+.btn-amarillo{background:rgba(122,90,10,.4);border:1px solid rgba(230,126,34,.4);color:var(--amarillo3);}
+.btn-outline{background:var(--card);border:1px solid var(--borde);color:var(--muted);}
+.btn-outline:hover{border-color:var(--borde2);color:var(--texto);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-grande{padding:16px 32px;font-size:16px;border-radius:12px;}
+
+/* TABLA */
+.tabla-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--borde);}
+table{width:100%;border-collapse:collapse;}
+thead{background:rgba(31,78,120,.3);}
+th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--borde);white-space:nowrap;}
+td{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--borde);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.02);}
+
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;}
+.badge-ef{background:rgba(26,122,60,.3);color:var(--verde3);}
+.badge-tr{background:rgba(31,78,120,.4);color:#7ab8e8;}
+.badge-qr{background:rgba(75,50,120,.3);color:#c39bff;}
+.badge-ta{background:rgba(122,90,10,.3);color:var(--amarillo3);}
+.badge-ch{background:rgba(80,50,20,.3);color:#ffb56b;}
+.badge-cc{background:rgba(50,80,80,.3);color:#5ee8e8;}
+
+/* GASTOS */
+.gasto-item{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card);border:1px solid var(--borde);border-radius:10px;margin-bottom:8px;}
+
+/* CTA CTE */
+.ctacte-item{background:var(--card);border:1px solid var(--borde);border-radius:12px;padding:16px;margin-bottom:10px;}
+.ctacte-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.ctacte-nombre{font-size:15px;font-weight:700;}
+.ctacte-deuda{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--rojo3);}
+.ctacte-movs{font-size:12px;color:var(--muted);}
+
+.vacio{text-align:center;padding:40px;color:var(--muted);}
+.divider{height:1px;background:var(--borde);margin:20px 0;}
+
+/* AUTH */
+.auth-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);align-items:center;justify-content:center;}
+.auth-overlay.abierto{display:flex;}
+.auth-box{background:var(--card);border:2px solid rgba(192,57,43,.5);border-radius:16px;padding:32px;width:100%;max-width:340px;text-align:center;}
+.auth-box h3{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--rojo3);margin-bottom:8px;}
+.auth-box p{color:var(--muted);font-size:13px;margin-bottom:18px;}
+.auth-box input{width:100%;background:rgba(13,31,51,.8);border:1px solid var(--borde);color:var(--texto);padding:12px;border-radius:8px;font-size:15px;outline:none;text-align:center;letter-spacing:4px;margin-bottom:10px;}
+.auth-error{color:var(--rojo3);font-size:12px;margin-bottom:8px;display:none;}
+
+/* PAGO MEDIOS */
+.medios-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px;}
+.medio-card{background:var(--card);border:1px solid var(--borde);border-radius:10px;padding:14px;text-align:center;}
+.medio-icon{font-size:24px;margin-bottom:4px;}
+.medio-label{font-size:11px;color:var(--muted);margin-bottom:4px;}
+.medio-monto{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;}
+
+@media(max-width:600px){.form-row,.form-row-3{grid-template-columns:1fr;}.stats-grid{grid-template-columns:1fr 1fr;}}
+</style>
 </head>
 <body>
-  <div class="wrapper">
-    <div class="en-construccion">
-      <div class="badge">Módulo</div>
-      <h1>🧾 Cierre de Caja</h1>
-      <p>Este módulo está listo para ser desarrollado.<br>Volvé al inicio para navegar el sistema.</p>
+
+<!-- AUTH -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-box">
+    <h3>🔐 Autorización Requerida</h3>
+    <p id="authMsg">Ingresá la clave maestra.</p>
+    <input type="password" id="authClave" placeholder="••••••••" onkeydown="if(event.key==='Enter')confirmarAuth()">
+    <div class="auth-error" id="authErr">Clave incorrecta.</div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline" style="flex:1" onclick="cancelarAuth()">Cancelar</button>
+      <button class="btn btn-primario" style="flex:1" onclick="confirmarAuth()">Confirmar</button>
     </div>
-    <a href="index.html" class="volver">← Volver al inicio</a>
   </div>
+</div>
+
+<!-- LOGIN -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="login-logo">Yunco</div>
+    <div class="login-sub">Cierre de Caja · Ingresá con tu usuario</div>
+    <select id="loginVendedor">
+      <option value="">— Seleccioná tu usuario —</option>
+      <option value="1">Vendedor 1</option><option value="2">Vendedor 2</option>
+      <option value="3">Vendedor 3</option><option value="4">Vendedor 4</option>
+      <option value="5">Vendedor 5</option><option value="6">Vendedor 6</option>
+      <option value="7">Vendedor 7</option><option value="8">Vendedor 8</option>
+      <option value="9">Vendedor 9</option>
+      <option value="gerente">📊 Gerente</option>
+      <option value="admin">🔧 Administrador</option>
+    </select>
+    <input type="password" id="loginClave" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Ingresar →</button>
+    <div class="login-error" id="loginErr">Usuario o contraseña incorrectos.</div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <a href="index.html" class="back-btn">← Inicio</a>
+    <div><div class="topbar-badge">MÓDULO</div><div class="topbar-title">🧾 CIERRE DE CAJA</div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="vendedor-info" id="vendedorInfo">👤 —</div>
+    <div id="cajaEstadoBadge" style="display:none;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:700"></div>
+    <button class="logout-btn" onclick="logout()">Salir</button>
+  </div>
+</div>
+
+<div class="contenido" id="mainContenido">
+
+  <!-- CAJA CERRADA -->
+  <div id="viewCerrada" style="display:none">
+    <div class="caja-cerrada">
+      <div class="caja-cerrada-icon">🔒</div>
+      <h2>Caja Cerrada</h2>
+      <p>No hay ninguna caja abierta hoy.<br>El gerente o admin debe abrir la caja para comenzar.</p>
+      <div id="btnAbrirWrap">
+        <button class="btn btn-primario btn-grande" onclick="abrirCaja()">🔓 Abrir Caja del Día</button>
+      </div>
+      <div style="margin-top:24px">
+        <button class="btn btn-outline" onclick="goHistorialCajas()">📚 Ver historial de cierres</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CAJA ABIERTA -->
+  <div id="viewAbierta" style="display:none">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px">📅 <span id="fechaCaja"></span></div>
+        <div style="color:var(--muted);font-size:13px">Caja abierta · <span id="horaApertura"></span></div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap" id="botonesGerente">
+        <button class="btn btn-amarillo" onclick="solAuth('Cerrar caja del día',cerrarCaja)">🔒 Cerrar Caja</button>
+        <button class="btn btn-primario" onclick="previsualizarCierre()">👁 Vista Previa</button>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card verde"><div class="stat-icon">💰</div><div><div class="stat-num" id="stIngreso">$0</div><div class="stat-label">Total ingresos</div></div></div>
+      <div class="stat-card rojo"><div class="stat-icon">💸</div><div><div class="stat-num" id="stGasto">$0</div><div class="stat-label">Total gastos</div></div></div>
+      <div class="stat-card azul"><div class="stat-icon">📊</div><div><div class="stat-num" id="stSaldo">$0</div><div class="stat-label">Saldo neto</div></div></div>
+      <div class="stat-card naranja"><div class="stat-icon">📋</div><div><div class="stat-num" id="stFacturas">0</div><div class="stat-label">Comprobantes</div></div></div>
+    </div>
+
+    <!-- MEDIOS DE PAGO -->
+    <div class="medios-grid" id="mediosGrid">
+      <div class="medio-card"><div class="medio-icon">💵</div><div class="medio-label">Efectivo</div><div class="medio-monto" id="mEfectivo">$0</div></div>
+      <div class="medio-card"><div class="medio-icon">🏦</div><div class="medio-label">Transferencia</div><div class="medio-monto" id="mTransferencia">$0</div></div>
+      <div class="medio-card"><div class="medio-icon">📱</div><div class="medio-label">QR</div><div class="medio-monto" id="mQr">$0</div></div>
+      <div class="medio-card"><div class="medio-icon">💳</div><div class="medio-label">Tarjeta</div><div class="medio-monto" id="mTarjeta">$0</div></div>
+      <div class="medio-card"><div class="medio-icon">📄</div><div class="medio-label">Cheque</div><div class="medio-monto" id="mCheque">$0</div></div>
+      <div class="medio-card"><div class="medio-icon">📒</div><div class="medio-label">Cta. Corriente</div><div class="medio-monto" id="mCtaCte">$0</div></div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab activo" onclick="goTab('ventas')">💵 Ventas del día</div>
+      <div class="tab" onclick="goTab('gastos')">💸 Gastos</div>
+      <div class="tab" onclick="goTab('ctacte')">📒 Cta. Corriente</div>
+      <div class="tab tab-gerente" onclick="goTab('histcajas')">📚 Historial cajas</div>
+    </div>
+
+    <!-- VENTAS DEL DIA -->
+    <div class="panel activo" id="panel-ventas">
+      <div class="tabla-wrap">
+        <table>
+          <thead><tr><th>N°</th><th>Tipo</th><th>Cliente</th><th>Pago</th><th>Total</th><th>Vendedor</th><th>Hora</th></tr></thead>
+          <tbody id="tablaVentas"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- GASTOS -->
+    <div class="panel" id="panel-gastos">
+      <div class="form-card" style="max-width:500px">
+        <h3>➕ Agregar Gasto</h3>
+        <div class="form-group"><label>Descripción</label><input type="text" id="gastoDesc" placeholder="Ej: Pago proveedor García, Luz, etc."></div>
+        <div class="form-row">
+          <div class="form-group"><label>Monto ($)</label><input type="number" id="gastoMonto" min="0" placeholder="0"></div>
+          <div class="form-group"><label>Categoría</label>
+            <select id="gastoCat">
+              <option>Proveedor</option><option>Sueldo</option><option>Servicios</option>
+              <option>Alquiler</option><option>Flete</option><option>Varios</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-rojo" onclick="agregarGasto()">➕ Agregar gasto</button>
+      </div>
+      <div id="listaGastos"></div>
+    </div>
+
+    <!-- CTA CTE -->
+    <div class="panel" id="panel-ctacte">
+      <div id="listaCtaCte"></div>
+      <div style="margin-top:16px">
+        <button class="btn btn-primario" onclick="abrirRegistrarCobro()">💰 Registrar cobro de cta. cte.</button>
+      </div>
+    </div>
+
+    <!-- HISTORIAL CAJAS -->
+    <div class="panel" id="panel-histcajas">
+      <div id="listaHistCajas"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- MODAL COBRO CTA CTE -->
+<div class="auth-overlay" id="overlayCobroCte" style="z-index:300">
+  <div class="auth-box" style="max-width:420px;border-color:rgba(45,127,186,.4)">
+    <h3 style="color:#7ab8e8">💰 Registrar Cobro</h3>
+    <p>Registrá un pago recibido de cuenta corriente</p>
+    <div style="text-align:left;margin-bottom:12px">
+      <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:5px">Cliente</label>
+      <select id="cobroCliente" style="width:100%;background:rgba(13,31,51,.8);border:1px solid var(--borde);color:var(--texto);padding:10px;border-radius:8px;font-size:14px;outline:none;margin-bottom:12px"></select>
+      <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:5px">Monto cobrado ($)</label>
+      <input type="number" id="cobroMonto" placeholder="0" style="width:100%;background:rgba(13,31,51,.8);border:1px solid var(--borde);color:var(--texto);padding:10px;border-radius:8px;font-size:14px;outline:none;margin-bottom:12px">
+      <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:5px">Medio de pago</label>
+      <select id="cobroMedio" style="width:100%;background:rgba(13,31,51,.8);border:1px solid var(--borde);color:var(--texto);padding:10px;border-radius:8px;font-size:14px;outline:none;margin-bottom:12px">
+        <option value="efectivo">💵 Efectivo</option>
+        <option value="transferencia">🏦 Transferencia</option>
+        <option value="cheque">📄 Cheque</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline" style="flex:1" onclick="document.getElementById('overlayCobroCte').classList.remove('abierto')">Cancelar</button>
+      <button class="btn btn-primario" style="flex:1" onclick="registrarCobroCte()">✅ Registrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CD={'1':'1111','2':'2222','3':'3333','4':'4444','5':'5555','6':'6666','7':'7777','8':'8888','9':'9999','gerente':'gerente2024','admin':'yunco2024'};
+const S={g:(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}},s:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
+const fmt=n=>'$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:0});
+const fmtFull=n=>'$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2});
+function getCM(){return localStorage.getItem('yunco_cm')||'SANTINO15';}
+
+let vAct=null,vRol=null,authCb=null;
+
+// AUTH
+function solAuth(msg,cb){authCb=cb;document.getElementById('authClave').value='';document.getElementById('authErr').style.display='none';document.getElementById('authMsg').textContent=msg+' — Clave maestra:';document.getElementById('authOverlay').classList.add('abierto');setTimeout(()=>document.getElementById('authClave').focus(),100);}
+function confirmarAuth(){if(document.getElementById('authClave').value===getCM()){document.getElementById('authOverlay').classList.remove('abierto');if(authCb)authCb();authCb=null;}else{document.getElementById('authErr').style.display='block';document.getElementById('authClave').value='';}}
+function cancelarAuth(){document.getElementById('authOverlay').classList.remove('abierto');authCb=null;}
+
+// LOGIN
+function doLogin(){
+  const v=document.getElementById('loginVendedor').value,c=document.getElementById('loginClave').value;
+  if(!v){document.getElementById('loginErr').style.display='block';return;}
+  const claves={...CD,...S.g('yunco_claves',{})};
+  if(c!==claves[v]){document.getElementById('loginErr').style.display='block';return;}
+  vAct=v;vRol=v==='admin'?'admin':v==='gerente'?'gerente':'vendedor';
+  const vends=S.g('yunco_vend',{});
+  document.getElementById('vendedorInfo').textContent='👤 '+(vends[v]?.nombre||(v==='admin'?'Admin':v==='gerente'?'Gerente':'Vendedor '+v));
+  document.getElementById('loginOverlay').style.display='none';
+  // Permisos
+  if(vRol==='vendedor'){
+    document.getElementById('botonesGerente').style.display='none';
+    document.querySelectorAll('.tab-gerente').forEach(t=>t.style.display='none');
+  }
+  initCaja();
+}
+function logout(){vAct=null;vRol=null;document.getElementById('loginOverlay').style.display='flex';document.getElementById('loginVendedor').value='';document.getElementById('loginClave').value='';}
+
+// TABS
+function goTab(t){
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('activo',['ventas','gastos','ctacte','histcajas'][i]===t));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('activo'));
+  document.getElementById('panel-'+t).classList.add('activo');
+  if(t==='ventas')renderVentas();
+  if(t==='gastos')renderGastos();
+  if(t==='ctacte')renderCtaCte();
+  if(t==='histcajas')renderHistCajas();
+}
+function goHistorialCajas(){document.getElementById('viewCerrada').style.display='none';document.getElementById('viewAbierta').style.display='block';setTimeout(()=>goTab('histcajas'),100);}
+
+// INIT CAJA
+function initCaja(){
+  const hoy=getFechaHoy();
+  const caja=S.g('yunco_caja_'+hoy,null);
+  if(caja&&caja.abierta){
+    mostrarCajaAbierta(caja,hoy);
+  } else {
+    document.getElementById('viewCerrada').style.display='block';
+    document.getElementById('viewAbierta').style.display='none';
+    // Solo gerente/admin puede abrir
+    if(vRol==='vendedor'){
+      document.getElementById('btnAbrirWrap').innerHTML='<div style="color:var(--muted);font-size:14px">Solo el gerente o administrador puede abrir la caja.</div>';
+    }
+  }
+}
+
+function getFechaHoy(){return new Date().toISOString().split('T')[0];}
+
+function abrirCaja(){
+  const hoy=getFechaHoy();
+  const caja={abierta:true,fecha:hoy,apertura:new Date().toISOString(),gastos:[],cobros_cte:[]};
+  S.s('yunco_caja_'+hoy,caja);
+  mostrarCajaAbierta(caja,hoy);
+}
+
+function mostrarCajaAbierta(caja,fecha){
+  document.getElementById('viewCerrada').style.display='none';
+  document.getElementById('viewAbierta').style.display='block';
+  const d=new Date(fecha+'T00:00:00');
+  document.getElementById('fechaCaja').textContent=d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('horaApertura').textContent='Apertura: '+new Date(caja.apertura).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+  actualizarStats();
+  renderVentas();
+}
+
+// OBTENER VENTAS DEL DIA
+function getVentasHoy(){
+  const hoy=getFechaHoy();
+  return S.g('yunco_comp',[]).filter(v=>{
+    if(!v.fecha)return false;
+    return v.fecha.startsWith(hoy)&&v.modo==='registrar';
+  });
+}
+
+// STATS
+function actualizarStats(){
+  const ventas=getVentasHoy();
+  const hoy=getFechaHoy();
+  const caja=S.g('yunco_caja_'+hoy,{gastos:[],cobros_cte:[]});
+  const gastos=caja.gastos||[];
+  const cobros=caja.cobros_cte||[];
+
+  let totVentas=0,ef=0,tr=0,qr=0,ta=0,ch=0,cc=0;
+  ventas.forEach(v=>{
+    const t=parseFloat(v.total)||0;
+    totVentas+=t;
+    if(v.pago==='efectivo')ef+=t;
+    else if(v.pago==='transferencia')tr+=t;
+    else if(v.pago==='qr')qr+=t;
+    else if(v.pago==='tarjeta')ta+=t;
+    else if(v.pago==='cheque')ch+=t;
+    else if(v.pago==='cuenta_corriente')cc+=t;
+  });
+  // Cobros cta cte
+  cobros.forEach(c=>{
+    const m=parseFloat(c.monto)||0;
+    totVentas+=m;
+    if(c.medio==='efectivo')ef+=m;
+    else if(c.medio==='transferencia')tr+=m;
+    else if(c.medio==='cheque')ch+=m;
+  });
+
+  const totGastos=gastos.reduce((a,g)=>a+parseFloat(g.monto||0),0);
+  const saldo=totVentas-totGastos;
+
+  document.getElementById('stIngreso').textContent=fmt(totVentas);
+  document.getElementById('stGasto').textContent=fmt(totGastos);
+  document.getElementById('stSaldo').textContent=fmt(saldo);
+  document.getElementById('stSaldo').style.color=saldo>=0?'var(--verde3)':'var(--rojo3)';
+  document.getElementById('stFacturas').textContent=ventas.length;
+  document.getElementById('mEfectivo').textContent=fmt(ef);
+  document.getElementById('mTransferencia').textContent=fmt(tr);
+  document.getElementById('mQr').textContent=fmt(qr);
+  document.getElementById('mTarjeta').textContent=fmt(ta);
+  document.getElementById('mCheque').textContent=fmt(ch);
+  document.getElementById('mCtaCte').textContent=fmt(cc);
+}
+
+// VENTAS
+function renderVentas(){
+  const ventas=getVentasHoy();
+  const tbody=document.getElementById('tablaVentas');
+  if(!ventas.length){tbody.innerHTML='<tr><td colspan="7"><div class="vacio">No hay ventas registradas hoy.</div></td></tr>';return;}
+  const pi={efectivo:'💵',transferencia:'🏦',qr:'📱',tarjeta:'💳',cheque:'📄',cuenta_corriente:'📒'};
+  const pc={efectivo:'badge-ef',transferencia:'badge-tr',qr:'badge-qr',tarjeta:'badge-ta',cheque:'badge-ch',cuenta_corriente:'badge-cc'};
+  const pl={efectivo:'Efectivo',transferencia:'Transferencia',qr:'QR',tarjeta:'Tarjeta',cheque:'Cheque',cuenta_corriente:'Cta.Cte'};
+  const vends=S.g('yunco_vend',{});
+  tbody.innerHTML=ventas.map(v=>{
+    const hora=new Date(v.fecha).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+    const vN=vends[v.vend]?.nombre||(v.vend==='admin'?'Admin':v.vend==='gerente'?'Gerente':'V'+v.vend);
+    return`<tr>
+<td style="font-family:'Bebas Neue',sans-serif;font-size:12px">${v.nro}</td>
+<td><span class="badge" style="background:rgba(31,78,120,.4);color:#7ab8e8">Fact.${v.tipo}</span></td>
+<td>${v.cli?.nom||'-'}</td>
+<td><span class="badge ${pc[v.pago]||''}">${pi[v.pago]||''} ${pl[v.pago]||v.pago||'-'}</span></td>
+<td style="font-weight:700;color:var(--verde3)">${fmtFull(v.total)}</td>
+<td>${vN}</td>
+<td style="color:var(--muted)">${hora}</td>
+</tr>`;}).join('');
+}
+
+// GASTOS
+function agregarGasto(){
+  const desc=document.getElementById('gastoDesc').value.trim();
+  const monto=parseFloat(document.getElementById('gastoMonto').value)||0;
+  if(!desc||monto<=0){alert('Completá descripción y monto.');return;}
+  const hoy=getFechaHoy();
+  const caja=S.g('yunco_caja_'+hoy,{abierta:true,fecha:hoy,apertura:new Date().toISOString(),gastos:[],cobros_cte:[]});
+  caja.gastos.push({id:Date.now(),desc,monto,cat:document.getElementById('gastoCat').value,hora:new Date().toISOString(),vend:vAct});
+  S.s('yunco_caja_'+hoy,caja);
+  document.getElementById('gastoDesc').value='';document.getElementById('gastoMonto').value='';
+  actualizarStats();renderGastos();
+}
+
+function renderGastos(){
+  const hoy=getFechaHoy();
+  const caja=S.g('yunco_caja_'+hoy,{gastos:[]});
+  const gastos=caja.gastos||[];
+  const el=document.getElementById('listaGastos');
+  if(!gastos.length){el.innerHTML='<div class="vacio">No hay gastos registrados hoy.</div>';return;}
+  el.innerHTML=gastos.map(g=>`<div class="gasto-item">
+<span style="font-size:20px">💸</span>
+<div style="flex:1">
+  <div style="font-size:14px;font-weight:600">${g.desc}</div>
+  <div style="font-size:12px;color:var(--muted)">${g.cat} · ${new Date(g.hora).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})}</div>
+</div>
+<div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--rojo3)">${fmtFull(g.monto)}</div>
+<button class="btn btn-rojo btn-sm" onclick="solAuth('Eliminar gasto',()=>eliminarGasto(${g.id}))">🗑</button>
+</div>`).join('');
+}
+
+function eliminarGasto(id){
+  const hoy=getFechaHoy();
+  const caja=S.g('yunco_caja_'+hoy,{gastos:[]});
+  caja.gastos=(caja.gastos||[]).filter(g=>g.id!==id);
+  S.s('yunco_caja_'+hoy,caja);
+  actualizarStats();renderGastos();
+}
+
+// CTA CTE
+function renderCtaCte(){
+  const ventas=S.g('yunco_comp',[]).filter(v=>v.pago==='cuenta_corriente'&&v.modo==='registrar');
+  const cobros=S.g('yunco_cobros_cte',[]);
+  // Agrupar por cliente
+  const clientes={};
+  ventas.forEach(v=>{
+    const nom=v.cli?.nom||'Sin nombre';
+    if(!clientes[nom])clientes[nom]={nom,cuit:v.cli?.cuit||'',deuda:0,movs:[]};
+    clientes[nom].deuda+=parseFloat(v.total)||0;
+    clientes[nom].movs.push({tipo:'deuda',desc:'Factura '+v.nro,monto:v.total,fecha:v.fecha});
+  });
+  cobros.forEach(c=>{
+    const nom=c.cliente;
+    if(!clientes[nom])clientes[nom]={nom,cuit:'',deuda:0,movs:[]};
+    clientes[nom].deuda-=parseFloat(c.monto)||0;
+    clientes[nom].movs.push({tipo:'cobro',desc:'Cobro',monto:c.monto,fecha:c.fecha});
+  });
+  const el=document.getElementById('listaCtaCte');
+  const lista=Object.values(clientes).filter(c=>c.deuda>0);
+  if(!lista.length){el.innerHTML='<div class="vacio">✅ No hay cuentas corrientes pendientes.</div>';return;}
+  el.innerHTML=lista.map(c=>`<div class="ctacte-item">
+<div class="ctacte-header">
+  <div><div class="ctacte-nombre">${c.nom}</div><div class="ctacte-movs">${c.cuit||'Sin CUIT'}</div></div>
+  <div style="text-align:right"><div class="ctacte-deuda">${fmtFull(c.deuda)}</div><div style="font-size:11px;color:var(--muted)">saldo pendiente</div></div>
+</div>
+<div style="font-size:12px;color:var(--muted)">
+${c.movs.slice(0,3).map(m=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid var(--borde)">
+<span>${m.tipo==='deuda'?'📤':'💰'} ${m.desc}</span>
+<span style="color:${m.tipo==='deuda'?'var(--rojo3)':'var(--verde3)'}">${m.tipo==='deuda'?'-':'+'}${fmtFull(m.monto)}</span>
+</div>`).join('')}
+</div>
+</div>`).join('');
+  // Fill select cobro
+  const sel=document.getElementById('cobroCliente');
+  sel.innerHTML=lista.map(c=>`<option value="${c.nom}">${c.nom} — debe ${fmtFull(c.deuda)}</option>`).join('');
+}
+
+function abrirRegistrarCobro(){document.getElementById('overlayCobroCte').classList.add('abierto');}
+function registrarCobroCte(){
+  const cliente=document.getElementById('cobroCliente').value;
+  const monto=parseFloat(document.getElementById('cobroMonto').value)||0;
+  const medio=document.getElementById('cobroMedio').value;
+  if(!cliente||monto<=0){alert('Completá los datos.');return;}
+  const cobros=S.g('yunco_cobros_cte',[]);
+  cobros.push({id:Date.now(),cliente,monto,medio,fecha:new Date().toISOString(),vend:vAct});
+  S.s('yunco_cobros_cte',cobros);
+  // Registrar en caja del dia
+  const hoy=getFechaHoy();
+  const caja=S.g('yunco_caja_'+hoy,{abierta:true,fecha:hoy,apertura:new Date().toISOString(),gastos:[],cobros_cte:[]});
+  if(!caja.cobros_cte)caja.cobros_cte=[];
+  caja.cobros_cte.push({cliente,monto,medio,fecha:new Date().toISOString()});
+  S.s('yunco_caja_'+hoy,caja);
+  document.getElementById('overlayCobroCte').classList.remove('abierto');
+  document.getElementById('cobroMonto').value='';
+  actualizarStats();renderCtaCte();alert('✅ Cobro registrado.');
+}
+
+// CERRAR CAJA
+function cerrarCaja(){
+  const hoy=getFechaHoy();
+  const caja=S.g('yunco_caja_'+hoy,{});
+  caja.abierta=false;
+  caja.cierre=new Date().toISOString();
+  caja.resumen=generarResumen();
+  S.s('yunco_caja_'+hoy,caja);
+  // Guardar en historial
+  const hist=S.g('yunco_hist_cajas',[]);
+  hist.unshift({fecha:hoy,...caja.resumen,cierre:caja.cierre});
+  S.s('yunco_hist_cajas',hist);
+  alert('✅ Caja cerrada correctamente.');
+  previsualizarCierre(true);
+}
+
+function generarResumen(){
+  const ventas=getVentasHoy();
+  const hoy=getFechaHoy();
+  const caja=S.g('yunco_caja_'+hoy,{gastos:[],cobros_cte:[]});
+  let totVentas=0,ef=0,tr=0,qr=0,ta=0,ch=0,cc=0;
+  ventas.forEach(v=>{const t=parseFloat(v.total)||0;totVentas+=t;if(v.pago==='efectivo')ef+=t;else if(v.pago==='transferencia')tr+=t;else if(v.pago==='qr')qr+=t;else if(v.pago==='tarjeta')ta+=t;else if(v.pago==='cheque')ch+=t;else if(v.pago==='cuenta_corriente')cc+=t;});
+  (caja.cobros_cte||[]).forEach(c=>{const m=parseFloat(c.monto)||0;totVentas+=m;if(c.medio==='efectivo')ef+=m;else if(c.medio==='transferencia')tr+=m;else if(c.medio==='cheque')ch+=m;});
+  const totGastos=(caja.gastos||[]).reduce((a,g)=>a+parseFloat(g.monto||0),0);
+  return{totVentas,totGastos,saldo:totVentas-totGastos,ef,tr,qr,ta,ch,cc,cantFacturas:ventas.length,gastos:caja.gastos||[],ventas};
+}
+
+// VISTA PREVIA / PDF
+function previsualizarCierre(imprimir=false){
+  const r=generarResumen();
+  const hoy=getFechaHoy();
+  const d=new Date(hoy+'T00:00:00');
+  const fecha=d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const vends=S.g('yunco_vend',{});
+  const filasVentas=r.ventas.map(v=>{
+    const hora=new Date(v.fecha).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+    const vN=vends[v.vend]?.nombre||(v.vend==='admin'?'Admin':v.vend==='gerente'?'Gerente':'V'+v.vend);
+    const pl={efectivo:'Efectivo',transferencia:'Transferencia',qr:'QR',tarjeta:'Tarjeta',cheque:'Cheque',cuenta_corriente:'Cta.Cte'};
+    return`<tr><td>${v.nro}</td><td>Fact.${v.tipo}</td><td>${v.cli?.nom||'-'}</td><td>${pl[v.pago]||v.pago}</td><td style="text-align:right;font-weight:700">${fmtFull(v.total)}</td><td>${vN}</td><td>${hora}</td></tr>`;}).join('');
+  const filasGastos=(r.gastos||[]).map(g=>`<tr><td>${g.desc}</td><td>${g.cat}</td><td style="text-align:right;color:#c0392b;font-weight:700">${fmtFull(g.monto)}</td></tr>`).join('');
+
+  const html=`
+<div style="font-family:Arial,sans-serif;color:#000;max-width:800px;margin:0 auto;padding:20px">
+  <div style="text-align:center;margin-bottom:20px;border-bottom:3px solid #000;padding-bottom:16px">
+    <div style="font-size:36px;font-weight:900;color:#c0392b;-webkit-text-stroke:2px #555;letter-spacing:2px">Yunco</div>
+    <div style="font-size:11px;color:#555">FEMO SRL · CUIT 30-718081463-3 · Av. Juan B. Justo 1223, San Miguel de Tucumán</div>
+    <div style="font-size:18px;font-weight:700;margin-top:8px;text-transform:uppercase;letter-spacing:2px">Resumen de Cierre de Caja</div>
+    <div style="font-size:13px;color:#555;margin-top:4px;text-transform:capitalize">${fecha}</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px">
+    <div style="border:2px solid #27ae60;border-radius:8px;padding:12px;text-align:center">
+      <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:1px">Total Ingresos</div>
+      <div style="font-size:24px;font-weight:900;color:#27ae60">${fmtFull(r.totVentas)}</div>
+    </div>
+    <div style="border:2px solid #c0392b;border-radius:8px;padding:12px;text-align:center">
+      <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:1px">Total Gastos</div>
+      <div style="font-size:24px;font-weight:900;color:#c0392b">${fmtFull(r.totGastos)}</div>
+    </div>
+    <div style="border:2px solid #2d7fba;border-radius:8px;padding:12px;text-align:center">
+      <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:1px">Saldo Neto</div>
+      <div style="font-size:24px;font-weight:900;color:${r.saldo>=0?'#27ae60':'#c0392b'}">${fmtFull(r.saldo)}</div>
+    </div>
+  </div>
+
+  <div style="margin-bottom:16px">
+    <div style="font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;border-bottom:1px solid #ddd;padding-bottom:4px">Desglose por Medio de Pago</div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <tr><td style="padding:5px 8px">💵 Efectivo</td><td style="text-align:right;font-weight:700;padding:5px 8px">${fmtFull(r.ef)}</td></tr>
+      <tr style="background:#f9f9f9"><td style="padding:5px 8px">🏦 Transferencia</td><td style="text-align:right;font-weight:700;padding:5px 8px">${fmtFull(r.tr)}</td></tr>
+      <tr><td style="padding:5px 8px">📱 QR</td><td style="text-align:right;font-weight:700;padding:5px 8px">${fmtFull(r.qr)}</td></tr>
+      <tr style="background:#f9f9f9"><td style="padding:5px 8px">💳 Tarjeta</td><td style="text-align:right;font-weight:700;padding:5px 8px">${fmtFull(r.ta)}</td></tr>
+      <tr><td style="padding:5px 8px">📄 Cheque</td><td style="text-align:right;font-weight:700;padding:5px 8px">${fmtFull(r.ch)}</td></tr>
+      <tr style="background:#f9f9f9"><td style="padding:5px 8px">📒 Cta. Corriente</td><td style="text-align:right;font-weight:700;padding:5px 8px">${fmtFull(r.cc)}</td></tr>
+    </table>
+  </div>
+
+  ${r.ventas.length?`<div style="margin-bottom:16px">
+    <div style="font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;border-bottom:1px solid #ddd;padding-bottom:4px">Comprobantes del Día (${r.cantFacturas})</div>
+    <table style="width:100%;border-collapse:collapse;font-size:11px">
+      <thead><tr style="background:#eee"><th style="padding:5px 8px;text-align:left">N°</th><th style="padding:5px 8px;text-align:left">Tipo</th><th style="padding:5px 8px;text-align:left">Cliente</th><th style="padding:5px 8px;text-align:left">Pago</th><th style="padding:5px 8px;text-align:right">Total</th><th style="padding:5px 8px;text-align:left">Vendedor</th><th style="padding:5px 8px;text-align:left">Hora</th></tr></thead>
+      <tbody>${filasVentas}</tbody>
+    </table>
+  </div>`:''}
+
+  ${r.gastos&&r.gastos.length?`<div style="margin-bottom:16px">
+    <div style="font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;border-bottom:1px solid #ddd;padding-bottom:4px">Gastos del Día</div>
+    <table style="width:100%;border-collapse:collapse;font-size:11px">
+      <thead><tr style="background:#eee"><th style="padding:5px 8px;text-align:left">Descripción</th><th style="padding:5px 8px;text-align:left">Categoría</th><th style="padding:5px 8px;text-align:right">Monto</th></tr></thead>
+      <tbody>${filasGastos}</tbody>
+    </table>
+  </div>`:''}
+
+  <div style="margin-top:20px;border-top:2px solid #000;padding-top:12px;display:flex;justify-content:space-between;font-size:11px;color:#555">
+    <span>YUNCO DE FEMO SRL · yuncosrl@hotmail.com</span>
+    <span>WhatsApp: 381 6 24 41 05</span>
+    <span>Generado: ${new Date().toLocaleString('es-AR')}</span>
+  </div>
+</div>`;
+
+  const w=window.open('','_blank','width=900,height=700');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Cierre de Caja ${hoy}</title></head><body>${html}
+  <div style="text-align:center;margin-top:20px;font-family:Arial,sans-serif">
+    <button onclick="window.print()" style="padding:12px 24px;background:#2d7fba;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;margin-right:10px">🖨 Imprimir / Guardar PDF</button>
+    <button onclick="compartirWhatsApp()" style="padding:12px 24px;background:#25D366;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer">📱 Enviar por WhatsApp</button>
+  </div>
+  <script>
+  function compartirWhatsApp(){
+    const texto = encodeURIComponent("📊 *CIERRE DE CAJA YUNCO*\\n📅 ${fecha}\\n\\n💰 *Total Ingresos:* ${fmtFull(r.totVentas)}\\n💸 *Total Gastos:* ${fmtFull(r.totGastos)}\\n📊 *Saldo Neto:* ${fmtFull(r.saldo)}\\n\\n💵 Efectivo: ${fmtFull(r.ef)}\\n🏦 Transferencia: ${fmtFull(r.tr)}\\n📱 QR: ${fmtFull(r.qr)}\\n💳 Tarjeta: ${fmtFull(r.ta)}\\n📄 Cheque: ${fmtFull(r.ch)}\\n📒 Cta.Cte: ${fmtFull(r.cc)}\\n\\n📋 Comprobantes: ${r.cantFacturas}");
+    window.open("https://wa.me/?text="+texto,"_blank");
+  }
+  <\/script>
+  </body></html>`);
+  w.document.close();
+}
+
+// HISTORIAL CAJAS
+function renderHistCajas(){
+  const hist=S.g('yunco_hist_cajas',[]);
+  const el=document.getElementById('listaHistCajas');
+  if(!hist.length){el.innerHTML='<div class="vacio">No hay cierres anteriores.</div>';return;}
+  el.innerHTML=hist.slice(0,30).map(h=>{
+    const d=new Date(h.fecha+'T00:00:00');
+    const fecha=d.toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+    return`<div style="background:var(--card);border:1px solid var(--borde);border-radius:12px;padding:16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+<div>
+  <div style="font-weight:700;font-size:15px">${fecha}</div>
+  <div style="font-size:12px;color:var(--muted)">${h.cantFacturas||0} comprobantes · Gastos: ${fmtFull(h.totGastos)}</div>
+</div>
+<div style="text-align:right">
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--verde3)">${fmtFull(h.totVentas)}</div>
+  <div style="font-size:12px;color:${(h.saldo||0)>=0?'var(--verde3)':'var(--rojo3)'}">Saldo: ${fmtFull(h.saldo)}</div>
+</div>
+</div>`;}).join('');
+}
+
+// INIT
+initCaja();
+</script>
 </body>
 </html>
