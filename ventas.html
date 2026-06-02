@@ -507,6 +507,71 @@ function getCM(){return S.g('yunco_cm','SANTINO15');}
 
 
 
+
+// ── SEGURIDAD DE LOGIN ─────────────────────────────────────────
+const MAX_INTENTOS = 3;
+
+function getIntentos(usuario){
+  const data = S.g('yunco_login_intentos', {});
+  return data[usuario] || {count: 0, bloqueado: false};
+}
+
+function registrarIntento(usuario, exitoso){
+  const data = S.g('yunco_login_intentos', {});
+  if(exitoso){
+    data[usuario] = {count: 0, bloqueado: false};
+  } else {
+    const actual = data[usuario] || {count: 0, bloqueado: false};
+    actual.count += 1;
+    if(actual.count >= MAX_INTENTOS){
+      actual.bloqueado = true;
+      actual.fechaBloqueo = new Date().toISOString();
+    }
+    data[usuario] = actual;
+  }
+  S.s('yunco_login_intentos', data);
+}
+
+function desbloquearUsuario(usuario){
+  const data = S.g('yunco_login_intentos', {});
+  data[usuario] = {count: 0, bloqueado: false};
+  S.s('yunco_login_intentos', data);
+}
+
+function mostrarBloqueo(usuario, onDesbloqueo){
+  // Mostrar overlay de bloqueo
+  const overlay = document.getElementById('bloqueoOverlay');
+  const msg = document.getElementById('bloqueoMsg');
+  if(msg) msg.textContent = 'Usuario "' + usuario + '" bloqueado por 3 intentos fallidos.';
+  document.getElementById('bloqueoUsuario').value = usuario;
+  if(overlay) overlay.classList.add('abierto');
+}
+
+function confirmarDesbloqueo(){
+  const claveIngresada = document.getElementById('desbloqueClave').value;
+  const usuario = document.getElementById('bloqueoUsuario').value;
+  const claves = {...(window.CD||window.CD_INV||{}),...S.g('yunco_claves',{})};
+  const claveGerente = claves['gerente'] || 'gerente2024';
+  const claveDueno = claves['dueno'] || 'dueno2024';
+  
+  if(claveIngresada === claveGerente || claveIngresada === claveDueno){
+    desbloquearUsuario(usuario);
+    document.getElementById('bloqueoOverlay').classList.remove('abierto');
+    document.getElementById('desbloqueClave').value = '';
+    document.getElementById('desbloqueoErr').style.display = 'none';
+    alert('✅ Usuario desbloqueado. Ya puede intentar ingresar nuevamente.');
+  } else {
+    document.getElementById('desbloqueoErr').style.display = 'block';
+    document.getElementById('desbloqueClave').value = '';
+  }
+}
+
+function cancelarDesbloqueo(){
+  document.getElementById('bloqueoOverlay').classList.remove('abierto');
+  document.getElementById('desbloqueClave').value = '';
+  document.getElementById('desbloqueoErr').style.display = 'none';
+}
+
 function solAuth(msg,cb){authCb=cb;document.getElementById('authClave').value='';document.getElementById('authErr').style.display='none';document.getElementById('authMsg').textContent=msg||'Ingresá la clave maestra.';document.getElementById('authOverlay').classList.add('abierto');setTimeout(()=>document.getElementById('authClave').focus(),100);}
 function confirmarAuth(){if(document.getElementById('authClave').value===getCM()){document.getElementById('authOverlay').classList.remove('abierto');if(authCb)authCb();authCb=null;}else{document.getElementById('authErr').style.display='block';document.getElementById('authClave').value='';}}
 function cancelarAuth(){document.getElementById('authOverlay').classList.remove('abierto');authCb=null;}
@@ -515,7 +580,27 @@ function doLogin(){
   const v=document.getElementById('loginVendedor').value,c=document.getElementById('loginClave').value;
   if(!v){document.getElementById('loginErr').style.display='block';return;}
   const claves={...CD,...S.g('yunco_claves',{})};
-  if(c!==claves[v]){document.getElementById('loginErr').style.display='block';return;}
+  // Verificar si usuario esta bloqueado
+  const intentosData = getIntentos(v);
+  if(intentosData.bloqueado){
+    mostrarBloqueo(v);
+    return;
+  }
+  if(c!==claves[v]){
+    registrarIntento(v, false);
+    const intentosActuales = getIntentos(v);
+    if(intentosActuales.bloqueado){
+      document.getElementById('loginErr').style.display='none';
+      mostrarBloqueo(v);
+    } else {
+      const restantes = MAX_INTENTOS - intentosActuales.count;
+      document.getElementById('loginErr').textContent = 'Clave incorrecta. Te quedan ' + restantes + ' intento(s).';
+      document.getElementById('loginErr').style.display='block';
+      document.getElementById('loginClave').value='';
+    }
+    return;
+  }
+  registrarIntento(v, true);
   vAct=v;vRol=ROLES[v]||'vendedor';
   const vends=S.g('yunco_vend',{});
   document.getElementById('vendedorInfo').textContent='👤 '+(vends[v]?.nombre||(v==='admin'?'Admin':v==='gerente'?'Gerente':'Vendedor '+v));
