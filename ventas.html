@@ -222,7 +222,7 @@ table.comp tr:hover td{background:rgba(255,255,255,.02);}
       </div>
       <div class="form-group"><label>Nombre / Razón Social</label><input type="text" id="cliNombre" placeholder="Consumidor Final"></div>
       <div class="form-group"><label>Domicilio</label><input type="text" id="cliDom" placeholder="Dirección del cliente"></div>
-      <button class="btn btn-outline btn-sm" onclick="saveCliRapido()">💾 Guardar cliente</button>
+      
     </div>
 
     <div class="form-card">
@@ -679,19 +679,22 @@ function actualizarOpcionesComprobante(){
 // BUSQUEDA DINAMICA CLIENTE
 function buscarCliente(){
   const q=document.getElementById('cliBusq').value.trim().toLowerCase();
+  const qOrig=document.getElementById('cliBusq').value.trim();
   const res=document.getElementById('cliBusqResults');
+  // Siempre sincronizar nombre con lo que se escribe
+  document.getElementById('cliNombre').value = qOrig;
   if(!q){res.classList.remove('visible');
-    // Limpiar campos cuando se borra el buscador
-    ['cliCuit','cliNombre','cliDom'].forEach(f=>{if(f!=='cliNombre')document.getElementById(f).value='';});
+    document.getElementById('cliNombre').value='';
     return;
   }
   const todos=S.g('yunco_clis',[]);
   const cl=todos.filter(c=>(c.nom||'').toLowerCase().includes(q)||(c.cuit||'').includes(q));
   if(!cl.length){
-    res.innerHTML='<div class="cli-result-item" style="color:var(--muted);font-style:italic">Cliente nuevo — completá los datos abajo</div>';
+    const nombreEscrito = document.getElementById('cliBusq').value;
+    res.innerHTML=`<div class="cli-result-item" style="color:var(--verde3);cursor:pointer" onclick="crearNuevoCliente('${nombreEscrito.replace(/'/g,"\\'")}')">
+      ➕ Crear nuevo cliente: <strong>${nombreEscrito}</strong>
+    </div>`;
     res.classList.add('visible');
-    // Pre-completar nombre con lo que escribio
-    document.getElementById('cliNombre').value=document.getElementById('cliBusq').value;
     return;
   }
   res.innerHTML=cl.map(c=>`<div class="cli-result-item" onclick="selCli(${todos.indexOf(c)})">
@@ -711,6 +714,18 @@ function selCli(i){
   // Ocultar campos manuales cuando se selecciona un cliente existente
   document.getElementById('cliBusqResults').innerHTML='';
 }
+
+function crearNuevoCliente(nombre){
+  document.getElementById('cliNombre').value = nombre;
+  document.getElementById('cliBusq').value = nombre;
+  document.getElementById('cliCuit').value = '';
+  document.getElementById('cliDom').value = '';
+  document.getElementById('cliIva').value = 'Consumidor Final';
+  document.getElementById('cliBusqResults').classList.remove('visible');
+  // Enfocar el campo CUIT para completar
+  document.getElementById('cliCuit').focus();
+}
+
 function buscarClientePres(){
   const q=document.getElementById('presCliBusq').value.trim().toLowerCase();
   const res=document.getElementById('presCliBusqResults');
@@ -1010,7 +1025,7 @@ function procesar(modo){
   data.modo=modo;
   // AUTO-GUARDAR CLIENTE NUEVO si tiene nombre y no es Consumidor Final
   const nomCli = document.getElementById('cliNombre').value.trim();
-  if(nomCli && nomCli !== 'Consumidor Final'){
+  if(nomCli && nomCli !== 'Consumidor Final' && nomCli !== ''){
     const clientes = S.g('yunco_clis',[]);
     const existe = clientes.find(c=>c.nom.toLowerCase()===nomCli.toLowerCase());
     if(!existe){
