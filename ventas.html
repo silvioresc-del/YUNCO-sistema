@@ -878,6 +878,44 @@ th{background:#eee;font-weight:700;text-align:center;}
   setTimeout(()=>{w.print();},500);
 }
 
+
+function abrirVentanaImpresion(html, titulo){
+  const w = window.open('', '_blank', 'width=850,height=1100');
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + titulo + '</title><style>' + `body{font-family:Arial,sans-serif;font-size:10px;color:#000;background:#fff;margin:0;padding:10mm;}
+*{box-sizing:border-box;}
+.wrap{width:100%;min-height:250mm;border:2px solid #000;padding:4mm;display:flex;flex-direction:column;}
+.orig{text-align:center;font-weight:700;font-size:11px;margin-bottom:3mm;letter-spacing:2px;}
+.head{display:flex;border:1px solid #000;}
+.logo-cell{padding:6px 10px;border-right:2px solid #000;display:flex;align-items:center;min-width:110px;}
+.logo{font-size:26px;font-weight:900;color:#c0392b;-webkit-text-stroke:2px #555;letter-spacing:2px;}
+.emp{padding:5px 8px;font-size:9px;line-height:1.6;border-right:2px solid #000;flex:1;}
+.tipo-cell{padding:5px 10px;text-align:center;border-right:2px solid #000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:80px;}
+.letra{font-size:36px;font-weight:900;border:3px solid #000;width:54px;height:54px;display:flex;align-items:center;justify-content:center;margin:0 auto 2px;}
+.tipo-nom{font-size:10px;font-weight:700;}
+.nro{font-size:9px;margin-top:2px;}
+.right{padding:5px 8px;font-size:9px;line-height:1.7;flex:1;}
+.cli{border:1px solid #000;border-top:none;padding:5px 8px;font-size:9px;display:flex;gap:12px;flex-wrap:wrap;}
+.items{flex:1;margin-top:2mm;}
+table{width:100%;border-collapse:collapse;}
+th,td{border:1px solid #000;padding:3px 5px;font-size:9px;}
+th{background:#eee;font-weight:700;text-align:center;}
+td:nth-child(3),td:nth-child(5),td:nth-child(7){text-align:right;}
+.bot{display:flex;justify-content:space-between;margin-top:3mm;gap:6px;align-items:flex-start;}
+.trib{border:1px solid #000;padding:4px;font-size:9px;flex:1;}
+.trib-row{display:flex;justify-content:space-between;padding:2px 4px;border-bottom:1px solid #eee;}
+.tots{border:2px solid #000;padding:6px 10px;min-width:195px;}
+.tot-row{display:flex;justify-content:space-between;font-size:9px;margin-bottom:2px;}
+.tot-row.big{font-weight:700;font-size:12px;border-top:2px solid #000;padding-top:4px;margin-top:3px;}
+.dolar{font-size:8px;color:#555;margin-top:3px;font-style:italic;border-top:1px solid #ddd;padding-top:2px;}
+.foot{margin-top:auto;padding-top:3mm;border-top:2px solid #000;display:flex;justify-content:space-between;font-size:9px;}
+.pie{text-align:center;font-size:8px;margin-top:2mm;color:#555;}
+.presup-banner{background:#f5f5f5;border:2px dashed #999;padding:4px 10px;text-align:center;font-size:10px;font-weight:700;margin-bottom:3mm;}
+@page{size:A4;margin:8mm;}
+@media print{body{padding:0;}}` + '</style></head><body>' + html + '<div style="text-align:center;margin-top:10mm;font-family:Arial"><button onclick="window.print()" style="padding:10px 24px;background:#2d7fba;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">🖨 Imprimir / Guardar PDF</button></div></body></html>');
+  w.document.close();
+  w.focus();
+}
+
 function buildFacturaHTML(v,esPres){
   const tLabel={B:'FACTURA',A:'FACTURA',NC:'NOTA DE CRÉDITO',ND:'NOTA DE DÉBITO',PRES:'PRESUPUESTO'}[v.tipo]||'COMPROBANTE';
   const letra=v.tipo==='NC'?'C':v.tipo==='ND'?'D':v.tipo==='PRES'?'P':v.tipo;
@@ -885,58 +923,58 @@ function buildFacturaHTML(v,esPres){
   const rows=(v.items||[]).map(it=>`<tr><td>${it.cod||'-'}</td><td>${it.desc}</td><td style="text-align:right">${it.cant}</td><td>${it.um}</td><td style="text-align:right">${fmt(it.precio)}</td><td style="text-align:right">${it.iva}%</td><td style="text-align:right">${fmt(it.cant*it.precio)}</td></tr>`).join('');
   const dolarLine=v.dolar&&v.tipo==='A'?`<div class="fp-dolar">* Esta factura fue realizada con el dólar a cotización ${fmt(v.dolar)}</div>`:'';
   const vtoLine=esPres&&v.fechaVto?`<strong>Válido hasta: ${new Date(v.fechaVto).toLocaleDateString('es-AR')} (${v.vig} días)</strong>`:`Fecha Vto.: ${fecha}`;
-  return `${esPres?'<div class="fp-presup">⚠️ PRESUPUESTO — NO VÁLIDO COMO COMPROBANTE FISCAL</div>':''}
-<div class="fp-wrap">
-  <div class="fp-orig">${esPres?'PRESUPUESTO':'ORIGINAL'}</div>
-  <div class="fp-head">
-    <div class="fp-logo-cell"><div class="fp-logo">Yunco</div></div>
-    <div class="fp-emp">Razón Social: ${EMP.nombre}<br>Domicilio: ${EMP.dom} - ${EMP.ciudad}<br>Condición frente al IVA: ${EMP.iva}</div>
-    <div class="fp-tipo-cell">
-      <div class="fp-letra">${letra}</div>
-      <div class="fp-tipo-nom">${tLabel}</div>
-      <div class="fp-nro">N° ${v.nro}</div>
+  return `${esPres?'<div class="presup-banner">⚠️ PRESUPUESTO — NO VÁLIDO COMO COMPROBANTE FISCAL</div>':''}
+<div class="wrap">
+  <div class="orig">${esPres?'PRESUPUESTO':'O R I G I N A L'}</div>
+  <div class="head">
+    <div class="logo-cell"><div class="logo">Yunco</div></div>
+    <div class="emp">Razón Social: ${EMP.nombre}<br>Domicilio: ${EMP.dom} - ${EMP.ciudad}<br>Condición frente al IVA: ${EMP.iva}</div>
+    <div class="tipo-cell">
+      <div class="letra">${letra}</div>
+      <div class="tipo-nom">${tLabel}</div>
+      <div class="nro">N° ${v.nro}</div>
     </div>
-    <div class="fp-right">Fecha de Emisión: ${fecha}<br>CUIT: ${EMP.cuit}<br>Ing. Brutos: ${EMP.iibb}<br>Inicio Act.: ${EMP.iniAct}<br>${vtoLine}</div>
+    <div class="right">Fecha de Emisión: ${fecha}<br>CUIT: ${EMP.cuit}<br>Ing. Brutos: ${EMP.iibb}<br>Inicio Act.: ${EMP.iniAct}<br>${vtoLine}</div>
   </div>
-  <div class="fp-cli">
+  <div class="cli">
     <div><b>CUIT/DNI:</b> ${v.cli.cuit||'11-11111111-1'}</div>
     <div><b>Cliente:</b> ${v.cli.nom}</div>
     <div><b>Cond. IVA:</b> ${v.cli.iva||'Consumidor Final'}</div>
     <div><b>Domicilio:</b> ${v.cli.dom||'-'}</div>
     ${!esPres?`<div><b>Cond. Venta:</b> ${pagoLbl(v.pago)}</div>`:''}
   </div>
-  <div class="fp-items">
+  <div class="items">
     <table>
       <thead><tr><th>Código</th><th>Producto/Servicio</th><th>Cant.</th><th>U.Med.</th><th>Pr.Unit.</th><th>%IVA</th><th>SubTotal</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
   </div>
-  <div class="fp-bot">
-    <table class="fp-trib">
-      <tr><td colspan="3"><b>Otros Tributos</b></td></tr>
-      <tr><td>Per./Ret. Ganancias</td><td>-</td><td style="text-align:right">0,00</td></tr>
-      <tr><td>Per./Ret. IVA</td><td>-</td><td style="text-align:right">0,00</td></tr>
-      <tr><td>Per./Ret. IIBB</td><td>-</td><td style="text-align:right">0,00</td></tr>
-      <tr><td>Imp. Internos</td><td>-</td><td style="text-align:right">0,00</td></tr>
-      <tr><td>Imp. Municipales</td><td>-</td><td style="text-align:right">0,00</td></tr>
-      <tr><td colspan="2"><b>Total Otros Tributos:</b></td><td style="text-align:right"><b>$0,00</b></td></tr>
-      ${v.obs?`<tr><td colspan="3"><em>Obs: ${v.obs}</em></td></tr>`:''}
-    </table>
-    <div class="fp-tots">
-      <div class="fp-tr"><span>Importe Neto Grabado:</span><span>${fmt(v.neto)}</span></div>
-      <div class="fp-tr"><span>IVA 21%:</span><span>${fmt(v.iva)}</span></div>
-      <div class="fp-tr"><span>Importe Otros Tributos:</span><span>$0,00</span></div>
-      <div class="fp-tr big"><span>IMPORTE TOTAL:</span><span>${fmt(v.total)}</span></div>
-      ${v.tipo==='B'?`<div style="font-size:9px;color:#555;margin-top:3px">IVA Contenido (Ley 27743): ${fmt(v.iva)}</div>`:''}
+  <div class="bot">
+    <div class="trib">
+      <div style="font-weight:700;padding:2px 4px;border-bottom:1px solid #000;margin-bottom:2px">Otros Tributos</div>
+      <div class="trib-row"><span>Per./Ret. Ganancias</span><span>$0,00</span></div>
+      <div class="trib-row"><span>Per./Ret. IVA</span><span>$0,00</span></div>
+      <div class="trib-row"><span>Per./Ret. IIBB</span><span>$0,00</span></div>
+      <div class="trib-row"><span>Imp. Internos</span><span>$0,00</span></div>
+      <div class="trib-row"><span>Imp. Municipales</span><span>$0,00</span></div>
+      <div class="trib-row" style="font-weight:700;border-top:1px solid #000"><span>Total Otros Tributos:</span><span>$0,00</span></div>
+      ${v.obs?`<div style="padding:3px 4px;font-style:italic;font-size:8px">Obs: ${v.obs}</div>`:''}
+    </div>
+    <div class="tots">
+      <div class="tot-row"><span>Importe Neto Grabado:</span><span>${fmt(v.neto)}</span></div>
+      <div class="tot-row"><span>IVA 21%:</span><span>${fmt(v.iva)}</span></div>
+      <div class="tot-row"><span>Importe Otros Tributos:</span><span>$0,00</span></div>
+      <div class="tot-row big"><span>IMPORTE TOTAL:</span><span>${fmt(v.total)}</span></div>
+      ${v.tipo==='B'?`<div style="font-size:8px;color:#555;margin-top:3px">IVA Contenido (Ley 27743): ${fmt(v.iva)}</div>`:''}
       ${dolarLine}
     </div>
   </div>
-  <div class="fp-foot">
+  <div class="foot">
     <span>Tel.: ${EMP.tel}</span>
     <span>correo: ${EMP.mail}</span>
     <span>WhatsApp: ${EMP.wa}</span>
   </div>
-  <div class="fp-pie">${esPres?'Presupuesto sin valor fiscal — '+EMP.nombre:v.modo==='registrar'?'Comprobante Autorizado — AFIP — '+EMP.nombre:'⚠️ COMPROBANTE NO OFICIAL — USO INTERNO'}</div>
+  <div class="pie">${esPres?'Presupuesto sin valor fiscal — '+EMP.nombre:v.modo==='registrar'?'Comprobante Autorizado — AFIP — '+EMP.nombre:'⚠️ COMPROBANTE NO OFICIAL — USO INTERNO'}</div>
 </div>`;
 }
 
@@ -1074,10 +1112,8 @@ function procesar(modo){
     }catch(e){console.error('Error descontando stock:',e);}
     // Abrir ventana de impresión
     const html=buildFacturaHTML(data,false);
-    const w=window.open('','_blank','width=900,height=700');
-    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Factura ${data.nro}</title>
-<style>body{font-family:Arial,sans-serif;font-size:11px;color:#000;background:#fff;padding:20px;max-width:800px;margin:0 auto;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #000;padding:4px 7px;font-size:10px;}th{background:#eee;font-weight:700;text-align:center;}.fp-head{display:flex;border:2px solid #000;}.fp-logo-cell{padding:10px 14px;border-right:2px solid #000;display:flex;align-items:center;min-width:130px;}.fp-logo{font-size:34px;font-weight:900;color:#c0392b;-webkit-text-stroke:2px #555;letter-spacing:2px;}.fp-emp{padding:7px 10px;font-size:10px;line-height:1.6;border-right:2px solid #000;flex:1;}.fp-tipo-cell{padding:8px 12px;text-align:center;border-right:2px solid #000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:85px;}.fp-letra{font-size:42px;font-weight:900;border:3px solid #000;width:60px;height:60px;display:flex;align-items:center;justify-content:center;margin:0 auto 3px;}.fp-right{padding:7px 10px;font-size:10px;line-height:1.7;flex:1;}.fp-cli{border:1px solid #000;border-top:none;padding:6px 10px;font-size:10px;display:flex;gap:14px;flex-wrap:wrap;}.fp-bot{display:flex;justify-content:space-between;margin-top:7px;gap:10px;align-items:flex-start;}.fp-trib{border:1px solid #000;padding:6px;font-size:10px;flex:1;}.fp-tots{border:1px solid #000;padding:8px 12px;min-width:210px;}.fp-tr{display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;}.fp-tr.big{font-weight:700;font-size:13px;border-top:1px solid #000;padding-top:4px;margin-top:4px;}.fp-dolar{font-size:10px;color:#555;margin-top:4px;font-style:italic;}.fp-foot{margin-top:7px;border-top:1px solid #000;padding-top:5px;display:flex;justify-content:space-between;font-size:10px;}.fp-pie{text-align:center;font-size:9px;margin-top:5px;color:#777;}</style></head><body>${html}</body></html>`);
-    w.document.close();w.focus();setTimeout(()=>{w.print();},500);
+    abrirVentanaImpresion(html,'Factura '+data.nro);
+    
   }
   alert(modo==='registrar'?'✅ Comprobante '+data.nro+' registrado.':'💾 Venta grabada.');
   resetVenta();
@@ -1161,9 +1197,7 @@ function prevComp(id){
 function printComp(id){
   const c=S.g('yunco_comp',[]).find(x=>x.id===id);if(!c)return;
   const html=buildFacturaHTML(c,c.tipo==='PRES');
-  const w=window.open('','_blank','width=900,height=700');
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Comprobante ${c.nro}</title><style>body{font-family:Arial,sans-serif;font-size:11px;padding:20px;max-width:800px;margin:0 auto;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #000;padding:4px 7px;font-size:10px;}th{background:#eee;font-weight:700;}.fp-head{display:flex;border:2px solid #000;}.fp-logo-cell{padding:10px 14px;border-right:2px solid #000;display:flex;align-items:center;min-width:130px;}.fp-logo{font-size:34px;font-weight:900;color:#c0392b;-webkit-text-stroke:2px #555;letter-spacing:2px;}.fp-emp{padding:7px 10px;font-size:10px;line-height:1.6;border-right:2px solid #000;flex:1;}.fp-tipo-cell{padding:8px 12px;text-align:center;border-right:2px solid #000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:85px;}.fp-letra{font-size:42px;font-weight:900;border:3px solid #000;width:60px;height:60px;display:flex;align-items:center;justify-content:center;margin:0 auto 3px;}.fp-right{padding:7px 10px;font-size:10px;line-height:1.7;flex:1;}.fp-cli{border:1px solid #000;border-top:none;padding:6px 10px;font-size:10px;display:flex;gap:14px;flex-wrap:wrap;}.fp-bot{display:flex;justify-content:space-between;margin-top:7px;gap:10px;}.fp-trib{border:1px solid #000;padding:6px;font-size:10px;flex:1;}.fp-tots{border:1px solid #000;padding:8px 12px;min-width:210px;}.fp-tr{display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;}.fp-tr.big{font-weight:700;font-size:13px;border-top:1px solid #000;padding-top:4px;margin-top:4px;}.fp-dolar{font-size:10px;color:#555;margin-top:4px;font-style:italic;}.fp-foot{margin-top:7px;border-top:1px solid #000;padding-top:5px;display:flex;justify-content:space-between;font-size:10px;}.fp-pie{text-align:center;font-size:9px;margin-top:5px;color:#777;}.fp-presup{background:#f5f5f5;border:2px dashed #999;padding:5px 12px;text-align:center;font-size:11px;font-weight:700;margin-bottom:6px;}</style></head><body>${html}</body></html>`);
-  w.document.close();w.focus();setTimeout(()=>{w.print();},500);
+  abrirVentanaImpresion(html,'Comprobante '+c.nro);
 }
 function delComp(id){S.s('yunco_comp',S.g('yunco_comp',[]).filter(c=>c.id!==id));renderComp();}
 
