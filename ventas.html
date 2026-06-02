@@ -885,42 +885,59 @@ function buildFacturaHTML(v,esPres){
   const rows=(v.items||[]).map(it=>`<tr><td>${it.cod||'-'}</td><td>${it.desc}</td><td style="text-align:right">${it.cant}</td><td>${it.um}</td><td style="text-align:right">${fmt(it.precio)}</td><td style="text-align:right">${it.iva}%</td><td style="text-align:right">${fmt(it.cant*it.precio)}</td></tr>`).join('');
   const dolarLine=v.dolar&&v.tipo==='A'?`<div class="fp-dolar">* Esta factura fue realizada con el dólar a cotización ${fmt(v.dolar)}</div>`:'';
   const vtoLine=esPres&&v.fechaVto?`<strong>Válido hasta: ${new Date(v.fechaVto).toLocaleDateString('es-AR')} (${v.vig} días)</strong>`:`Fecha Vto.: ${fecha}`;
-  return `${esPres?'<div class="fp-presup">⚠️ PRESUPUESTO — NO VÁLIDO COMO COMPROBANTE FISCAL</div>':'<div style="text-align:center;font-weight:700;font-size:12px;margin-bottom:4px">ORIGINAL</div>'}
-<div class="fp-head">
-  <div class="fp-logo-cell"><div class="fp-logo">Yunco</div></div>
-  <div class="fp-emp">Razón Social: ${EMP.nombre}<br>Domicilio: ${EMP.dom} - ${EMP.ciudad}<br>Condición frente al IVA: ${EMP.iva}</div>
-  <div class="fp-tipo-cell"><div class="fp-letra">${letra}</div><div style="font-size:11px;font-weight:700">${tLabel}</div><div style="font-size:10px;margin-top:3px">N° ${v.nro}</div></div>
-  <div class="fp-right">Fecha de Emisión: ${fecha}<br>CUIT: ${EMP.cuit}<br>Ing. Brutos: ${EMP.iibb}<br>Inicio Act.: ${EMP.iniAct}<br>${vtoLine}</div>
-</div>
-<div class="fp-cli">
-  <div><b>CUIT/DNI:</b> ${v.cli.cuit||'11-11111111-1'}</div>
-  <div><b>Cliente:</b> ${v.cli.nom}</div>
-  <div><b>Cond. IVA:</b> ${v.cli.iva||'Consumidor Final'}</div>
-  <div><b>Domicilio:</b> ${v.cli.dom||'-'}</div>
-  ${!esPres?`<div><b>Cond. Venta:</b> ${pagoLbl(v.pago)}</div>`:''}
-</div>
-<table>
-  <thead><tr><th>Código</th><th>Producto/Servicio</th><th>Cant.</th><th>U.Med.</th><th>Pr.Unit.</th><th>%IVA</th><th>SubTotal</th></tr></thead>
-  <tbody>${rows}</tbody>
-</table>
-<div class="fp-bot">
-  <table class="fp-trib"><tr><td colspan="3"><b>Otros Tributos</b></td></tr>
-    <tr><td>Per./Ret. Ganancias</td><td>-</td><td style="text-align:right">0,00</td></tr>
-    <tr><td>Per./Ret. IVA</td><td>-</td><td style="text-align:right">0,00</td></tr>
-    <tr><td>Per./Ret. IIBB</td><td>-</td><td style="text-align:right">0,00</td></tr>
-    ${v.obs?`<tr><td colspan="3"><em>Obs: ${v.obs}</em></td></tr>`:''}
-  </table>
-  <div class="fp-tots">
-    <div class="fp-tr"><span>Importe Neto Grabado:</span><span>${fmt(v.neto)}</span></div>
-    <div class="fp-tr"><span>IVA 21%:</span><span>${fmt(v.iva)}</span></div>
-    <div class="fp-tr"><span>Importe Otros Tributos:</span><span>$0,00</span></div>
-    <div class="fp-tr big"><span>IMPORTE TOTAL:</span><span>${fmt(v.total)}</span></div>
-    ${v.tipo==='B'?`<div style="font-size:9px;color:#555;margin-top:3px">IVA Contenido (Ley 27743): ${fmt(v.iva)}</div>`:''}
-    ${dolarLine}
+  return `${esPres?'<div class="fp-presup">⚠️ PRESUPUESTO — NO VÁLIDO COMO COMPROBANTE FISCAL</div>':''}
+<div class="fp-wrap">
+  <div class="fp-orig">${esPres?'PRESUPUESTO':'ORIGINAL'}</div>
+  <div class="fp-head">
+    <div class="fp-logo-cell"><div class="fp-logo">Yunco</div></div>
+    <div class="fp-emp">Razón Social: ${EMP.nombre}<br>Domicilio: ${EMP.dom} - ${EMP.ciudad}<br>Condición frente al IVA: ${EMP.iva}</div>
+    <div class="fp-tipo-cell">
+      <div class="fp-letra">${letra}</div>
+      <div class="fp-tipo-nom">${tLabel}</div>
+      <div class="fp-nro">N° ${v.nro}</div>
+    </div>
+    <div class="fp-right">Fecha de Emisión: ${fecha}<br>CUIT: ${EMP.cuit}<br>Ing. Brutos: ${EMP.iibb}<br>Inicio Act.: ${EMP.iniAct}<br>${vtoLine}</div>
   </div>
-</div>
-<div class="fp-foot"><span>Tel.: ${EMP.tel}</span><span>correo: ${EMP.mail}</span><span>WhatsApp: ${EMP.wa}</span></div>
-<div class="fp-pie">${esPres?'Presupuesto sin valor fiscal — '+EMP.nombre:v.modo==='registrar'?'Comprobante Autorizado — '+EMP.nombre:'⚠️ COMPROBANTE NO OFICIAL — USO INTERNO'}</div>`;
+  <div class="fp-cli">
+    <div><b>CUIT/DNI:</b> ${v.cli.cuit||'11-11111111-1'}</div>
+    <div><b>Cliente:</b> ${v.cli.nom}</div>
+    <div><b>Cond. IVA:</b> ${v.cli.iva||'Consumidor Final'}</div>
+    <div><b>Domicilio:</b> ${v.cli.dom||'-'}</div>
+    ${!esPres?`<div><b>Cond. Venta:</b> ${pagoLbl(v.pago)}</div>`:''}
+  </div>
+  <div class="fp-items">
+    <table>
+      <thead><tr><th>Código</th><th>Producto/Servicio</th><th>Cant.</th><th>U.Med.</th><th>Pr.Unit.</th><th>%IVA</th><th>SubTotal</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>
+  <div class="fp-bot">
+    <table class="fp-trib">
+      <tr><td colspan="3"><b>Otros Tributos</b></td></tr>
+      <tr><td>Per./Ret. Ganancias</td><td>-</td><td style="text-align:right">0,00</td></tr>
+      <tr><td>Per./Ret. IVA</td><td>-</td><td style="text-align:right">0,00</td></tr>
+      <tr><td>Per./Ret. IIBB</td><td>-</td><td style="text-align:right">0,00</td></tr>
+      <tr><td>Imp. Internos</td><td>-</td><td style="text-align:right">0,00</td></tr>
+      <tr><td>Imp. Municipales</td><td>-</td><td style="text-align:right">0,00</td></tr>
+      <tr><td colspan="2"><b>Total Otros Tributos:</b></td><td style="text-align:right"><b>$0,00</b></td></tr>
+      ${v.obs?`<tr><td colspan="3"><em>Obs: ${v.obs}</em></td></tr>`:''}
+    </table>
+    <div class="fp-tots">
+      <div class="fp-tr"><span>Importe Neto Grabado:</span><span>${fmt(v.neto)}</span></div>
+      <div class="fp-tr"><span>IVA 21%:</span><span>${fmt(v.iva)}</span></div>
+      <div class="fp-tr"><span>Importe Otros Tributos:</span><span>$0,00</span></div>
+      <div class="fp-tr big"><span>IMPORTE TOTAL:</span><span>${fmt(v.total)}</span></div>
+      ${v.tipo==='B'?`<div style="font-size:9px;color:#555;margin-top:3px">IVA Contenido (Ley 27743): ${fmt(v.iva)}</div>`:''}
+      ${dolarLine}
+    </div>
+  </div>
+  <div class="fp-foot">
+    <span>Tel.: ${EMP.tel}</span>
+    <span>correo: ${EMP.mail}</span>
+    <span>WhatsApp: ${EMP.wa}</span>
+  </div>
+  <div class="fp-pie">${esPres?'Presupuesto sin valor fiscal — '+EMP.nombre:v.modo==='registrar'?'Comprobante Autorizado — AFIP — '+EMP.nombre:'⚠️ COMPROBANTE NO OFICIAL — USO INTERNO'}</div>
+</div>`;
 }
 
 
