@@ -148,6 +148,25 @@ tr:hover td{background:rgba(255,255,255,.02);}
   </div>
 </div>
 
+<!-- OVERLAY BLOQUEO -->
+<div class="auth-overlay" id="bloqueoOverlay" style="z-index:998">
+  <div class="auth-box" style="border-color:rgba(231,76,60,.6)">
+    <div style="font-size:48px;margin-bottom:12px">🔒</div>
+    <h3 style="color:var(--rojo3)">Usuario Bloqueado</h3>
+    <p id="bloqueoMsg" style="margin-bottom:8px">Usuario bloqueado por 3 intentos fallidos.</p>
+    <p style="margin-bottom:18px;font-size:12px;color:var(--muted)">Un Gerente o Dueño debe autorizar el desbloqueo.</p>
+    <input type="hidden" id="bloqueoUsuario">
+    <input type="password" id="desbloqueClave" placeholder="Clave del Gerente o Dueño"
+      onkeydown="if(event.key==='Enter')confirmarDesbloqueo()"
+      style="width:100%;background:rgba(13,31,51,.8);border:1px solid var(--borde);color:var(--texto);padding:12px;border-radius:8px;font-size:14px;outline:none;text-align:center;margin-bottom:10px">
+    <div class="auth-error" id="desbloqueoErr">Clave incorrecta.</div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn btn-outline" style="flex:1" onclick="cancelarDesbloqueo()">Cancelar</button>
+      <button class="btn btn-primario" style="flex:1" onclick="confirmarDesbloqueo()">Desbloquear</button>
+    </div>
+  </div>
+</div>
+
 <!-- LOGIN -->
 <div class="login-overlay" id="loginOverlay">
   <div class="login-box">
@@ -308,6 +327,69 @@ const CD={'1':'1111','2':'2222','3':'3333','4':'4444','5':'5555','6':'6666','7':
 const S={g:(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}},s:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
 const fmt=n=>'$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:0});
 const fmtFull=n=>'$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2});
+
+// ── SEGURIDAD DE LOGIN ─────────────────────────────────────────
+const MAX_INTENTOS = 3;
+
+function getIntentos(usuario){
+  const data = S.g('yunco_login_intentos', {});
+  return data[usuario] || {count: 0, bloqueado: false};
+}
+
+function registrarIntento(usuario, exitoso){
+  const data = S.g('yunco_login_intentos', {});
+  if(exitoso){
+    data[usuario] = {count: 0, bloqueado: false};
+  } else {
+    const actual = data[usuario] || {count: 0, bloqueado: false};
+    actual.count += 1;
+    if(actual.count >= MAX_INTENTOS){
+      actual.bloqueado = true;
+      actual.fechaBloqueo = new Date().toISOString();
+    }
+    data[usuario] = actual;
+  }
+  S.s('yunco_login_intentos', data);
+}
+
+function desbloquearUsuario(usuario){
+  const data = S.g('yunco_login_intentos', {});
+  data[usuario] = {count: 0, bloqueado: false};
+  S.s('yunco_login_intentos', data);
+}
+
+function mostrarBloqueo(usuario){
+  const overlay = document.getElementById('bloqueoOverlay');
+  const msg = document.getElementById('bloqueoMsg');
+  if(msg) msg.textContent = 'El usuario "' + usuario + '" fue bloqueado por 3 intentos fallidos.';
+  document.getElementById('bloqueoUsuario').value = usuario;
+  if(overlay) overlay.classList.add('abierto');
+}
+
+function confirmarDesbloqueo(){
+  const claveIngresada = document.getElementById('desbloqueClave').value;
+  const usuario = document.getElementById('bloqueoUsuario').value;
+  const claves = {...(window.CD||window.CD_INV||{}),...S.g('yunco_claves',{})};
+  const claveGerente = claves['gerente'] || 'gerente2024';
+  const claveDueno = claves['dueno'] || 'dueno2024';
+  if(claveIngresada === claveGerente || claveIngresada === claveDueno){
+    desbloquearUsuario(usuario);
+    document.getElementById('bloqueoOverlay').classList.remove('abierto');
+    document.getElementById('desbloqueClave').value = '';
+    document.getElementById('desbloqueoErr').style.display = 'none';
+    alert('✅ Usuario desbloqueado correctamente.');
+  } else {
+    document.getElementById('desbloqueoErr').style.display = 'block';
+    document.getElementById('desbloqueClave').value = '';
+  }
+}
+
+function cancelarDesbloqueo(){
+  document.getElementById('bloqueoOverlay').classList.remove('abierto');
+  document.getElementById('desbloqueClave').value = '';
+  document.getElementById('desbloqueoErr').style.display = 'none';
+}
+
 function getCM(){return localStorage.getItem('yunco_cm')||'SANTINO15';}
 
 let vAct=null,vRol=null,authCb=null;
@@ -322,7 +404,23 @@ function doLogin(){
   const v=document.getElementById('loginVendedor').value,c=document.getElementById('loginClave').value;
   if(!v){document.getElementById('loginErr').style.display='block';return;}
   const claves={...CD,...S.g('yunco_claves',{})};
-  if(c!==claves[v]){document.getElementById('loginErr').style.display='block';return;}
+  const intentosData = getIntentos(v);
+  if(intentosData.bloqueado){mostrarBloqueo(v);return;}
+  if(c!==claves[v]){
+    registrarIntento(v, false);
+    const intentosActuales = getIntentos(v);
+    if(intentosActuales.bloqueado){
+      document.getElementById('loginErr').style.display='none';
+      mostrarBloqueo(v);
+    } else {
+      const restantes = MAX_INTENTOS - intentosActuales.count;
+      document.getElementById('loginErr').textContent = 'Clave incorrecta. Te quedan ' + restantes + ' intento(s).';
+      document.getElementById('loginErr').style.display='block';
+      document.getElementById('loginClave').value='';
+    }
+    return;
+  }
+  registrarIntento(v, true);
   vAct=v;vRol=v==='admin'?'admin':v==='gerente'?'gerente':v==='dueno'?'dueno':'vendedor';
   const vends=S.g('yunco_vend',{});
   document.getElementById('vendedorInfo').textContent='👤 '+(vends[v]?.nombre||(v==='admin'?'Admin':v==='gerente'?'Gerente':'Vendedor '+v));
