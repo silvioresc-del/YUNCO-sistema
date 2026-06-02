@@ -189,7 +189,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div class="caja-cerrada">
       <div class="caja-cerrada-icon">🔒</div>
       <h2>Caja Cerrada</h2>
-      <p>No hay ninguna caja abierta hoy.<br>El gerente o admin debe abrir la caja para comenzar.</p>
+      <p>No hay ninguna caja abierta hoy.<br>El Gerente General o Dueño debe abrir la caja para comenzar.</p>
       <div id="btnAbrirWrap">
         <button class="btn btn-primario btn-grande" onclick="abrirCaja()">🔓 Abrir Caja del Día</button>
       </div>
@@ -333,7 +333,7 @@ function doLogin(){
   document.getElementById('vendedorInfo').textContent='👤 '+(vends[v]?.nombre||(v==='admin'?'Admin':v==='gerente'?'Gerente':'Vendedor '+v));
   document.getElementById('loginOverlay').style.display='none';
   // Permisos
-  if(vRol==='vendedor'||vRol==='admin'){
+  if(vRol==='vendedor'){
     document.getElementById('botonesGerente').style.display='none';
     document.querySelectorAll('.tab-gerente').forEach(t=>t.style.display='none');
   }
@@ -363,8 +363,8 @@ function initCaja(){
     document.getElementById('viewCerrada').style.display='block';
     document.getElementById('viewAbierta').style.display='none';
     // Solo gerente/admin puede abrir
-    if(vRol==='vendedor'||vRol==='admin'){
-      document.getElementById('btnAbrirWrap').innerHTML='<div style="color:var(--muted);font-size:14px">Solo el gerente o administrador puede abrir la caja.</div>';
+    if(vRol==='vendedor'){
+      document.getElementById('btnAbrirWrap').innerHTML='<div style="color:var(--muted);font-size:14px">Solo el Gerente General o el Dueño puede abrir la caja.</div>';
     }
   }
 }
