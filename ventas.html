@@ -161,8 +161,9 @@ table.comp tr:hover td{background:rgba(255,255,255,.02);}
     <div class="tab activo" onclick="goTab('nueva')">➕ Nueva Venta</div>
     <div class="tab" onclick="goTab('presupuesto')">📝 Presupuesto</div>
     <div class="tab" onclick="goTab('comprobantes')">📋 Comprobantes</div>
-    <div class="tab tab-rest" onclick="goTab('clientes')">👥 Clientes</div>
-    <div class="tab tab-rest" id="tabConfig" style="display:none" onclick="goTab('config')">⚙️ Config</div>
+    <div class="tab" onclick="goTab('clientes')">👥 Clientes</div>
+    <div class="tab" onclick="goTab('consulta')">🔍 Consulta Stock</div>
+    <div class="tab" id="tabConfig" style="display:none" onclick="goTab('config')">⚙️ Config</div>
   </div>
 
   <!-- NUEVA VENTA -->
@@ -254,7 +255,6 @@ table.comp tr:hover td{background:rgba(255,255,255,.02);}
     </div>
 
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:32px">
-      <button class="btn btn-verde" onclick="previsualizarVenta()" style="flex:1;min-width:160px;padding:14px">👁 Vista Previa</button>
       <button class="btn btn-primario" onclick="procesar('registrar')" style="flex:1;min-width:180px;padding:14px">✅ Registrar y emitir</button>
       <button class="btn btn-amarillo" onclick="procesar('grabar')" style="flex:1;min-width:180px;padding:14px">💾 Solo grabar</button>
     </div>
