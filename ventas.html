@@ -145,6 +145,23 @@ table.comp tr:hover td{background:rgba(255,255,255,.02);}
   </div>
 </div>
 
+<!-- OVERLAY BLOQUEO -->
+<div class="auth-overlay" id="bloqueoOverlay" style="z-index:998">
+  <div class="auth-box" style="border-color:rgba(231,76,60,.6)">
+    <div style="font-size:56px;margin-bottom:16px">🔒</div>
+    <h3 style="color:var(--rojo3);font-size:24px;margin-bottom:12px">Acceso Bloqueado</h3>
+    <p id="bloqueoMsg" style="margin-bottom:8px;font-size:14px;font-weight:600"></p>
+    <p style="margin-bottom:8px;font-size:13px;color:var(--muted)">Se superaron los 3 intentos permitidos.</p>
+    <p style="margin-bottom:24px;font-size:13px;color:var(--amarillo3)">⚠️ El Gerente o Dueño debe ingresar su clave en este dispositivo para desbloquear.</p>
+    <input type="hidden" id="bloqueoUsuario">
+    <input type="password" id="desbloqueClave" placeholder="Clave del Gerente o Dueño"
+      onkeydown="if(event.key==='Enter')confirmarDesbloqueo()"
+      style="width:100%;background:rgba(13,31,51,.8);border:1px solid var(--borde);color:var(--texto);padding:12px;border-radius:8px;font-size:14px;outline:none;text-align:center;margin-bottom:10px">
+    <div class="auth-error" id="desbloqueoErr">Clave incorrecta. Solo el Gerente o Dueño puede desbloquear.</div>
+    <button class="btn btn-primario" style="width:100%;padding:13px;font-size:15px;margin-top:4px" onclick="confirmarDesbloqueo()">🔓 Desbloquear usuario</button>
+  </div>
+</div>
+
 <div class="topbar">
   <div class="topbar-left">
     <a href="index.html" class="back-btn">← Inicio</a>
