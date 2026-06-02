@@ -146,7 +146,7 @@ table.comp tr:hover td{background:rgba(255,255,255,.02);}
 </div>
 
 <!-- OVERLAY BLOQUEO -->
-<div class="auth-overlay" id="bloqueoOverlay" style="z-index:998">
+<div class="auth-overlay" id="bloqueoOverlay" style="z-index:1000">
   <div class="auth-box" style="border-color:rgba(231,76,60,.6)">
     <div style="font-size:56px;margin-bottom:16px">🔒</div>
     <h3 style="color:var(--rojo3);font-size:24px;margin-bottom:12px">Acceso Bloqueado</h3>
@@ -555,12 +555,13 @@ function desbloquearUsuario(usuario){
   S.s('yunco_login_intentos', data);
 }
 
-function mostrarBloqueo(usuario, onDesbloqueo){
-  // Mostrar overlay de bloqueo
+function mostrarBloqueo(usuario){
   const overlay = document.getElementById('bloqueoOverlay');
   const msg = document.getElementById('bloqueoMsg');
-  if(msg) msg.textContent = 'Usuario "' + usuario + '" bloqueado por 3 intentos fallidos.';
+  if(msg) msg.textContent = 'El usuario "' + usuario + '" fue bloqueado por ingresar 3 veces una clave incorrecta.';
   document.getElementById('bloqueoUsuario').value = usuario;
+  // Ocultar login para que se vea el bloqueo
+  document.getElementById('loginOverlay').style.display = 'none';
   if(overlay) overlay.classList.add('abierto');
 }
 
