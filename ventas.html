@@ -772,20 +772,17 @@ tr:hover td { background: rgba(74,159,212,.05) !important; }
   </div>
 </div>
 
-<!-- OVERLAY BLOQUEO -->
-<div class="auth-overlay" id="bloqueoOverlay" style="z-index:1000">
-  <div class="auth-box" style="border-color:rgba(231,76,60,.6)">
-    <div style="font-size:56px;margin-bottom:16px">🔒</div>
-    <h3 style="color:var(--rojo3);font-size:24px;margin-bottom:12px">Acceso Bloqueado</h3>
-    <p id="bloqueoMsg" style="margin-bottom:8px;font-size:14px;font-weight:600"></p>
-    <p style="margin-bottom:8px;font-size:13px;color:#8bbadd">Se superaron los 3 intentos permitidos.</p>
-    <p style="margin-bottom:24px;font-size:13px;color:var(--amarillo3)">⚠️ El Gerente o Dueño debe ingresar su clave en este dispositivo para desbloquear.</p>
-    <input type="hidden" id="bloqueoUsuario">
-    <input type="password" id="desbloqueClave" placeholder="Clave del Gerente o Dueño"
-      onkeydown="if(event.key==='Enter')confirmarDesbloqueo()"
-      style="width:100%;background:rgba(13,31,51,.8);border:1px solid var(--borde);color:var(--texto);padding:12px;border-radius:8px;font-size:14px;outline:none;text-align:center;margin-bottom:10px">
-    <div class="auth-error" id="desbloqueoErr">Clave incorrecta. Solo el Gerente o Dueño puede desbloquear.</div>
-    <button class="btn btn-primario" style="width:100%;padding:13px;font-size:15px;margin-top:4px" onclick="confirmarDesbloqueo()">🔓 Desbloquear usuario</button>
+
+<!-- OVERLAY CAJA BLOQUEADA -->
+<div class="auth-overlay" id="cajaBlockOverlay" style="z-index:995">
+  <div class="auth-box" style="border-color:rgba(245,158,11,.5);max-width:440px">
+    <div style="font-size:52px;margin-bottom:14px">🔒</div>
+    <h3 style="color:var(--warning,#f59e0b);font-family:'Bebas Neue',sans-serif;font-size:22px;margin-bottom:10px">Operación Bloqueada</h3>
+    <p id="cajaBlockMsg" style="color:var(--text-secondary,#8baec8);font-size:13px;margin-bottom:20px;line-height:1.6"></p>
+    <button onclick="document.getElementById('cajaBlockOverlay').classList.remove('abierto')"
+      style="width:100%;background:var(--accent,#2d7fba);color:#fff;border:none;padding:12px;border-radius:8px;font-family:'Barlow',sans-serif;font-size:14px;font-weight:700;cursor:pointer">
+      Entendido
+    </button>
   </div>
 </div>
 
@@ -1118,7 +1115,7 @@ tr:hover td { background: rgba(74,159,212,.05) !important; }
 
 <script>
 const EMP={nombre:'FEMO SRL',marca:'Yunco',cuit:'30-718081463-3',dom:'Av. Juan B. Justo 1223',ciudad:'San Miguel de Tucumán, CP 4000',iibb:'30718081463',iniAct:'01/05/2023',iva:'IVA Responsable Inscripto',tel:'(381) 3 17 55 43',wa:'381 6 24 41 05',mail:'yuncosrl@hotmail.com',pv:'0006'};
-const CD=YUNCO_PERMISOS.CLAVES_DEFAULT;
+
 
 const ROLES = {
   admin:    'admin',
@@ -1131,12 +1128,51 @@ const ROLES = {
 // Permisos por rol — ver yunco-permisos.js
 const PERMISOS = YUNCO_PERMISOS.VENTAS;
 
+
+// ── SESIÓN ÚNICA ─────────────────────────────────────────────
+// Lee la sesión del login central (index.html)
+// No requiere login propio en este módulo
+let vAct = null, vRol = null, vNombre = null;
+
+(function initSesion(){
+  const raw = sessionStorage.getItem('yunco_session');
+  if(!raw){ window.location.href='index.html'; return; }
+  try{
+    const ses = JSON.parse(raw);
+    const permitidos = ['vendedor', 'gerente', 'dueno'];
+    if(!permitidos.includes(ses.rol)){ window.location.href='index.html'; return; }
+    vAct = ses.usuario;
+    vRol = ses.rol;
+    vNombre = ses.nombre;
+    // Actualizar UI con datos de sesión
+    const ui = document.getElementById('vendedorInfo');
+    if(ui) ui.textContent = '👤 ' + vNombre;
+    
+    // Aplicar tabs y permisos según rol de sesión
+    setTimeout(() => {
+      actualizarOpcionesComprobante();
+      const perm = PERMISOS[vRol] || PERMISOS['vendedor'];
+      const allTabs = ['nueva','presupuesto','comprobantes','clientes','consulta','config'];
+      document.querySelectorAll('.tab').forEach((el,i) => {
+        if(allTabs[i]) el.style.display = (perm.tabs||[]).includes(allTabs[i]) ? '' : 'none';
+      });
+      updNro();
+      addItem('itemsBody','recalc');
+    }, 0);
+  } catch(e) { window.location.href='index.html'; }
+})();
+
+function logout(){
+  sessionStorage.removeItem('yunco_session');
+  window.location.href='index.html';
+}
+
 function getPerm(key){ return PERMISOS[vRol]?.[key]; }
 
 const S={g:(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}},s:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
 const fmt=n=>'$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2});
 
-let vAct=null,vRol=null,authCb=null,editCli=null,iCnt=0,pCnt=0,previewData=null;
+let authCb=null,editCli=null,iCnt=0,pCnt=0,previewData=null;
 
 function getCM(){return S.g('yunco_cm','SANTINO15');}
 
@@ -1150,124 +1186,12 @@ function getCM(){return S.g('yunco_cm','SANTINO15');}
 
 
 
-// ── SEGURIDAD DE LOGIN ─────────────────────────────────────────
-const MAX_INTENTOS = YUNCO_PERMISOS.MAX_INTENTOS;
-
-function getIntentos(usuario){
-  const data = S.g('yunco_login_intentos', {});
-  return data[usuario] || {count: 0, bloqueado: false};
-}
-
-function registrarIntento(usuario, exitoso){
-  const data = S.g('yunco_login_intentos', {});
-  if(exitoso){
-    data[usuario] = {count: 0, bloqueado: false};
-  } else {
-    const actual = data[usuario] || {count: 0, bloqueado: false};
-    actual.count += 1;
-    if(actual.count >= MAX_INTENTOS){
-      actual.bloqueado = true;
-      actual.fechaBloqueo = new Date().toISOString();
-    }
-    data[usuario] = actual;
-  }
-  S.s('yunco_login_intentos', data);
-}
-
-function desbloquearUsuario(usuario){
-  const data = S.g('yunco_login_intentos', {});
-  data[usuario] = {count: 0, bloqueado: false};
-  S.s('yunco_login_intentos', data);
-}
-
-function mostrarBloqueo(usuario){
-  const overlay = document.getElementById('bloqueoOverlay');
-  const msg = document.getElementById('bloqueoMsg');
-  if(msg) msg.textContent = 'El usuario "' + usuario + '" fue bloqueado por ingresar 3 veces una clave incorrecta.';
-  document.getElementById('bloqueoUsuario').value = usuario;
-  // Ocultar login para que se vea el bloqueo
-  document.getElementById('loginOverlay').style.display = 'none';
-  if(overlay) overlay.classList.add('abierto');
-}
-
-function confirmarDesbloqueo(){
-  const claveIngresada = document.getElementById('desbloqueClave').value;
-  const usuario = document.getElementById('bloqueoUsuario').value;
-  const claves = {...(window.CD||window.CD_INV||{}),...S.g('yunco_claves',{})};
-  const claveGerente = claves['gerente'] || 'gerente2024';
-  const claveDueno = claves['dueno'] || 'dueno2024';
-  
-  if(claveIngresada === claveGerente || claveIngresada === claveDueno){
-    desbloquearUsuario(usuario);
-    document.getElementById('bloqueoOverlay').classList.remove('abierto');
-    document.getElementById('desbloqueClave').value = '';
-    document.getElementById('desbloqueoErr').style.display = 'none';
-    alert('✅ Usuario desbloqueado. Ya puede intentar ingresar nuevamente.');
-  } else {
-    document.getElementById('desbloqueoErr').style.display = 'block';
-    document.getElementById('desbloqueClave').value = '';
-  }
-}
-
-function cancelarDesbloqueo(){
-  document.getElementById('bloqueoOverlay').classList.remove('abierto');
-  document.getElementById('desbloqueClave').value = '';
-  document.getElementById('desbloqueoErr').style.display = 'none';
-}
-
 function solAuth(msg,cb){authCb=cb;document.getElementById('authClave').value='';document.getElementById('authErr').style.display='none';document.getElementById('authMsg').textContent=msg||'Ingresá la clave maestra.';document.getElementById('authOverlay').classList.add('abierto');setTimeout(()=>document.getElementById('authClave').focus(),100);}
 function confirmarAuth(){if(document.getElementById('authClave').value===getCM()){document.getElementById('authOverlay').classList.remove('abierto');if(authCb)authCb();authCb=null;}else{document.getElementById('authErr').style.display='block';document.getElementById('authClave').value='';}}
 function cancelarAuth(){document.getElementById('authOverlay').classList.remove('abierto');authCb=null;}
 
-function doLogin(){
-  const v=document.getElementById('loginVendedor').value,c=document.getElementById('loginClave').value;
-  if(!v){document.getElementById('loginErr').style.display='block';return;}
-  const claves={...CD,...S.g('yunco_claves',{})};
-  // Verificar si usuario esta bloqueado
-  const intentosData = getIntentos(v);
-  if(intentosData.bloqueado){
-    mostrarBloqueo(v);
-    return;
-  }
-  if(c!==claves[v]){
-    registrarIntento(v, false);
-    const intentosActuales = getIntentos(v);
-    if(intentosActuales.bloqueado){
-      document.getElementById('loginErr').style.display='none';
-      mostrarBloqueo(v);
-    } else {
-      const restantes = MAX_INTENTOS - intentosActuales.count;
-      document.getElementById('loginErr').textContent = 'Clave incorrecta. Te quedan ' + restantes + ' intento(s).';
-      document.getElementById('loginErr').style.display='block';
-      document.getElementById('loginClave').value='';
-    }
-    return;
-  }
-  registrarIntento(v, true);
-  vAct=v;vRol=ROLES[v]||'vendedor';
-  const vends=S.g('yunco_vend',{});
-  document.getElementById('vendedorInfo').textContent='👤 '+(vends[v]?.nombre||(v==='admin'?'Admin':v==='gerente'?'Gerente':'Vendedor '+v));
-  document.getElementById('loginOverlay').style.display='none';
-  document.getElementById('loginErr').style.display='none';
-  // Permisos por rol
-  if(vRol==='admin'){document.getElementById('tabConfig').style.display='';}
-  if(vRol==='vendedor'){
-    // Ocultar clientes y config para vendedores
-    document.querySelectorAll('.tab-rest').forEach(t=>t.style.display='none');
-  }
-  updNro();updNroPres();addItem('itemsBody','recalc');addItem('presBody','recalcPres');
-}
-function logout(){vAct=null;vRol=null;document.getElementById('loginOverlay').style.display='flex';document.getElementById('loginVendedor').value='';document.getElementById('loginClave').value='';}
 
-function goTab(t){
-  const _allTabs=['nueva','presupuesto','comprobantes','clientes','consulta','config'];document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('activo',_allTabs[i]===t));
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('activo'));
-  document.getElementById('panel-'+t).classList.add('activo');
-  if(t==='comprobantes')renderComp();
-  if(t==='clientes')renderClis();
-  if(t==='config')renderConfig();
-  if(t==='consulta'){document.getElementById('consultaStockBusq').value='';document.getElementById('consultaStockRes').innerHTML='<div class="vacio"><div class="vacio-icon">🔍</div><p>Escribí para buscar productos.</p></div>';}
-}
+
 
 function onTipoChange(){updNro();const t=document.getElementById('tipoComp').value;document.getElementById('dolarWrap').style.display=t==='A'?'block':'none';recalc();}
 function updNro(){const t=document.getElementById('tipoComp')?.value||'B';const n=S.g('yunco_nums',{B:1228,A:0,NC:0,ND:0,PRES:0});if(document.getElementById('nroComp'))document.getElementById('nroComp').value=EMP.pv+'-'+String((n[t]||0)+1).padStart(8,'0');}
@@ -1446,55 +1370,7 @@ function imprimirDesdePreview(){
 }
 
 
-function closePrint(){var el=document.getElementById("printOverlay");if(el)el.style.display="none";}
-function abrirVentanaImpresion(html, titulo){
-  let printDiv = document.getElementById('printOverlay');
-  if(!printDiv){
-    printDiv = document.createElement('div');
-    printDiv.id = 'printOverlay';
-    document.body.appendChild(printDiv);
-  }
-  const CSS = `*{box-sizing:border-box;}body,html{margin:0;padding:0;background:#f5f5f5;}
-.print-container{font-family:Arial,sans-serif;font-size:10px;color:#000;background:#fff;margin:0 auto;padding:8mm;width:210mm;min-height:277mm;}
-.wrap{border:2px solid #000;padding:4mm;min-height:260mm;display:flex;flex-direction:column;}
-.orig{text-align:center;font-weight:700;font-size:11px;margin-bottom:3mm;letter-spacing:2px;}
-.head{display:flex;border:1px solid #000;}
-.logo-cell{padding:6px 10px;border-right:2px solid #000;display:flex;align-items:center;min-width:100px;}
-.logo{font-size:24px;font-weight:900;color:#c0392b;-webkit-text-stroke:2px #555;letter-spacing:2px;}
-.emp{padding:5px 8px;font-size:9px;line-height:1.6;border-right:2px solid #000;flex:1;}
-.tipo-cell{padding:5px 10px;text-align:center;border-right:2px solid #000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:75px;}
-.letra{font-size:34px;font-weight:900;border:3px solid #000;width:52px;height:52px;display:flex;align-items:center;justify-content:center;margin:0 auto 2px;}
-.tipo-nom{font-size:10px;font-weight:700;}.nro{font-size:9px;margin-top:2px;}
-.right{padding:5px 8px;font-size:9px;line-height:1.7;flex:1;}
-.cli{border:1px solid #000;border-top:none;padding:5px 8px;font-size:9px;display:flex;gap:10px;flex-wrap:wrap;}
-.items{flex:1;margin-top:2mm;}
-table{width:100%;border-collapse:collapse;}
-th,td{border:1px solid #000;padding:3px 5px;font-size:9px;}
-th{background:#eee;font-weight:700;text-align:center;}
-td:nth-child(3),td:nth-child(5),td:nth-child(7){text-align:right;}
-.bot{display:flex;justify-content:space-between;margin-top:3mm;gap:6px;align-items:flex-start;}
-.trib{border:1px solid #000;padding:4px;font-size:9px;flex:1;}
-.trib-row{display:flex;justify-content:space-between;padding:2px 4px;border-bottom:1px solid #eee;}
-.tots{border:2px solid #000;padding:6px 10px;min-width:180px;}
-.tot-row{display:flex;justify-content:space-between;font-size:9px;margin-bottom:2px;}
-.tot-row.big{font-weight:700;font-size:12px;border-top:2px solid #000;padding-top:4px;margin-top:3px;}
-.foot{margin-top:auto;padding-top:3mm;border-top:2px solid #000;display:flex;justify-content:space-between;font-size:9px;flex-wrap:wrap;gap:4px;}
-.pie{text-align:center;font-size:8px;margin-top:2mm;color:#555;}
-.presup-banner{background:#f5f5f5;border:2px dashed #999;padding:4px 10px;text-align:center;font-size:10px;font-weight:700;margin-bottom:3mm;}
-@media print{.no-print{display:none!important;}@page{size:A4;margin:8mm;}.print-container{width:100%;margin:0;padding:4mm;}}`;
 
-  printDiv.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#f5f5f5;overflow-y:auto;';
-  printDiv.innerHTML = 
-    '<div class="no-print" style="position:sticky;top:0;background:#1F4E78;padding:10px 16px;display:flex;gap:10px;justify-content:flex-end;z-index:10;">' +
-    '<span style="color:#fff;font-size:13px;font-weight:600;flex:1;line-height:36px">' + titulo + '</span>' +
-    '<button onclick="window.print()" style="padding:9px 18px;background:#27ae60;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">🖨 Imprimir / PDF</button>' +
-    '<button onclick="closePrint()" style="padding:9px 18px;background:#c0392b;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">✕ Cerrar</button>' +
-    '</div>' +
-    '<style>' + CSS + '</style>' +
-    '<div class="print-container">' + html + '</div>';
-  printDiv.style.display = 'block';
-  printDiv.scrollTop = 0;
-}
 
 function buildFacturaHTML(v,esPres){
   const tLabel={B:'FACTURA',A:'FACTURA',NC:'NOTA DE CRÉDITO',ND:'NOTA DE DÉBITO',PRES:'PRESUPUESTO'}[v.tipo]||'COMPROBANTE';
@@ -1652,7 +1528,88 @@ function renderConsultaStock(){
 
 function pagoLbl(p){return{efectivo:'Efectivo',transferencia:'Transferencia',qr:'QR',tarjeta:'Tarjeta',cheque:'Cheque',cuenta_corriente:'Cta. Corriente'}[p]||p||'-';}
 
+
+// ── CONTROL DE CAJA ──────────────────────────────────────────
+function getFechaHoy(){ return new Date().toISOString().split('T')[0]; }
+
+function getCajaEstado(){
+  const hoy = getFechaHoy();
+  const cajaHoy = S.g('yunco_caja_' + hoy, null);
+  
+  // Check for unclosed cajas from previous days
+  const keys = Object.keys(localStorage);
+  const cajasAbiertas = keys.filter(k => {
+    if(!k.startsWith('yunco_caja_')) return false;
+    const fecha = k.replace('yunco_caja_','');
+    if(fecha === hoy) return false;
+    try {
+      const c = JSON.parse(localStorage.getItem(k));
+      return c && c.abierta === true;
+    } catch { return false; }
+  });
+  
+  if(cajasAbiertas.length > 0){
+    const fechaPendiente = cajasAbiertas[0].replace('yunco_caja_','');
+    return { estado: 'pendiente', fechaPendiente };
+  }
+  if(cajaHoy && cajaHoy.abierta === true){
+    return { estado: 'abierta', fecha: hoy };
+  }
+  return { estado: 'cerrada', fecha: hoy };
+}
+
+function verificarCajaParaVender(){
+  const estado = getCajaEstado();
+  if(estado.estado === 'pendiente'){
+    return {
+      ok: false,
+      tipo: 'pendiente',
+      mensaje: 'Existe una caja pendiente de cierre del ' + formatFecha(estado.fechaPendiente) + '. El Gerente General o el Dueño debe cerrarla antes de continuar.'
+    };
+  }
+  if(estado.estado === 'cerrada'){
+    return {
+      ok: false,
+      tipo: 'cerrada',
+      mensaje: 'No existe una caja abierta para el día de hoy. Solicite al Gerente General o al Dueño la apertura de caja.'
+    };
+  }
+  return { ok: true };
+}
+
+function formatFecha(fechaStr){
+  if(!fechaStr) return '';
+  const d = new Date(fechaStr + 'T00:00:00');
+  return d.toLocaleDateString('es-AR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+}
+
+
+function getCajaActiva(){
+  const estado = getCajaEstado();
+  if(estado.estado !== 'abierta') return null;
+  const hoy = getFechaHoy();
+  const c = S.g('yunco_caja_' + hoy, null);
+  if(!c) return null;
+  // Generate stable ID from fecha + apertura
+  if(!c.id) {
+    c.id = 'CAJA-' + hoy + '-' + (c.apertura||'').replace(/[^0-9]/g,'').slice(0,6);
+    S.s('yunco_caja_' + hoy, c);
+  }
+  return c;
+}
+
+function mostrarAlertaCaja(mensaje, tipo){
+  document.getElementById('cajaBlockMsg').textContent = mensaje;
+  document.getElementById('cajaBlockOverlay').classList.add('abierto');
+}
+
 function procesar(modo){
+  // Verificar caja abierta para CUALQUIER modo de registro
+  const cajaCheck = verificarCajaParaVender();
+  if(!cajaCheck.ok){
+    mostrarAlertaCaja(cajaCheck.mensaje, cajaCheck.tipo);
+    return;
+  }
   const items=getItemsFrom('itemsBody');
   if(!items.length){alert('Agregá al menos un producto.');return;}
   // VALIDACION STOCK INSUFICIENTE
@@ -1690,6 +1647,12 @@ function procesar(modo){
     }
   }
 
+  // Asociar venta a caja activa
+  const cajaActiva = getCajaActiva();
+  if(cajaActiva){
+    data.cajaId = cajaActiva.id;
+    data.cajaFecha = cajaActiva.fecha;
+  }
   const comp=S.g('yunco_comp',[]);comp.unshift(data);S.s('yunco_comp',comp);
   if(modo==='registrar'){
     const nums=S.g('yunco_nums',{B:1228,A:0,NC:0,ND:0,PRES:0});
