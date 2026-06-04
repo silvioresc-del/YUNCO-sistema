@@ -167,37 +167,6 @@ tr:hover td { background:rgba(74,159,212,.05)!important; }
   </div>
 </div>
 
-<!-- OVERLAY BLOQUEO -->
-<div class="auth-overlay" id="bloqueoOverlay" style="z-index:998">
-  <div class="auth-box" style="border-color:rgba(231,76,60,.6)">
-    <div style="font-size:56px;margin-bottom:16px">🔒</div>
-    <h3 style="color:var(--rojo3);font-size:24px;margin-bottom:12px">Acceso Bloqueado</h3>
-    <p id="bloqueoMsg" style="margin-bottom:8px;font-size:14px;font-weight:600"></p>
-    <p style="margin-bottom:8px;font-size:13px;color:var(--muted)">Se superaron los 3 intentos permitidos.</p>
-    <p style="margin-bottom:24px;font-size:13px;color:var(--amarillo3)">⚠️ El Gerente o Dueño debe ingresar su clave en este dispositivo para desbloquear.</p>
-    <input type="hidden" id="bloqueoUsuario">
-    <input type="password" id="desbloqueClave" placeholder="Clave del Gerente o Dueño"
-      onkeydown="if(event.key==='Enter')confirmarDesbloqueo()"
-      style="width:100%;background:rgba(13,31,51,.8);border:1px solid var(--borde);color:var(--texto);padding:12px;border-radius:8px;font-size:14px;outline:none;text-align:center;margin-bottom:10px">
-    <div class="auth-error" id="desbloqueoErr">Clave incorrecta. Solo el Gerente o Dueño puede desbloquear.</div>
-    <button class="btn btn-primario" style="width:100%;padding:13px;font-size:15px;margin-top:4px" onclick="confirmarDesbloqueo()">🔓 Desbloquear usuario</button>
-  </div>
-</div>
-
-<!-- LOGIN -->
-<div class="login-overlay" id="loginOverlay">
-  <div class="login-box">
-    <div class="login-logo">Yunco</div>
-    <div class="login-sub">Cierre de Caja · Ingresá con tu usuario</div>
-    <select id="loginVendedor">
-      <option value="">— Seleccioná tu usuario —</option>
-      <option value="gerente">📊 Gerente General</option>
-      <option value="dueno">👑 Dueño</option>
-    </select>
-    <input type="password" id="loginClave" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLogin()">
-    <button class="login-btn" onclick="doLogin()">Ingresar →</button>
-    <div class="login-error" id="loginErr">Usuario o contraseña incorrectos.</div>
-  </div>
 </div>
 
 <!-- TOPBAR -->
@@ -340,76 +309,93 @@ tr:hover td { background:rgba(74,159,212,.05)!important; }
 </div>
 
 <script>
-const CD=YUNCO_PERMISOS.CLAVES_DEFAULT;
+
 const S={g:(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}},s:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
 const fmt=n=>'$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:0});
 const fmtFull=n=>'$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2});
 
-// ── SEGURIDAD DE LOGIN ─────────────────────────────────────────
-const MAX_INTENTOS = YUNCO_PERMISOS.MAX_INTENTOS;
 
-function getIntentos(usuario){
-  const data = S.g('yunco_login_intentos', {});
-  return data[usuario] || {count: 0, bloqueado: false};
-}
+// ── CONTROL DE CAJA ──────────────────────────────────────────
+function getFechaHoy(){ return new Date().toISOString().split('T')[0]; }
 
-function registrarIntento(usuario, exitoso){
-  const data = S.g('yunco_login_intentos', {});
-  if(exitoso){
-    data[usuario] = {count: 0, bloqueado: false};
-  } else {
-    const actual = data[usuario] || {count: 0, bloqueado: false};
-    actual.count += 1;
-    if(actual.count >= MAX_INTENTOS){
-      actual.bloqueado = true;
-      actual.fechaBloqueo = new Date().toISOString();
-    }
-    data[usuario] = actual;
+function getCajaEstado(){
+  const hoy = getFechaHoy();
+  const cajaHoy = S.g('yunco_caja_' + hoy, null);
+  
+  // Check for unclosed cajas from previous days
+  const keys = Object.keys(localStorage);
+  const cajasAbiertas = keys.filter(k => {
+    if(!k.startsWith('yunco_caja_')) return false;
+    const fecha = k.replace('yunco_caja_','');
+    if(fecha === hoy) return false;
+    try {
+      const c = JSON.parse(localStorage.getItem(k));
+      return c && c.abierta === true;
+    } catch { return false; }
+  });
+  
+  if(cajasAbiertas.length > 0){
+    const fechaPendiente = cajasAbiertas[0].replace('yunco_caja_','');
+    return { estado: 'pendiente', fechaPendiente };
   }
-  S.s('yunco_login_intentos', data);
-}
-
-function desbloquearUsuario(usuario){
-  const data = S.g('yunco_login_intentos', {});
-  data[usuario] = {count: 0, bloqueado: false};
-  S.s('yunco_login_intentos', data);
-}
-
-function mostrarBloqueo(usuario){
-  const overlay = document.getElementById('bloqueoOverlay');
-  const msg = document.getElementById('bloqueoMsg');
-  if(msg) msg.textContent = 'El usuario "' + usuario + '" fue bloqueado por ingresar 3 veces una clave incorrecta.';
-  document.getElementById('bloqueoUsuario').value = usuario;
-  if(overlay) overlay.classList.add('abierto');
-}
-
-function confirmarDesbloqueo(){
-  const claveIngresada = document.getElementById('desbloqueClave').value;
-  const usuario = document.getElementById('bloqueoUsuario').value;
-  const claves = {...(window.CD||window.CD_INV||{}),...S.g('yunco_claves',{})};
-  const claveGerente = claves['gerente'] || 'gerente2024';
-  const claveDueno = claves['dueno'] || 'dueno2024';
-  if(claveIngresada === claveGerente || claveIngresada === claveDueno){
-    desbloquearUsuario(usuario);
-    document.getElementById('bloqueoOverlay').classList.remove('abierto');
-    document.getElementById('desbloqueClave').value = '';
-    document.getElementById('desbloqueoErr').style.display = 'none';
-    alert('✅ Usuario desbloqueado correctamente.');
-  } else {
-    document.getElementById('desbloqueoErr').style.display = 'block';
-    document.getElementById('desbloqueClave').value = '';
+  if(cajaHoy && cajaHoy.abierta === true){
+    return { estado: 'abierta', fecha: hoy };
   }
+  return { estado: 'cerrada', fecha: hoy };
 }
 
-function cancelarDesbloqueo(){
-  document.getElementById('bloqueoOverlay').classList.remove('abierto');
-  document.getElementById('desbloqueClave').value = '';
-  document.getElementById('desbloqueoErr').style.display = 'none';
+function verificarCajaParaVender(){
+  const estado = getCajaEstado();
+  if(estado.estado === 'pendiente'){
+    return {
+      ok: false,
+      tipo: 'pendiente',
+      mensaje: 'Existe una caja pendiente de cierre del ' + formatFecha(estado.fechaPendiente) + '. El Gerente General o el Dueño debe cerrarla antes de continuar.'
+    };
+  }
+  if(estado.estado === 'cerrada'){
+    return {
+      ok: false,
+      tipo: 'cerrada',
+      mensaje: 'No existe una caja abierta para el día de hoy. Solicite al Gerente General o al Dueño la apertura de caja.'
+    };
+  }
+  return { ok: true };
+}
+
+function formatFecha(fechaStr){
+  if(!fechaStr) return '';
+  const d = new Date(fechaStr + 'T00:00:00');
+  return d.toLocaleDateString('es-AR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+}
+
+
+// ── SESIÓN ÚNICA ─────────────────────────────────────────────
+let vAct = null, vRol = null, vNombre = null;
+
+(function initSesion(){
+  const raw = sessionStorage.getItem('yunco_session');
+  if(!raw){ window.location.href='index.html'; return; }
+  try{
+    const ses = JSON.parse(raw);
+    const permitidos = ['gerente','dueno'];
+    if(!permitidos.includes(ses.rol)){ window.location.href='index.html'; return; }
+    vAct = ses.usuario;
+    vRol = ses.rol;
+    vNombre = ses.nombre;
+    const ui = document.getElementById('vendedorInfo');
+    if(ui) ui.textContent = '👤 ' + vNombre;
+  } catch(e){ window.location.href='index.html'; }
+})();
+
+function logout(){
+  sessionStorage.removeItem('yunco_session');
+  window.location.href='index.html';
 }
 
 function getCM(){return localStorage.getItem('yunco_cm')||'SANTINO15';}
 
-let vAct=null,vRol=null,authCb=null;
+let authCb=null;
 
 // AUTH
 function solAuth(msg,cb){authCb=cb;document.getElementById('authClave').value='';document.getElementById('authErr').style.display='none';document.getElementById('authMsg').textContent=msg+' — Clave maestra:';document.getElementById('authOverlay').classList.add('abierto');setTimeout(()=>document.getElementById('authClave').focus(),100);}
@@ -417,50 +403,8 @@ function confirmarAuth(){if(document.getElementById('authClave').value===getCM()
 function cancelarAuth(){document.getElementById('authOverlay').classList.remove('abierto');authCb=null;}
 
 // LOGIN
-function doLogin(){
-  const v=document.getElementById('loginVendedor').value,c=document.getElementById('loginClave').value;
-  if(!v){document.getElementById('loginErr').style.display='block';return;}
-  const claves={...CD,...S.g('yunco_claves',{})};
-  const intentosData = getIntentos(v);
-  if(intentosData.bloqueado){mostrarBloqueo(v);return;}
-  if(c!==claves[v]){
-    registrarIntento(v, false);
-    const intentosActuales = getIntentos(v);
-    if(intentosActuales.bloqueado){
-      document.getElementById('loginErr').style.display='none';
-      mostrarBloqueo(v);
-    } else {
-      const restantes = MAX_INTENTOS - intentosActuales.count;
-      document.getElementById('loginErr').textContent = 'Clave incorrecta. Te quedan ' + restantes + ' intento(s).';
-      document.getElementById('loginErr').style.display='block';
-      document.getElementById('loginClave').value='';
-    }
-    return;
-  }
-  registrarIntento(v, true);
-  vAct=v;vRol=v==='admin'?'admin':v==='gerente'?'gerente':v==='dueno'?'dueno':'vendedor';
-  const vends=S.g('yunco_vend',{});
-  document.getElementById('vendedorInfo').textContent='👤 '+(vends[v]?.nombre||(v==='admin'?'Admin':v==='gerente'?'Gerente':'Vendedor '+v));
-  document.getElementById('loginOverlay').style.display='none';
-  // Permisos
-  if(vRol==='vendedor'){
-    document.getElementById('botonesGerente').style.display='none';
-    document.querySelectorAll('.tab-gerente').forEach(t=>t.style.display='none');
-  }
-  initCaja();
-}
-function logout(){vAct=null;vRol=null;document.getElementById('loginOverlay').style.display='flex';document.getElementById('loginVendedor').value='';document.getElementById('loginClave').value='';}
 
-// TABS
-function goTab(t){
-  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('activo',['ventas','gastos','ctacte','histcajas'][i]===t));
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('activo'));
-  document.getElementById('panel-'+t).classList.add('activo');
-  if(t==='ventas')renderVentas();
-  if(t==='gastos')renderGastos();
-  if(t==='ctacte')renderCtaCte();
-  if(t==='histcajas')renderHistCajas();
-}
+
 function goHistorialCajas(){document.getElementById('viewCerrada').style.display='none';document.getElementById('viewAbierta').style.display='block';setTimeout(()=>goTab('histcajas'),100);}
 
 // INIT CAJA
@@ -479,13 +423,26 @@ function initCaja(){
   }
 }
 
-function getFechaHoy(){return new Date().toISOString().split('T')[0];}
 
 function abrirCaja(){
-  const hoy=getFechaHoy();
-  const caja={abierta:true,fecha:hoy,apertura:new Date().toISOString(),gastos:[],cobros_cte:[]};
-  S.s('yunco_caja_'+hoy,caja);
-  mostrarCajaAbierta(caja,hoy);
+  const estado = getCajaEstado();
+  
+  // No permitir abrir si hay caja pendiente de días anteriores
+  if(estado.estado === 'pendiente'){
+    alert('⚠️ Existe una caja del ' + formatFecha(estado.fechaPendiente) + ' pendiente de cierre.\n\nDebe cerrar esa caja antes de abrir una nueva.');
+    return;
+  }
+  
+  // No permitir abrir si ya hay una caja abierta hoy
+  if(estado.estado === 'abierta'){
+    alert('Ya existe una caja abierta para el día de hoy.');
+    return;
+  }
+  
+  const hoy = getFechaHoy();
+  const cajaDatos = {abierta:true, fecha:hoy, apertura:new Date().toISOString(), gastos:[], cobros_cte:[], usuario:vAct, nombreUsuario:vNombre};
+  S.s('yunco_caja_' + hoy, cajaDatos);
+  mostrarCajaAbierta(cajaDatos, hoy);
 }
 
 function mostrarCajaAbierta(caja,fecha){
