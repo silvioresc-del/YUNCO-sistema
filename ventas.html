@@ -786,6 +786,7 @@ tr:hover td { background: rgba(74,159,212,.05) !important; }
     <div class="tab" onclick="goTab('comprobantes')">📋 Comprobantes</div>
     <div class="tab" onclick="goTab('clientes')">👥 Clientes</div>
     <div class="tab" onclick="goTab('consulta')">🔍 Consulta Stock</div>
+    <div class="tab" id="tabCtaCte" onclick="goTab('ctacte')">📒 Cuenta Corriente</div>
     <div class="tab" id="tabConfig" style="display:none" onclick="goTab('config')">⚙️ Config</div>
   </div>
 
@@ -813,6 +814,47 @@ tr:hover td { background: rgba(74,159,212,.05) !important; }
           <input type="number" id="dolarCotiz" placeholder="Ej: 1250.00" step="0.01">
         </div>
       </div>
+    </div>
+
+
+    <!-- NC/ND REFERENCIA (solo visible cuando tipo es NC o ND) -->
+    <div class="form-card" id="ncndPanel" style="display:none;border-color:rgba(245,158,11,.3)">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;color:var(--warning,#f59e0b);margin-bottom:14px">
+        📎 Referencia a Comprobante Original
+      </div>
+      <div class="form-group">
+        <label>Cliente al que pertenece la operación original</label>
+        <input type="text" id="ncndCliBusq" placeholder="Escribí nombre o CUIT para buscar facturas..." 
+          oninput="buscarFacturasCliente()" autocomplete="off">
+        <div id="ncndCliRes" style="display:none;background:var(--bg-card,#111f33);border:1px solid var(--border-mid);border-radius:8px;margin-top:4px;max-height:160px;overflow-y:auto"></div>
+      </div>
+      <div id="ncndFacturasWrap" style="display:none">
+        <div class="form-group">
+          <label>Seleccionar factura original</label>
+          <select id="ncndFacturaSel" onchange="selFacturaOriginal()" style="width:100%">
+            <option value="">— Seleccioná la factura original —</option>
+          </select>
+        </div>
+        <div id="ncndFacturaInfo" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px;margin-bottom:12px;font-size:12px"></div>
+      </div>
+      <div class="form-group">
+        <label>Motivo</label>
+        <select id="ncndMotivo" onchange="toggleMotivoOtro()">
+          <option value="">— Seleccioná un motivo —</option>
+          <option value="Devolución de mercadería">Devolución de mercadería</option>
+          <option value="Error en precio">Error en precio</option>
+          <option value="Descuento posterior">Descuento posterior</option>
+          <option value="Bonificación comercial">Bonificación comercial</option>
+          <option value="Ajuste contable">Ajuste contable</option>
+          <option value="otro">Otro (especificar)</option>
+        </select>
+      </div>
+      <div class="form-group" id="motivoOtroWrap" style="display:none">
+        <label>Especificá el motivo</label>
+        <input type="text" id="ncndMotivoOtro" placeholder="Describí el motivo...">
+      </div>
+      <input type="hidden" id="ncndFacturaRefId">
+      <input type="hidden" id="ncndFacturaRefNro">
     </div>
 
     <!-- CLIENTE -->
@@ -1006,6 +1048,50 @@ tr:hover td { background: rgba(74,159,212,.05) !important; }
     <div id="listaClis"></div>
   </div>
 
+
+  <!-- CUENTA CORRIENTE -->
+  <div class="panel" id="panel-ctacte">
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+      <input type="text" id="ctaBusq" placeholder="🔍 Buscar cliente..." oninput="renderCtaCte()"
+        style="flex:1;min-width:200px;background:var(--bg-input);border:1px solid var(--border-subtle);color:var(--text-primary);padding:9px 13px;border-radius:8px;font-size:13px;outline:none">
+      <select id="ctaFiltro" onchange="renderCtaCte()"
+        style="background:var(--bg-input);border:1px solid var(--border-subtle);color:var(--text-primary);padding:9px 13px;border-radius:8px;font-size:13px;outline:none">
+        <option value="todos">Todos los clientes</option>
+        <option value="deuda">Con saldo pendiente</option>
+        <option value="cancelado">Saldo cero</option>
+      </select>
+    </div>
+    <div id="listaCtaCte"></div>
+
+    <!-- MODAL COBRO -->
+    <div class="auth-overlay" id="overlayCobroCte" style="z-index:300">
+      <div class="auth-box" style="max-width:440px;border-color:var(--border-mid)">
+        <h3 style="color:var(--accent-light)">💰 Registrar Cobro</h3>
+        <p id="cobroClienteNom" style="font-weight:700;margin-bottom:4px"></p>
+        <p id="cobroSaldoActual" style="color:var(--warning);font-size:13px;margin-bottom:16px"></p>
+        <input type="hidden" id="cobroClienteKey">
+        <div style="text-align:left;margin-bottom:12px">
+          <label style="font-size:10px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px">Monto a cobrar ($)</label>
+          <input type="number" id="cobroMonto" placeholder="0.00" min="0" step="0.01"
+            style="width:100%;background:var(--bg-input);border:1px solid var(--border-subtle);color:var(--text-primary);padding:10px;border-radius:8px;font-size:15px;outline:none;margin-bottom:10px">
+          <label style="font-size:10px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px">Medio de pago</label>
+          <select id="cobroMedio"
+            style="width:100%;background:var(--bg-input);border:1px solid var(--border-subtle);color:var(--text-primary);padding:10px;border-radius:8px;font-size:14px;outline:none">
+            <option value="efectivo">💵 Efectivo</option>
+            <option value="transferencia">🏦 Transferencia</option>
+            <option value="cheque">📄 Cheque</option>
+            <option value="qr">📱 QR</option>
+            <option value="tarjeta">💳 Tarjeta</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:8px">
+          <button class="btn btn-outline" style="flex:1" onclick="document.getElementById('overlayCobroCte').classList.remove('abierto')">Cancelar</button>
+          <button class="btn btn-primario" style="flex:1" onclick="confirmarCobro()">✅ Confirmar cobro</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- CONFIG -->
   <div class="panel" id="panel-config">
     <div class="form-card">
@@ -1134,7 +1220,7 @@ let vAct = null, vRol = null, vNombre = null;
     setTimeout(() => {
       actualizarOpcionesComprobante();
       const perm = PERMISOS[vRol] || PERMISOS['vendedor'];
-      const allTabs = ['nueva','presupuesto','comprobantes','clientes','consulta','config'];
+      const allTabs = ['nueva','presupuesto','comprobantes','clientes','consulta','ctacte','config'];
       document.querySelectorAll('.tab').forEach((el,i) => {
         if(allTabs[i]) el.style.display = (perm.tabs||[]).includes(allTabs[i]) ? '' : 'none';
       });
@@ -1175,7 +1261,113 @@ function cancelarAuth(){document.getElementById('authOverlay').classList.remove(
 
 
 
-function onTipoChange(){updNro();const t=document.getElementById('tipoComp').value;document.getElementById('dolarWrap').style.display=t==='A'?'block':'none';recalc();}
+function onTipoChange(){
+  updNro();
+  const t = document.getElementById('tipoComp').value;
+  document.getElementById('dolarWrap').style.display = t==='A' ? 'block' : 'none';
+  // Mostrar panel NC/ND solo cuando corresponde
+  const isNcNd = t==='NC' || t==='ND';
+  const panel = document.getElementById('ncndPanel');
+  if(panel) panel.style.display = isNcNd ? 'block' : 'none';
+  // Limpiar referencia si cambia tipo
+  if(!isNcNd) limpiarNcNd();
+  recalc();
+}
+
+function limpiarNcNd(){
+  ['ncndCliBusq','ncndMotivoOtro','ncndFacturaRefId','ncndFacturaRefNro'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  const sel=document.getElementById('ncndFacturaSel');if(sel)sel.innerHTML='<option value="">— Seleccioná la factura original —</option>';
+  const wrap=document.getElementById('ncndFacturasWrap');if(wrap)wrap.style.display='none';
+  const info=document.getElementById('ncndFacturaInfo');if(info){info.style.display='none';info.innerHTML='';}
+  const res=document.getElementById('ncndCliRes');if(res){res.style.display='none';res.innerHTML='';}
+}
+
+function buscarFacturasCliente(){
+  const q = (document.getElementById('ncndCliBusq').value||'').toLowerCase().trim();
+  const res = document.getElementById('ncndCliRes');
+  if(!q){res.style.display='none';return;}
+  // Get unique clients from comprobantes
+  const comps = S.g('yunco_comp',[]);
+  const clientes = {};
+  comps.forEach(c=>{
+    if(!c.cli||!c.cli.nom) return;
+    if((c.cli.nom.toLowerCase().includes(q)||(c.cli.cuit||'').includes(q))){
+      clientes[c.cli.nom] = c.cli;
+    }
+  });
+  const lista = Object.values(clientes);
+  if(!lista.length){
+    res.innerHTML='<div style="padding:10px;font-size:13px;color:var(--text-muted)">No se encontraron clientes con comprobantes</div>';
+    res.style.display='block';
+    return;
+  }
+  res.innerHTML = lista.map(c=>`
+    <div onclick="selClienteNcNd('${c.nom.replace(/'/g,"\'")}','${(c.cuit||'').replace(/'/g,"\'")}') "
+      style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border-subtle);font-size:13px">
+      <strong>${c.nom}</strong> <span style="color:var(--text-muted);font-size:11px">${c.cuit||'S/CUIT'}</span>
+    </div>`).join('');
+  res.style.display='block';
+}
+
+function selClienteNcNd(nom, cuit){
+  document.getElementById('ncndCliBusq').value = nom;
+  document.getElementById('ncndCliRes').style.display = 'none';
+  // Load facturas for this client
+  const tipo = document.getElementById('tipoComp').value;
+  const comps = S.g('yunco_comp',[]).filter(c=>{
+    if(!c.cli||c.cli.nom!==nom) return false;
+    // NC/ND can only reference A or B facturas
+    return c.tipo==='A'||c.tipo==='B';
+  });
+  const sel = document.getElementById('ncndFacturaSel');
+  if(!comps.length){
+    sel.innerHTML='<option value="">— Sin facturas disponibles para este cliente —</option>';
+  } else {
+    sel.innerHTML='<option value="">— Seleccioná la factura original —</option>'+
+      comps.map(c=>{
+        const fecha = new Date(c.fecha).toLocaleDateString('es-AR');
+        const fmt = n=>'$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:0});
+        return `<option value="${c.id}">${c.nro} — ${fecha} — ${fmt(c.total)}</option>`;
+      }).join('');
+  }
+  document.getElementById('ncndFacturasWrap').style.display='block';
+}
+
+function selFacturaOriginal(){
+  const id = parseInt(document.getElementById('ncndFacturaSel').value);
+  const info = document.getElementById('ncndFacturaInfo');
+  if(!id){info.style.display='none';return;}
+  const comp = S.g('yunco_comp',[]).find(c=>c.id===id);
+  if(!comp){info.style.display='none';return;}
+  document.getElementById('ncndFacturaRefId').value = id;
+  document.getElementById('ncndFacturaRefNro').value = comp.nro;
+  // Auto-fill client data
+  if(comp.cli){
+    document.getElementById('cliBusq').value = comp.cli.nom||'';
+    document.getElementById('cliNombre').value = comp.cli.nom||'';
+    document.getElementById('cliCuit').value = comp.cli.cuit||'';
+    document.getElementById('cliDom').value = comp.cli.dom||'';
+    document.getElementById('cliIva').value = comp.cli.iva||'Consumidor Final';
+  }
+  const fmt = n=>'$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2});
+  const fecha = new Date(comp.fecha).toLocaleDateString('es-AR');
+  info.innerHTML=`
+    <div style="font-weight:700;color:var(--warning,#f59e0b);margin-bottom:6px">📎 Factura referenciada</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <div><span style="color:var(--text-muted)">N°:</span> ${comp.nro}</div>
+      <div><span style="color:var(--text-muted)">Fecha:</span> ${fecha}</div>
+      <div><span style="color:var(--text-muted)">Cliente:</span> ${comp.cli?.nom||'-'}</div>
+      <div><span style="color:var(--text-muted)">Total original:</span> <strong style="color:var(--success)">${fmt(comp.total)}</strong></div>
+    </div>`;
+  info.style.display='block';
+}
+
+function toggleMotivoOtro(){
+  const val = document.getElementById('ncndMotivo').value;
+  document.getElementById('motivoOtroWrap').style.display = val==='otro'?'block':'none';
+}
 function updNro(){const t=document.getElementById('tipoComp')?.value||'B';const n=S.g('yunco_nums',{B:1228,A:0,NC:0,ND:0,PRES:0});if(document.getElementById('nroComp'))document.getElementById('nroComp').value=EMP.pv+'-'+String((n[t]||0)+1).padStart(8,'0');}
 function updNroPres(){const n=S.g('yunco_nums',{B:1228,A:0,NC:0,ND:0,PRES:0});if(document.getElementById('nroPres'))document.getElementById('nroPres').value='PRES-'+String((n.PRES||0)+1).padStart(6,'0');}
 
@@ -1338,7 +1530,37 @@ function getVentaData(){
 function previsualizarVenta(){
   const items=getItemsFrom('itemsBody');
   if(!items.length){alert('Agregá al menos un producto.');return;}
+  // Validar NC/ND tienen referencia obligatoria
+  const tipoActual = document.getElementById('tipoComp').value;
+  if(tipoActual==='NC'||tipoActual==='ND'){
+    const refId = document.getElementById('ncndFacturaRefId')?.value;
+    const motivo = document.getElementById('ncndMotivo')?.value;
+    const motivoOtro = document.getElementById('ncndMotivoOtro')?.value;
+    if(!refId){
+      alert('⚠️ Las Notas de Crédito y Débito deben referenciar una factura original.\nBuscá el cliente y seleccioná la factura correspondiente.');
+      return;
+    }
+    if(!motivo){
+      alert('⚠️ Debe seleccionar un motivo para la Nota de ' + (tipoActual==='NC'?'Crédito':'Débito') + '.');
+      return;
+    }
+    if(motivo==='otro'&&!motivoOtro.trim()){
+      alert('⚠️ Especificá el motivo en el campo de texto.');
+      return;
+    }
+  }
   const data=getVentaData();
+  // Agregar referencia NC/ND si corresponde
+  const tipoV = document.getElementById('tipoComp').value;
+  if(tipoV==='NC'||tipoV==='ND'){
+    const refId = document.getElementById('ncndFacturaRefId')?.value;
+    const refNro = document.getElementById('ncndFacturaRefNro')?.value;
+    const motivo = document.getElementById('ncndMotivo')?.value;
+    const motivoOtro = document.getElementById('ncndMotivoOtro')?.value;
+    data.refFacturaId = parseInt(refId)||null;
+    data.refFacturaNro = refNro||'';
+    data.motivo = motivo==='otro' ? motivoOtro : motivo;
+  }
   previewData=data;
   document.getElementById('previewBox').innerHTML=buildFacturaHTML(data,false);
   document.getElementById('previewOverlay').classList.add('abierto');
@@ -1348,11 +1570,77 @@ function closePreview(){document.getElementById('previewOverlay').classList.remo
 function imprimirDesdePreview(){
   if(!previewData)return;
   const html=buildFacturaHTML(previewData,false);
-  
+  abrirVentanaImpresion(html,'Factura '+previewData.nro);
 }
 
 
 
+
+
+// ── SISTEMA DE IMPRESIÓN ─────────────────────────────────────
+function closePrint(){
+  const el = document.getElementById('printOverlay');
+  if(el) el.style.display = 'none';
+}
+
+function abrirVentanaImpresion(html, titulo){
+  let printDiv = document.getElementById('printOverlay');
+  if(!printDiv){
+    printDiv = document.createElement('div');
+    printDiv.id = 'printOverlay';
+    document.body.appendChild(printDiv);
+  }
+
+  const CSS = `
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:Arial,sans-serif;background:#f0f0f0;}
+    .print-page{background:#fff;width:210mm;min-height:267mm;margin:0 auto;padding:8mm;display:flex;flex-direction:column;}
+    .orig{text-align:center;font-weight:700;font-size:11px;letter-spacing:2px;margin-bottom:4mm;border-bottom:2px solid #000;padding-bottom:3mm;}
+    .head{display:flex;border:2px solid #000;}
+    .logo-cell{padding:6px 10px;border-right:2px solid #000;display:flex;align-items:center;min-width:100px;}
+    .logo{font-size:22px;font-weight:900;color:#c0392b;-webkit-text-stroke:2px rgba(80,30,20,.5);letter-spacing:2px;}
+    .emp{padding:5px 8px;font-size:9px;line-height:1.6;border-right:2px solid #000;flex:1;}
+    .tipo-cell{padding:5px 10px;text-align:center;border-right:2px solid #000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:75px;}
+    .letra{font-size:32px;font-weight:900;border:3px solid #000;width:50px;height:50px;display:flex;align-items:center;justify-content:center;margin:0 auto 2px;}
+    .tipo-nom{font-size:10px;font-weight:700;}
+    .nro{font-size:9px;margin-top:2px;}
+    .right{padding:5px 8px;font-size:9px;line-height:1.7;flex:1;}
+    .cli{border:1px solid #000;border-top:none;padding:5px 8px;font-size:9px;display:flex;gap:10px;flex-wrap:wrap;}
+    .items-wrap{flex:1;margin-top:3mm;}
+    table{width:100%;border-collapse:collapse;}
+    th,td{border:1px solid #000;padding:3px 5px;font-size:9px;}
+    th{background:#eee;font-weight:700;text-align:center;}
+    td:nth-child(3),td:nth-child(4),td:nth-child(5),td:nth-child(7){text-align:right;}
+    .bot{display:flex;justify-content:space-between;margin-top:3mm;gap:6px;align-items:flex-start;}
+    .trib{border:1px solid #000;padding:4px;font-size:9px;flex:1;}
+    .trib-row{display:flex;justify-content:space-between;padding:2px 4px;border-bottom:1px solid #eee;}
+    .tots{border:2px solid #000;padding:6px 10px;min-width:190px;}
+    .tot-row{display:flex;justify-content:space-between;font-size:9px;margin-bottom:2px;}
+    .tot-row.big{font-weight:700;font-size:13px;border-top:2px solid #000;padding-top:4px;margin-top:3px;}
+    .foot{margin-top:auto;padding-top:3mm;border-top:2px solid #000;display:flex;justify-content:space-between;font-size:9px;flex-wrap:wrap;gap:4px;}
+    .pie{text-align:center;font-size:8px;margin-top:2mm;color:#555;}
+    .presup-banner{background:#f5f5f5;border:2px dashed #999;padding:4px 10px;text-align:center;font-size:10px;font-weight:700;margin-bottom:3mm;}
+    @media print{
+      body{background:#fff;}
+      .no-print{display:none!important;}
+      .print-page{margin:0;padding:6mm;width:100%;min-height:auto;box-shadow:none;}
+      @page{size:A4;margin:6mm;}
+    }
+  `;
+
+  printDiv.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#f0f0f0;overflow-y:auto;';
+  printDiv.innerHTML =
+    '<div class="no-print" style="background:#1a3a5c;padding:10px 16px;display:flex;gap:10px;align-items:center;justify-content:flex-end;position:sticky;top:0;z-index:10">' +
+    '<span style="color:#a8d4f5;font-size:13px;font-weight:600;flex:1">' + titulo + '</span>' +
+    '<button onclick="window.print()" style="padding:9px 18px;background:#22c55e;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">🖨 Imprimir / PDF</button>' +
+    '<button onclick="closePrint()" style="padding:9px 18px;background:#ef4444;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">✕ Cerrar</button>' +
+    '</div>' +
+    '<style>' + CSS + '</style>' +
+    '<div class="print-page">' + html + '</div>';
+
+  printDiv.style.display = 'block';
+  printDiv.scrollTop = 0;
+}
 
 function buildFacturaHTML(v,esPres){
   const tLabel={B:'FACTURA',A:'FACTURA',NC:'NOTA DE CRÉDITO',ND:'NOTA DE DÉBITO',PRES:'PRESUPUESTO'}[v.tipo]||'COMPROBANTE';
@@ -1362,58 +1650,53 @@ function buildFacturaHTML(v,esPres){
   const dolarLine=v.dolar&&v.tipo==='A'?`<div class="fp-dolar">* Esta factura fue realizada con el dólar a cotización ${fmt(v.dolar)}</div>`:'';
   const vtoLine=esPres&&v.fechaVto?`<strong>Válido hasta: ${new Date(v.fechaVto).toLocaleDateString('es-AR')} (${v.vig} días)</strong>`:`Fecha Vto.: ${fecha}`;
   return `${esPres?'<div class="presup-banner">⚠️ PRESUPUESTO — NO VÁLIDO COMO COMPROBANTE FISCAL</div>':''}
-<div class="wrap">
-  <div class="orig">${esPres?'PRESUPUESTO':'O R I G I N A L'}</div>
-  <div class="head">
-    <div class="logo-cell"><div class="logo">Yunco</div></div>
-    <div class="emp">Razón Social: ${EMP.nombre}<br>Domicilio: ${EMP.dom} - ${EMP.ciudad}<br>Condición frente al IVA: ${EMP.iva}</div>
-    <div class="tipo-cell">
-      <div class="letra">${letra}</div>
-      <div class="tipo-nom">${tLabel}</div>
-      <div class="nro">N° ${v.nro}</div>
-    </div>
-    <div class="right">Fecha de Emisión: ${fecha}<br>CUIT: ${EMP.cuit}<br>Ing. Brutos: ${EMP.iibb}<br>Inicio Act.: ${EMP.iniAct}<br>${vtoLine}</div>
+<div class="orig">${esPres?'PRESUPUESTO':'O R I G I N A L'}</div>
+<div class="head">
+  <div class="logo-cell"><div class="logo">Yunco</div></div>
+  <div class="emp">Razón Social: ${EMP.nombre}<br>Domicilio: ${EMP.dom} - ${EMP.ciudad}<br>Condición frente al IVA: ${EMP.iva}</div>
+  <div class="tipo-cell">
+    <div class="letra">${letra}</div>
+    <div class="tipo-nom">${tLabel}</div>
+    <div class="nro">N° ${v.nro}</div>
   </div>
-  <div class="cli">
-    <div><b>CUIT/DNI:</b> ${v.cli.cuit||'11-11111111-1'}</div>
-    <div><b>Cliente:</b> ${v.cli.nom}</div>
-    <div><b>Cond. IVA:</b> ${v.cli.iva||'Consumidor Final'}</div>
-    <div><b>Domicilio:</b> ${v.cli.dom||'-'}</div>
-    ${!esPres?`<div><b>Cond. Venta:</b> ${pagoLbl(v.pago)}</div>`:''}
+  <div class="right">Fecha: ${fecha}<br>CUIT: ${EMP.cuit}<br>Ing.Brutos: ${EMP.iibb}<br>Inicio Act.: ${EMP.iniAct}<br>${vtoLine}</div>
+</div>
+<div class="cli">
+  <span><b>CUIT/DNI:</b> ${v.cli.cuit||'11-11111111-1'}</span>
+  <span><b>Cliente:</b> ${v.cli.nom}</span>
+  <span><b>Cond.IVA:</b> ${v.cli.iva||'Consumidor Final'}</span>
+  <span><b>Domicilio:</b> ${v.cli.dom||'-'}</span>
+  ${!esPres?`<span><b>Pago:</b> ${pagoLbl(v.pago)}</span>`:''}
+</div>
+<div class="items-wrap">
+  <table>
+    <thead><tr><th>Código</th><th>Producto/Servicio</th><th>Cant.</th><th>U.Med.</th><th>Pr.Unit.</th><th>%IVA</th><th>SubTotal</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+</div>
+<div class="bot">
+  <div class="trib">
+    <div style="font-weight:700;padding:2px 4px;border-bottom:1px solid #000;margin-bottom:2px">Otros Tributos</div>
+    <div class="trib-row"><span>Per./Ret. Ganancias</span><span>$0,00</span></div>
+    <div class="trib-row"><span>Per./Ret. IVA</span><span>$0,00</span></div>
+    <div class="trib-row"><span>Per./Ret. IIBB</span><span>$0,00</span></div>
+    ${v.obs?`<div style="padding:3px 4px;font-style:italic;font-size:8px">Obs: ${v.obs}</div>`:''}
   </div>
-  <div class="items">
-    <table>
-      <thead><tr><th>Código</th><th>Producto/Servicio</th><th>Cant.</th><th>U.Med.</th><th>Pr.Unit.</th><th>%IVA</th><th>SubTotal</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
+  <div class="tots">
+    <div class="tot-row"><span>Importe Neto Gravado:</span><span>${fmt(v.neto)}</span></div>
+    <div class="tot-row"><span>IVA 21%:</span><span>${fmt(v.iva)}</span></div>
+    <div class="tot-row"><span>Otros Tributos:</span><span>$0,00</span></div>
+    <div class="tot-row big"><span>TOTAL:</span><span>${fmt(v.total)}</span></div>
+    ${v.tipo==='B'?`<div style="font-size:8px;color:#555;margin-top:3px">IVA Contenido (Ley 27743): ${fmt(v.iva)}</div>`:''}
+    ${dolarLine}
   </div>
-  <div class="bot">
-    <div class="trib">
-      <div style="font-weight:700;padding:2px 4px;border-bottom:1px solid #000;margin-bottom:2px">Otros Tributos</div>
-      <div class="trib-row"><span>Per./Ret. Ganancias</span><span>$0,00</span></div>
-      <div class="trib-row"><span>Per./Ret. IVA</span><span>$0,00</span></div>
-      <div class="trib-row"><span>Per./Ret. IIBB</span><span>$0,00</span></div>
-      <div class="trib-row"><span>Imp. Internos</span><span>$0,00</span></div>
-      <div class="trib-row"><span>Imp. Municipales</span><span>$0,00</span></div>
-      <div class="trib-row" style="font-weight:700;border-top:1px solid #000"><span>Total Otros Tributos:</span><span>$0,00</span></div>
-      ${v.obs?`<div style="padding:3px 4px;font-style:italic;font-size:8px">Obs: ${v.obs}</div>`:''}
-    </div>
-    <div class="tots">
-      <div class="tot-row"><span>Importe Neto Grabado:</span><span>${fmt(v.neto)}</span></div>
-      <div class="tot-row"><span>IVA 21%:</span><span>${fmt(v.iva)}</span></div>
-      <div class="tot-row"><span>Importe Otros Tributos:</span><span>$0,00</span></div>
-      <div class="tot-row big"><span>IMPORTE TOTAL:</span><span>${fmt(v.total)}</span></div>
-      ${v.tipo==='B'?`<div style="font-size:8px;color:#555;margin-top:3px">IVA Contenido (Ley 27743): ${fmt(v.iva)}</div>`:''}
-      ${dolarLine}
-    </div>
-  </div>
-  <div class="foot">
-    <span>Tel.: ${EMP.tel}</span>
-    <span>correo: ${EMP.mail}</span>
-    <span>WhatsApp: ${EMP.wa}</span>
-  </div>
-  <div class="pie">${esPres?'Presupuesto sin valor fiscal — '+EMP.nombre:v.modo==='registrar'?'Comprobante Autorizado — AFIP — '+EMP.nombre:'⚠️ COMPROBANTE NO OFICIAL — USO INTERNO'}</div>
-</div>`;
+</div>
+<div class="foot">
+  <span>Tel.: ${EMP.tel}</span>
+  <span>correo: ${EMP.mail}</span>
+  <span>WhatsApp: ${EMP.wa}</span>
+</div>
+<div class="pie">${esPres?'Presupuesto sin valor fiscal — '+EMP.nombre:v.modo==='registrar'?'Comprobante Autorizado — AFIP — '+EMP.nombre:'⚠️ COMPROBANTE NO OFICIAL — USO INTERNO'}</div>`;
 }
 
 
@@ -1585,6 +1868,93 @@ function mostrarAlertaCaja(mensaje, tipo){
   document.getElementById('cajaBlockOverlay').classList.add('abierto');
 }
 
+
+// ── CUENTA CORRIENTE ─────────────────────────────────────────
+function getCtaCte(){ return S.g('yunco_ctacte', {}); }
+function saveCtaCte(data){ S.s('yunco_ctacte', data); }
+
+function getClienteKey(cli){
+  return cli.cuit ? 'cuit_' + cli.cuit.replace(/[^0-9]/g,'') : 'nom_' + (cli.nom||'').toLowerCase().replace(/\s+/g,'_');
+}
+
+function registrarVentaCC(comp){
+  const ct = getCtaCte();
+  const key = getClienteKey(comp.cli);
+  if(!ct[key]){
+    ct[key] = {
+      key, nom: comp.cli.nom, cuit: comp.cli.cuit||'',
+      iva: comp.cli.iva||'Consumidor Final', dom: comp.cli.dom||'',
+      saldo: 0, movimientos: []
+    };
+  }
+  const saldoAnt = ct[key].saldo;
+  const monto = parseFloat(comp.total)||0;
+  ct[key].saldo += monto;
+  ct[key].movimientos.unshift({
+    id: Date.now(),
+    fecha: comp.fecha,
+    tipo: 'venta_cc',
+    label: 'Venta CC',
+    compNro: comp.nro,
+    compId: comp.id,
+    monto: monto,
+    saldoAnterior: saldoAnt,
+    saldoResultante: ct[key].saldo,
+    usuario: vAct,
+    usuarioNom: vNombre,
+    cajaId: comp.cajaId||'',
+    cajaFecha: comp.cajaFecha||''
+  });
+  saveCtaCte(ct);
+}
+
+function registrarCobroCC(clienteKey, monto, medio, cajaActiva){
+  const ct = getCtaCte();
+  if(!ct[clienteKey]) return false;
+  const saldoAnt = ct[clienteKey].saldo;
+  const montoReal = Math.min(parseFloat(monto)||0, saldoAnt);
+  if(montoReal <= 0) return false;
+  ct[clienteKey].saldo -= montoReal;
+  const mov = {
+    id: Date.now(),
+    fecha: new Date().toISOString(),
+    tipo: ct[clienteKey].saldo <= 0 ? 'cobro_total' : 'cobro_parcial',
+    label: ct[clienteKey].saldo <= 0 ? 'Cobro total' : 'Cobro parcial',
+    compNro: '',
+    compId: null,
+    monto: montoReal,
+    saldoAnterior: saldoAnt,
+    saldoResultante: ct[clienteKey].saldo,
+    medioPago: medio,
+    usuario: vAct,
+    usuarioNom: vNombre,
+    cajaId: cajaActiva?.id||'',
+    cajaFecha: cajaActiva?.fecha||''
+  };
+  ct[clienteKey].movimientos.unshift(mov);
+  saveCtaCte(ct);
+  // Register cobro in caja
+  if(cajaActiva){
+    const hoy = getFechaHoy();
+    const cajaDatos = S.g('yunco_caja_' + hoy, null);
+    if(cajaDatos){
+      if(!cajaDatos.cobros_cte) cajaDatos.cobros_cte = [];
+      cajaDatos.cobros_cte.push({
+        id: mov.id,
+        fecha: mov.fecha,
+        cliente: ct[clienteKey].nom,
+        clienteKey,
+        monto: montoReal,
+        medio,
+        usuario: vAct,
+        usuarioNom: vNombre
+      });
+      S.s('yunco_caja_' + hoy, cajaDatos);
+    }
+  }
+  return { ok: true, montoReal, saldoNuevo: ct[clienteKey].saldo, cancelada: ct[clienteKey].saldo <= 0 };
+}
+
 function procesar(modo){
   // Verificar caja abierta para CUALQUIER modo de registro
   const cajaCheck = verificarCajaParaVender();
@@ -1594,6 +1964,25 @@ function procesar(modo){
   }
   const items=getItemsFrom('itemsBody');
   if(!items.length){alert('Agregá al menos un producto.');return;}
+  // Validar NC/ND tienen referencia obligatoria
+  const tipoActual = document.getElementById('tipoComp').value;
+  if(tipoActual==='NC'||tipoActual==='ND'){
+    const refId = document.getElementById('ncndFacturaRefId')?.value;
+    const motivo = document.getElementById('ncndMotivo')?.value;
+    const motivoOtro = document.getElementById('ncndMotivoOtro')?.value;
+    if(!refId){
+      alert('⚠️ Las Notas de Crédito y Débito deben referenciar una factura original.\nBuscá el cliente y seleccioná la factura correspondiente.');
+      return;
+    }
+    if(!motivo){
+      alert('⚠️ Debe seleccionar un motivo para la Nota de ' + (tipoActual==='NC'?'Crédito':'Débito') + '.');
+      return;
+    }
+    if(motivo==='otro'&&!motivoOtro.trim()){
+      alert('⚠️ Especificá el motivo en el campo de texto.');
+      return;
+    }
+  }
   // VALIDACION STOCK INSUFICIENTE
   let prods=[];
   try{prods=JSON.parse(localStorage.getItem('yunco_inv')||'[]');}catch{}
@@ -1612,6 +2001,17 @@ function procesar(modo){
     return;
   }
   const data=getVentaData();
+  // Agregar referencia NC/ND si corresponde
+  const tipoV = document.getElementById('tipoComp').value;
+  if(tipoV==='NC'||tipoV==='ND'){
+    const refId = document.getElementById('ncndFacturaRefId')?.value;
+    const refNro = document.getElementById('ncndFacturaRefNro')?.value;
+    const motivo = document.getElementById('ncndMotivo')?.value;
+    const motivoOtro = document.getElementById('ncndMotivoOtro')?.value;
+    data.refFacturaId = parseInt(refId)||null;
+    data.refFacturaNro = refNro||'';
+    data.motivo = motivo==='otro' ? motivoOtro : motivo;
+  }
   data.modo=modo;
   // AUTO-GUARDAR CLIENTE NUEVO
   const nomCli = document.getElementById('cliNombre').value.trim();
@@ -1636,6 +2036,10 @@ function procesar(modo){
     data.cajaFecha = cajaActiva.fecha;
   }
   const comp=S.g('yunco_comp',[]);comp.unshift(data);S.s('yunco_comp',comp);
+  // Si es venta en cuenta corriente, registrar en ctacte
+  if(data.pago === 'cuenta_corriente' && data.modo === 'registrar'){
+    registrarVentaCC(data);
+  }
   if(modo==='registrar'){
     const nums=S.g('yunco_nums',{B:1228,A:0,NC:0,ND:0,PRES:0});
     nums[data.tipo]=(nums[data.tipo]||0)+1;S.s('yunco_nums',nums);
@@ -1662,6 +2066,9 @@ function procesar(modo){
 }
 
 function resetVenta(){
+  limpiarNcNd();
+  const panel=document.getElementById('ncndPanel');
+  if(panel) panel.style.display='none';
   document.getElementById('itemsBody').innerHTML='';iCnt=0;
   ['cliCuit','cliNombre','cliDom','obsVenta','pagoExtraVal','dolarCotiz','cliBusq'].forEach(f=>document.getElementById(f).value='');
   document.getElementById('cliIva').value='Consumidor Final';
