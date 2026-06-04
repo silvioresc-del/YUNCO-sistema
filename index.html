@@ -1,101 +1,630 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YUNCO DE FEMO SRL — Sistema de Gestión</title>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root{--azul:#1F4E78;--azul2:#2d7fba;--verde:#1a7a3c;--verde2:#27ae60;--naranja:#c0580a;--naranja2:#e67e22;--violeta:#5a2d82;--violeta2:#8e44ad;--fondo:#0d1f33;--card:#162b44;--borde:rgba(255,255,255,.07);--texto:#e8eef5;--muted:#8ba5be;}
-    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
-    body{font-family:'Barlow',sans-serif;background:var(--fondo);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;overflow-x:hidden;}
-    body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 50% at 20% 20%,rgba(31,78,120,.45) 0%,transparent 70%),radial-gradient(ellipse 50% 40% at 80% 80%,rgba(26,122,60,.25) 0%,transparent 70%);pointer-events:none;}
-    .wrapper{position:relative;width:100%;max-width:560px;animation:fadeUp .6s ease both;}
-    @keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
-    .header{text-align:center;margin-bottom:36px;}
-    .logo-label{display:inline-block;background:rgba(31,78,120,.5);border:1px solid rgba(45,127,186,.4);color:#7ab8e8;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:5px 14px;border-radius:20px;margin-bottom:14px;}
-    .titulo{font-family:'Bebas Neue',sans-serif;font-size:clamp(38px,8vw,54px);color:var(--texto);letter-spacing:2px;line-height:1;margin-bottom:6px;}
-    .subtitulo{color:var(--muted);font-size:14px;letter-spacing:1px;}
-    .grid{display:flex;flex-direction:column;gap:14px;}
-    .modulo{display:flex;align-items:center;gap:20px;background:var(--card);border:1px solid var(--borde);border-radius:14px;padding:22px 24px;text-decoration:none;cursor:pointer;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease;animation:fadeUp .6s ease both;}
-    .modulo:nth-child(1){animation-delay:.1s}
-    .modulo:nth-child(2){animation-delay:.2s}
-    .modulo:nth-child(3){animation-delay:.3s}
-    .modulo:nth-child(4){animation-delay:.4s}
-    .modulo:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.4);}
-    .modulo.azul:hover{border-color:rgba(45,127,186,.6);box-shadow:0 12px 40px rgba(31,78,120,.45);}
-    .modulo.verde:hover{border-color:rgba(39,174,96,.5);box-shadow:0 12px 40px rgba(26,122,60,.35);}
-    .modulo.naranja:hover{border-color:rgba(230,126,34,.5);box-shadow:0 12px 40px rgba(192,88,10,.35);}
-    .modulo.violeta:hover{border-color:rgba(142,68,173,.5);box-shadow:0 12px 40px rgba(90,45,130,.35);}
-    .icono-wrap{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:24px;}
-    .azul .icono-wrap{background:rgba(31,78,120,.5);border:1px solid rgba(45,127,186,.35);}
-    .verde .icono-wrap{background:rgba(26,122,60,.45);border:1px solid rgba(39,174,96,.3);}
-    .naranja .icono-wrap{background:rgba(192,88,10,.4);border:1px solid rgba(230,126,34,.3);}
-    .violeta .icono-wrap{background:rgba(90,45,130,.4);border:1px solid rgba(142,68,173,.3);}
-    .mod-info{flex:1;}
-    .mod-nombre{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--texto);line-height:1;margin-bottom:4px;}
-    .mod-desc{font-size:13px;color:var(--muted);}
-    .flecha{color:var(--muted);font-size:18px;transition:transform .2s,color .2s;}
-    .modulo:hover .flecha{transform:translateX(4px);color:var(--texto);}
-    .pie{text-align:center;margin-top:28px;color:var(--muted);font-size:12px;letter-spacing:.5px;animation:fadeUp .6s .5s ease both;}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YUNCO — Sistema de Gestión</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Paleta principal */
+  --bg-base:       #080f1a;
+  --bg-surface:    #0d1929;
+  --bg-card:       #111f33;
+  --bg-card-hover: #162540;
+  --bg-input:      #0a1525;
+
+  /* Bordes */
+  --border-subtle: rgba(255,255,255,.06);
+  --border-mid:    rgba(74,159,212,.2);
+  --border-strong: rgba(74,159,212,.45);
+
+  /* Texto */
+  --text-primary:   #eef4fb;
+  --text-secondary: #8baec8;
+  --text-muted:     #4d6a82;
+
+  /* Acento azul */
+  --accent:        #2d7fba;
+  --accent-light:  #4a9fd4;
+  --accent-glow:   rgba(45,127,186,.35);
+
+  /* Estados */
+  --success:       #22c55e;
+  --success-bg:    rgba(34,197,94,.1);
+  --danger:        #ef4444;
+  --danger-bg:     rgba(239,68,68,.1);
+  --warning:       #f59e0b;
+
+  /* Espaciado sistemático */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* Radios */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  /* Sombras */
+  --shadow-card: 0 4px 24px rgba(0,0,0,.4), 0 1px 0 rgba(255,255,255,.04) inset;
+  --shadow-elevated: 0 8px 40px rgba(0,0,0,.5), 0 1px 0 rgba(255,255,255,.06) inset;
+  --shadow-glow: 0 0 32px rgba(45,127,186,.25);
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Barlow', sans-serif;
+  background: var(--bg-base);
+  min-height: 100vh;
+  color: var(--text-primary);
+  overflow-x: hidden;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 60% at 15% 0%, rgba(31,78,120,.5) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 40% at 85% 100%, rgba(13,60,100,.4) 0%, transparent 50%);
+}
+
+/* ── LOGIN ──────────────────────────────────────────────────── */
+.login-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+}
+
+.login-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-xl);
+  padding: var(--space-10) var(--space-8);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: var(--shadow-elevated), var(--shadow-glow);
+  animation: fadeUp .5s cubic-bezier(.16,1,.3,1) both;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-box::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(74,159,212,.6), transparent);
+}
+
+.login-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 56px;
+  color: #c0392b;
+  -webkit-text-stroke: 2px rgba(80,30,20,.6);
+  letter-spacing: 4px;
+  margin-bottom: var(--space-1);
+  line-height: 1;
+}
+
+.login-empresa {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: var(--space-1);
+}
+
+.login-sub {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-8);
+}
+
+.login-box select,
+.login-box input {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  padding: 13px var(--space-4);
+  border-radius: var(--radius-md);
+  font-family: 'Barlow', sans-serif;
+  font-size: 14px;
+  outline: none;
+  margin-bottom: var(--space-3);
+  transition: border-color .2s, box-shadow .2s;
+}
+
+.login-box select:focus,
+.login-box input:focus {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 3px rgba(45,127,186,.15);
+}
+
+.login-box select option { background: #111f33; }
+
+.login-btn {
+  width: 100%;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+  color: #fff;
+  border: none;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  font-family: 'Barlow', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: .5px;
+  transition: opacity .2s, transform .15s;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-btn:hover { opacity: .9; transform: translateY(-1px); }
+.login-btn:active { transform: translateY(0); }
+
+.login-error {
+  color: var(--danger);
+  font-size: 12px;
+  margin-top: var(--space-3);
+  display: none;
+  background: var(--danger-bg);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+}
+
+/* ── SISTEMA WRAP ───────────────────────────────────────────── */
+.sistema-wrap {
+  display: none;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+/* ── TOPBAR ─────────────────────────────────────────────────── */
+.topbar {
+  background: rgba(8,15,26,.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.topbar-left { display: flex; align-items: center; gap: var(--space-4); }
+
+.sistema-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 2px;
+  color: var(--text-primary);
+}
+
+.topbar-right { display: flex; align-items: center; gap: var(--space-3); }
+
+.user-badge {
+  background: var(--success-bg);
+  border: 1px solid rgba(34,197,94,.25);
+  padding: 6px var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--success);
+  letter-spacing: .3px;
+}
+
+.logout-btn {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  padding: 6px var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Barlow', sans-serif;
+  transition: color .2s, border-color .2s;
+}
+
+.logout-btn:hover { color: var(--danger); border-color: rgba(239,68,68,.3); }
+
+/* ── MENÚ CONTENIDO ─────────────────────────────────────────── */
+.contenido {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-10) var(--space-6);
+}
+
+.menu-wrap { width: 100%; max-width: 580px; }
+
+.menu-titulo {
+  text-align: center;
+  margin-bottom: var(--space-10);
+}
+
+.menu-titulo h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(28px, 5vw, 44px);
+  letter-spacing: 2px;
+  margin-bottom: var(--space-2);
+  color: var(--text-primary);
+}
+
+.menu-titulo p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.modulos-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.modulo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-6);
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform .2s cubic-bezier(.16,1,.3,1),
+              box-shadow .2s,
+              border-color .2s,
+              background .2s;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+
+.modulo::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: transparent;
+  transition: background .2s;
+  border-radius: 3px 0 0 3px;
+}
+
+.modulo:hover {
+  transform: translateY(-2px) translateX(2px);
+  background: var(--bg-card-hover);
+}
+
+.modulo.azul::before { background: var(--accent-light); }
+.modulo.verde::before { background: var(--success); }
+.modulo.naranja::before { background: var(--warning); }
+.modulo.esmeralda::before { background: #10b981; }
+.modulo.violeta::before { background: #8b5cf6; }
+
+.modulo.azul:hover { border-color: rgba(74,159,212,.35); box-shadow: var(--shadow-card), 0 0 24px rgba(45,127,186,.15); }
+.modulo.verde:hover { border-color: rgba(34,197,94,.3); box-shadow: var(--shadow-card), 0 0 24px rgba(34,197,94,.1); }
+.modulo.naranja:hover { border-color: rgba(245,158,11,.3); box-shadow: var(--shadow-card), 0 0 24px rgba(245,158,11,.1); }
+.modulo.esmeralda:hover { border-color: rgba(16,185,129,.3); box-shadow: var(--shadow-card), 0 0 24px rgba(16,185,129,.1); }
+
+.icono-wrap {
+  width: 48px; height: 48px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 22px;
+}
+
+.azul .icono-wrap  { background: rgba(45,127,186,.2); border: 1px solid rgba(74,159,212,.25); }
+.verde .icono-wrap { background: rgba(34,197,94,.15); border: 1px solid rgba(34,197,94,.2); }
+.naranja .icono-wrap { background: rgba(245,158,11,.15); border: 1px solid rgba(245,158,11,.2); }
+.esmeralda .icono-wrap { background: rgba(16,185,129,.15); border: 1px solid rgba(16,185,129,.2); }
+.violeta .icono-wrap { background: rgba(139,92,246,.15); border: 1px solid rgba(139,92,246,.2); }
+
+.mod-nombre {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 1px;
+  line-height: 1;
+  margin-bottom: 3px;
+  color: var(--text-primary);
+}
+
+.mod-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.flecha {
+  color: var(--text-muted);
+  font-size: 18px;
+  margin-left: auto;
+  transition: transform .2s, color .2s;
+}
+
+.modulo:hover .flecha {
+  transform: translateX(4px);
+  color: var(--text-secondary);
+}
+
+.pie {
+  text-align: center;
+  padding: var(--space-5);
+  color: var(--text-muted);
+  font-size: 11px;
+  letter-spacing: .5px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* ── BLOQUEO ────────────────────────────────────────────────── */
+.bloqueo-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  z-index: 500;
+  background: rgba(0,0,0,.8);
+  backdrop-filter: blur(8px);
+  align-items: center;
+  justify-content: center;
+}
+.bloqueo-overlay.abierto { display: flex; }
+
+.bloqueo-box {
+  background: var(--bg-card);
+  border: 1px solid rgba(239,68,68,.4);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+  box-shadow: var(--shadow-elevated), 0 0 40px rgba(239,68,68,.15);
+}
+
+.bloqueo-box input {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  outline: none;
+  text-align: center;
+  letter-spacing: 4px;
+  margin-bottom: var(--space-3);
+  transition: border-color .2s;
+}
+.bloqueo-box input:focus { border-color: var(--border-strong); }
+
+/* ── ANIMACIONES ────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 480px) {
+  .login-box { padding: var(--space-8) var(--space-5); }
+  .topbar { padding: var(--space-3) var(--space-4); }
+  .contenido { padding: var(--space-6) var(--space-4); }
+  .modulo { padding: var(--space-4) var(--space-5); }
+}
+</style>
 </head>
 <body>
-  <div class="wrapper">
-    <div class="header">
-      <div class="logo-label">Sistema de Gestión</div>
-      <div class="titulo">YUNCO DE FEMO SRL</div>
-      <div class="subtitulo">Seleccioná un módulo para comenzar</div>
-    </div>
-    <div class="grid">
 
-      <a href="ventas.html" class="modulo azul">
-        <div class="icono-wrap">💵</div>
-        <div class="mod-info">
-          <div class="mod-nombre">Ventas y Facturación</div>
-          <div class="mod-desc">Emitir comprobantes · Presupuestos · Clientes</div>
-        </div>
-        <span class="flecha">›</span>
-      </a>
-
-      <a href="inventario.html" class="modulo verde">
-        <div class="icono-wrap">📦</div>
-        <div class="mod-info">
-          <div class="mod-nombre">Inventario y Stock</div>
-          <div class="mod-desc">Consulta de stock · Entradas y salidas · Alertas</div>
-        </div>
-        <span class="flecha">›</span>
-      </a>
-
-      <a href="caja.html" class="modulo naranja">
-        <div class="icono-wrap">🧾</div>
-        <div class="mod-info">
-          <div class="mod-nombre">Cierre de Caja</div>
-          <div class="mod-desc">Resumen diario · Ingresos y egresos · WhatsApp</div>
-        </div>
-        <span class="flecha">›</span>
-      </a>
-
-      <a href="reportes.html" class="modulo" style="border-color:rgba(46,204,113,.2)" onmouseover="this.style.transform='translateY(-4px)';this.style.borderColor='rgba(46,204,113,.5)'" onmouseout="this.style.transform='';this.style.borderColor='rgba(46,204,113,.2)'">
-        <div class="icono-wrap" style="background:rgba(26,122,60,.4);border-color:rgba(39,174,96,.3)">📊</div>
-        <div class="mod-info">
-          <div class="mod-nombre">Reportes Gerenciales</div>
-          <div class="mod-desc">Ranking vendedores · Productos top · Exportar Excel</div>
-        </div>
-        <span class="flecha">›</span>
-      </a>
-
-      <a href="cupones.html" class="modulo violeta">
-        <div class="icono-wrap">💳</div>
-        <div class="mod-info">
-          <div class="mod-nombre">Cupones de Tarjeta</div>
-          <div class="mod-desc">Seguimiento de cuotas · Pagos pendientes</div>
-        </div>
-        <span class="flecha">›</span>
-      </a>
-
-    </div>
-    <div class="pie">YUNCO DE FEMO SRL &nbsp;·&nbsp; Uso interno</div>
+<!-- BLOQUEO -->
+<div class="bloqueo-overlay" id="bloqueoOverlay">
+  <div class="bloqueo-box">
+    <div style="font-size:52px;margin-bottom:14px">🔒</div>
+    <h3 style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#e74c3c;margin-bottom:8px">Acceso Bloqueado</h3>
+    <p id="bloqueoMsg" style="color:#8ba5be;font-size:13px;margin-bottom:8px"></p>
+    <p style="color:#f39c12;font-size:12px;margin-bottom:20px">⚠️ El Gerente o Dueño debe ingresar su clave para desbloquear.</p>
+    <input type="hidden" id="bloqueoUsuario">
+    <input type="password" id="desbloqueClave" placeholder="Clave del Gerente o Dueño"
+      onkeydown="if(event.key==='Enter')confirmarDesbloqueo()"
+      style="width:100%;background:rgba(13,31,51,.8);border:1px solid rgba(255,255,255,.1);color:#e8f4ff;padding:12px;border-radius:8px;font-size:14px;outline:none;text-align:center;margin-bottom:10px">
+    <div style="color:#e74c3c;font-size:12px;margin-bottom:8px;display:none" id="desbloqueoErr">Clave incorrecta.</div>
+    <button onclick="confirmarDesbloqueo()" style="width:100%;background:var(--azul2);color:#fff;border:none;padding:12px;border-radius:8px;font-family:'Barlow',sans-serif;font-size:14px;font-weight:700;cursor:pointer">🔓 Desbloquear</button>
   </div>
+</div>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-box">
+    <div class="login-logo">Yunco</div>
+    <div class="login-empresa">FEMO SRL</div>
+    <div class="login-sub">Sistema de Gestión Comercial</div>
+    <select id="loginUsuario">
+      <option value="">— Seleccioná tu usuario —</option>
+      <option value="1">Vendedor 1</option>
+      <option value="2">Vendedor 2</option>
+      <option value="3">Vendedor 3</option>
+      <option value="4">Vendedor 4</option>
+      <option value="5">Vendedor 5</option>
+      <option value="6">Vendedor 6</option>
+      <option value="7">Vendedor 7</option>
+      <option value="8">Vendedor 8</option>
+      <option value="9">Vendedor 9</option>
+      <option value="gerente">📊 Gerente General</option>
+      <option value="dueno">👑 Dueño</option>
+      <option value="admin">🔧 Admin Técnico</option>
+    </select>
+    <input type="password" id="loginClave" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Ingresar al sistema →</button>
+    <div class="login-error" id="loginErr">Usuario o contraseña incorrectos.</div>
+  </div>
+</div>
+
+<!-- SISTEMA -->
+<div class="sistema-wrap" id="sistemaWrap">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="sistema-logo">📦 YUNCO — FEMO SRL</div>
+    </div>
+    <div class="topbar-right">
+      <div class="user-badge" id="userBadge">👤 —</div>
+      <button class="logout-btn" onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
+  </div>
+  <div class="contenido">
+    <div class="menu-wrap">
+      <div class="menu-titulo">
+        <h1>¿Qué vas a hacer hoy?</h1>
+        <p id="menuSaludo">Seleccioná un módulo para comenzar</p>
+      </div>
+      <div class="modulos-grid" id="modulosGrid"></div>
+    </div>
+  </div>
+  <div class="pie">YUNCO DE FEMO SRL · Uso interno · <span id="fechaActual"></span></div>
+</div>
+
+<script>
+const S={g:(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}}};
+const CD=YUNCO_PERMISOS.CLAVES_DEFAULT;
+const MAX_INTENTOS=YUNCO_PERMISOS.MAX_INTENTOS;
+
+// MODULOS POR ROL — display info. Acceso controlado por YUNCO_PERMISOS.MODULOS
+const MODULOS_ROL={
+  vendedor:[
+    {id:'ventas',href:'ventas.html',icono:'💵',nombre:'Ventas y Facturación',desc:'Emitir comprobantes · Presupuestos · Clientes',color:'azul'},
+    {id:'inventario',href:'inventario.html',icono:'📦',nombre:'Consulta de Stock',desc:'Disponibilidad de productos',color:'verde'},
+  ],
+  gerente:[
+    {id:'ventas',href:'ventas.html',icono:'💵',nombre:'Ventas y Facturación',desc:'Emitir comprobantes · Presupuestos · Clientes',color:'azul'},
+    {id:'inventario',href:'inventario.html',icono:'📦',nombre:'Inventario y Stock',desc:'Stock · Entradas y salidas · Alertas',color:'verde'},
+    {id:'caja',href:'caja.html',icono:'🧾',nombre:'Cierre de Caja',desc:'Resumen diario · Ingresos y egresos',color:'naranja'},
+    {id:'reportes',href:'reportes.html',icono:'📊',nombre:'Reportes Gerenciales',desc:'Ranking · Productos · Excel',color:'esmeralda'},
+  ],
+  dueno:[
+    {id:'ventas',href:'ventas.html',icono:'💵',nombre:'Ventas y Facturación',desc:'Emitir comprobantes · Presupuestos · Clientes',color:'azul'},
+    {id:'inventario',href:'inventario.html',icono:'📦',nombre:'Inventario y Stock',desc:'Stock · Entradas y salidas · Alertas',color:'verde'},
+    {id:'caja',href:'caja.html',icono:'🧾',nombre:'Cierre de Caja',desc:'Resumen diario · Ingresos y egresos',color:'naranja'},
+    {id:'reportes',href:'reportes.html',icono:'📊',nombre:'Reportes Gerenciales',desc:'Ranking · Productos · Excel',color:'esmeralda'},
+  ],
+  admin:[
+    {id:'inventario',href:'inventario.html',icono:'📦',nombre:'Inventario y Stock',desc:'Consulta de stock · Configuración técnica',color:'verde'},
+  ],
+};
+
+// BLOQUEO
+function getIntentos(u){return S.g('yunco_login_intentos',{})[u]||{count:0,bloqueado:false};}
+function registrarIntento(u,ok){
+  const d=S.g('yunco_login_intentos',{});
+  if(ok){d[u]={count:0,bloqueado:false};}
+  else{const a=d[u]||{count:0,bloqueado:false};a.count++;if(a.count>=MAX_INTENTOS)a.bloqueado=true;d[u]=a;}
+  localStorage.setItem('yunco_login_intentos',JSON.stringify(d));
+}
+function mostrarBloqueo(u){
+  document.getElementById('bloqueoUsuario').value=u;
+  document.getElementById('bloqueoMsg').textContent='El usuario "'+u+'" fue bloqueado por 3 intentos fallidos.';
+  document.getElementById('bloqueoOverlay').classList.add('abierto');
+}
+function confirmarDesbloqueo(){
+  const c=document.getElementById('desbloqueClave').value;
+  const u=document.getElementById('bloqueoUsuario').value;
+  const claves={...CD,...S.g('yunco_claves',{})};
+  if(c===claves['gerente']||c===claves['dueno']){
+    const d=S.g('yunco_login_intentos',{});
+    d[u]={count:0,bloqueado:false};
+    localStorage.setItem('yunco_login_intentos',JSON.stringify(d));
+    document.getElementById('bloqueoOverlay').classList.remove('abierto');
+    document.getElementById('desbloqueClave').value='';
+    document.getElementById('desbloqueoErr').style.display='none';
+  } else {
+    document.getElementById('desbloqueoErr').style.display='block';
+    document.getElementById('desbloqueClave').value='';
+  }
+}
+
+// LOGIN
+function doLogin(){
+  const u=document.getElementById('loginUsuario').value;
+  const c=document.getElementById('loginClave').value;
+  const errEl=document.getElementById('loginErr');
+  if(!u){errEl.textContent='Seleccioná un usuario.';errEl.style.display='block';return;}
+  // Verificar bloqueo
+  const intentos=getIntentos(u);
+  if(intentos.bloqueado){mostrarBloqueo(u);return;}
+  const claves={...CD,...S.g('yunco_claves',{})};
+  if(c!==claves[u]){
+    registrarIntento(u,false);
+    const actual=getIntentos(u);
+    if(actual.bloqueado){mostrarBloqueo(u);}
+    else{const r=MAX_INTENTOS-actual.count;errEl.textContent='Clave incorrecta. Te quedan '+r+' intento(s).';errEl.style.display='block';document.getElementById('loginClave').value='';}
+    return;
+  }
+  registrarIntento(u,true);
+  // Determinar rol
+  const rolMap={gerente:'gerente',dueno:'dueno',admin:'admin'};
+  const rol=rolMap[u]||'vendedor';
+  const vends=S.g('yunco_vend',{});
+  const nombre=vends[u]?.nombre||(u==='gerente'?'Gerente General':u==='dueno'?'Dueño':u==='admin'?'Admin Técnico':'Vendedor '+u);
+  // Guardar sesión
+  const sesion={usuario:u,rol,nombre,inicio:new Date().toISOString()};
+  sessionStorage.setItem('yunco_session',JSON.stringify(sesion));
+  errEl.style.display='none';
+  mostrarSistema(sesion);
+}
+
+function mostrarSistema(ses){
+  document.getElementById('loginWrap').style.display='none';
+  const sw=document.getElementById('sistemaWrap');
+  sw.style.display='flex';
+  document.getElementById('userBadge').textContent='👤 '+ses.nombre+' · '+ses.rol.charAt(0).toUpperCase()+ses.rol.slice(1);
+  document.getElementById('menuSaludo').textContent='Bienvenido, '+ses.nombre;
+  document.getElementById('fechaActual').textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  // Render módulos según rol
+  const mods=MODULOS_ROL[ses.rol]||MODULOS_ROL['vendedor'];
+  document.getElementById('modulosGrid').innerHTML=mods.map((m,i)=>`
+<a href="${m.href}" class="modulo ${m.color}" style="animation:fadeUp .4s ${i*.08}s ease both">
+  <div class="icono-wrap">${m.icono}</div>
+  <div style="flex:1">
+    <div class="mod-nombre">${m.nombre}</div>
+    <div class="mod-desc">${m.desc}</div>
+  </div>
+  <span class="flecha">›</span>
+</a>`).join('');
+}
+
+function cerrarSesion(){
+  sessionStorage.removeItem('yunco_session');
+  document.getElementById('sistemaWrap').style.display='none';
+  document.getElementById('loginWrap').style.display='flex';
+  document.getElementById('loginUsuario').value='';
+  document.getElementById('loginClave').value='';
+}
+
+// VERIFICAR SESION EXISTENTE AL CARGAR
+window.addEventListener('load',()=>{
+  const s=sessionStorage.getItem('yunco_session');
+  if(s){try{mostrarSistema(JSON.parse(s));}catch{sessionStorage.removeItem('yunco_session');}}
+});
+</script>
 </body>
 </html>
