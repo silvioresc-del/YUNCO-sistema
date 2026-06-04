@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script src="yunco-permisos.js"></script>
+<script>
+(function(){
+  const s=sessionStorage.getItem('yunco_session');
+  if(!s){window.location.href='index.html';return;}
+  try{
+    const ses=JSON.parse(s);
+    const permitidos=['gerente', 'dueno'];
+    if(!permitidos.includes(ses.rol)){window.location.href='index.html';return;}
+    window.YUNCO_SESSION=ses;
+  }catch(e){window.location.href='index.html';}
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reportes — YUNCO</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg-base:       #080f1a;
+  --bg-surface:    #0d1929;
+  --bg-card:       #111f33;
+  --bg-card-hover: #162540;
+  --bg-input:      #0a1525;
+  --border-subtle: rgba(255,255,255,.06);
+  --border-mid:    rgba(74,159,212,.2);
+  --border-strong: rgba(74,159,212,.45);
+  --text-primary:  #eef4fb;
+  --text-secondary:#8baec8;
+  --text-muted:    #4d6a82;
+  --accent:        #2d7fba;
+  --accent-light:  #4a9fd4;
+  --success:       #22c55e;
+  --success-bg:    rgba(34,197,94,.1);
+  --danger:        #ef4444;
+  --danger-bg:     rgba(239,68,68,.1);
+  --warning:       #f59e0b;
+  --warning-bg:    rgba(245,158,11,.1);
+  --shadow-card:   0 2px 16px rgba(0,0,0,.35), 0 1px 0 rgba(255,255,255,.04) inset;
+  --shadow-elevated: 0 8px 40px rgba(0,0,0,.5);
+  --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px; --radius-xl: 20px;
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Barlow',sans-serif; background:var(--bg-base); min-height:100vh; color:var(--text-primary); overflow-x:hidden; font-size:14px; line-height:1.5; }
+body::before { content:''; position:fixed; inset:0; pointer-events:none; background:radial-gradient(ellipse 70% 50% at 10% 0%,rgba(31,78,120,.4) 0%,transparent 60%); }
+.topbar { position:sticky; top:0; z-index:100; background:rgba(8,15,26,.92); backdrop-filter:blur(20px); border-bottom:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:space-between; padding:12px 20px; gap:12px; }
+.topbar-left { display:flex; align-items:center; gap:12px; }
+.back-btn { display:flex; align-items:center; gap:5px; background:transparent; border:1px solid var(--border-subtle); color:var(--text-muted); text-decoration:none; padding:7px 13px; border-radius:var(--radius-md); font-size:12px; font-weight:700; transition:color .2s,border-color .2s; }
+.back-btn:hover { color:var(--text-primary); border-color:var(--border-mid); }
+.topbar-badge { font-size:9px; font-weight:800; letter-spacing:2.5px; text-transform:uppercase; color:var(--text-muted); margin-bottom:2px; }
+.topbar-title { font-family:'Bebas Neue',sans-serif; font-size:19px; letter-spacing:2px; }
+.vendedor-info { background:var(--success-bg); border:1px solid rgba(34,197,94,.25); padding:6px 13px; border-radius:var(--radius-md); font-size:12px; font-weight:700; color:var(--success); }
+.logout-btn { background:transparent; border:1px solid var(--border-subtle); color:var(--text-muted); padding:6px 12px; border-radius:var(--radius-md); font-size:12px; font-weight:600; cursor:pointer; font-family:'Barlow',sans-serif; transition:color .2s,border-color .2s; }
+.logout-btn:hover { color:var(--danger); border-color:rgba(239,68,68,.3); }
+.contenido { max-width:1200px; margin:0 auto; padding:24px 20px; }
+.tabs { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+.tab { padding:9px 16px; border-radius:var(--radius-md); font-size:12px; font-weight:700; letter-spacing:.3px; border:1px solid var(--border-subtle); background:transparent; color:var(--text-muted); cursor:pointer; transition:color .2s,background .2s,border-color .2s; }
+.tab:hover { color:var(--text-secondary); background:rgba(255,255,255,.03); border-color:var(--border-mid); }
+.tab.activo { background:var(--bg-card); border-color:var(--border-mid); color:var(--accent-light); font-weight:800; }
+.panel { display:none; animation:fadeUp .3s ease both; }
+.panel.activo { display:block; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.form-card { background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-lg); padding:20px; margin-bottom:12px; box-shadow:var(--shadow-card); }
+.form-group { margin-bottom:12px; }
+.form-group label { display:block; font-size:10px; font-weight:800; letter-spacing:1px; color:var(--text-muted); margin-bottom:5px; text-transform:uppercase; }
+.form-group input,.form-group select,.form-group textarea { width:100%; background:var(--bg-input); border:1px solid var(--border-subtle); color:var(--text-primary); padding:10px 13px; border-radius:var(--radius-md); font-family:'Barlow',sans-serif; font-size:14px; outline:none; transition:border-color .2s,box-shadow .2s; }
+.form-group input:focus,.form-group select:focus { border-color:var(--border-strong); box-shadow:0 0 0 3px rgba(45,127,186,.12); }
+.form-group select option { background:#111f33; }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.tabla-wrap { overflow-x:auto; border-radius:var(--radius-md); border:1px solid var(--border-subtle); }
+table { width:100%; border-collapse:collapse; }
+thead { background:rgba(13,31,51,.9); }
+th { padding:10px 14px; text-align:left; font-size:10px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-muted); border-bottom:1px solid var(--border-subtle); white-space:nowrap; }
+td { padding:11px 14px; font-size:13px; font-weight:500; color:var(--text-primary); border-bottom:1px solid var(--border-subtle); vertical-align:middle; }
+tr:nth-child(even) td { background:rgba(255,255,255,.02); }
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:rgba(74,159,212,.05)!important; }
+.btn { display:inline-flex; align-items:center; gap:6px; padding:9px 18px; border-radius:var(--radius-md); font-family:'Barlow',sans-serif; font-size:13px; font-weight:700; cursor:pointer; border:none; letter-spacing:.3px; transition:opacity .2s,transform .15s; }
+.btn:hover { opacity:.88; transform:translateY(-1px); }
+.btn-primario { background:linear-gradient(135deg,var(--accent),var(--accent-light)); color:#fff; box-shadow:0 2px 12px rgba(45,127,186,.3); }
+.btn-verde { background:var(--success-bg); border:1px solid rgba(34,197,94,.3); color:var(--success); }
+.btn-rojo { background:var(--danger-bg); border:1px solid rgba(239,68,68,.3); color:var(--danger); }
+.btn-amarillo { background:var(--warning-bg); border:1px solid rgba(245,158,11,.3); color:var(--warning); }
+.btn-outline { background:transparent; border:1px solid var(--border-subtle); color:var(--text-secondary); }
+.btn-outline:hover { border-color:var(--border-mid); color:var(--text-primary); }
+.btn-sm { padding:6px 12px; font-size:12px; }
+.stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:20px; }
+.stat-card { background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-lg); padding:16px 18px; display:flex; align-items:center; gap:12px; box-shadow:var(--shadow-card); }
+.stat-icon { font-size:26px; flex-shrink:0; }
+.stat-num { font-family:'Bebas Neue',sans-serif; font-size:26px; color:var(--text-primary); letter-spacing:1px; line-height:1; }
+.stat-label { font-size:11px; color:var(--text-muted); margin-top:2px; font-weight:600; }
+.stat-card.verde { border-color:rgba(34,197,94,.2); }
+.stat-card.rojo { border-color:rgba(239,68,68,.2); }
+.stat-card.azul { border-color:var(--border-mid); }
+.stat-card.naranja { border-color:rgba(245,158,11,.2); }
+.auth-overlay { display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.8); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:20px; }
+.auth-overlay.abierto { display:flex; }
+.auth-box { background:var(--bg-card); border:1px solid rgba(239,68,68,.4); border-radius:var(--radius-xl); padding:32px; width:100%; max-width:360px; text-align:center; box-shadow:var(--shadow-elevated); }
+.auth-box h3 { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--danger); margin-bottom:8px; }
+.auth-box p { color:var(--text-secondary); font-size:13px; margin-bottom:18px; }
+.auth-box input { width:100%; background:var(--bg-input); border:1px solid var(--border-subtle); color:var(--text-primary); padding:12px; border-radius:var(--radius-md); font-size:15px; outline:none; text-align:center; letter-spacing:4px; margin-bottom:10px; transition:border-color .2s; }
+.auth-box input:focus { border-color:var(--border-strong); }
+.auth-error { color:var(--danger); font-size:12px; margin-bottom:8px; display:none; }
+.login-overlay { position:fixed; inset:0; z-index:999; background:var(--bg-base); display:flex; align-items:center; justify-content:center; padding:20px; }
+.login-box { background:var(--bg-card); border:1px solid var(--border-mid); border-radius:var(--radius-xl); padding:40px 36px; width:100%; max-width:380px; text-align:center; box-shadow:var(--shadow-elevated); animation:fadeUp .5s ease both; position:relative; overflow:hidden; }
+.login-box::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(74,159,212,.5),transparent); }
+.login-logo { font-size:44px; font-weight:900; color:#c0392b; -webkit-text-stroke:2px rgba(80,30,20,.5); letter-spacing:3px; margin-bottom:4px; }
+.login-sub { color:var(--text-secondary); font-size:12px; margin-bottom:24px; }
+.login-box select,.login-box input { width:100%; background:var(--bg-input); border:1px solid var(--border-subtle); color:var(--text-primary); padding:12px 14px; border-radius:var(--radius-md); font-family:'Barlow',sans-serif; font-size:14px; outline:none; margin-bottom:10px; transition:border-color .2s,box-shadow .2s; }
+.login-box select:focus,.login-box input:focus { border-color:var(--border-strong); box-shadow:0 0 0 3px rgba(45,127,186,.12); }
+.login-box select option { background:#111f33; }
+.login-btn { width:100%; background:linear-gradient(135deg,var(--accent),var(--accent-light)); color:#fff; border:none; padding:13px; border-radius:var(--radius-md); font-family:'Barlow',sans-serif; font-size:15px; font-weight:700; cursor:pointer; transition:opacity .2s,transform .15s; }
+.login-btn:hover { opacity:.9; transform:translateY(-1px); }
+.login-error { color:var(--danger); font-size:12px; margin-top:8px; display:none; }
+.vacio { text-align:center; padding:40px; color:var(--text-muted); font-size:14px; }
+.cat-tag { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:5px; background:rgba(45,127,186,.15); border:1px solid rgba(74,159,212,.2); color:var(--accent-light); }
+.stock-ok { color:var(--success); font-weight:800; }
+.stock-bajo { color:var(--warning); font-weight:800; }
+.stock-cero { color:var(--danger); font-weight:800; }
+.pm-tag { display:inline-block; font-size:10px; font-weight:800; padding:2px 7px; border-radius:5px; background:rgba(34,197,94,.1); border:1px solid rgba(34,197,94,.2); color:var(--success); }
+.toolbar { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; align-items:center; }
+.toolbar input,.toolbar select { background:var(--bg-input); border:1px solid var(--border-subtle); color:var(--text-primary); padding:9px 13px; border-radius:var(--radius-md); font-family:'Barlow',sans-serif; font-size:13px; outline:none; transition:border-color .2s; }
+.toolbar input:focus,.toolbar select:focus { border-color:var(--border-strong); }
+.gasto-item { display:flex; align-items:center; gap:12px; padding:12px 16px; background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-md); margin-bottom:8px; }
+.hist-item { display:flex; align-items:center; gap:12px; padding:11px 14px; background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-md); margin-bottom:7px; }
+.alerta-item { display:flex; align-items:center; gap:14px; padding:12px 16px; border-radius:var(--radius-md); margin-bottom:8px; }
+.alerta-cero { background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.25); }
+.alerta-bajo { background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.2); }
+.alerta-badge { display:none; align-items:center; gap:6px; background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3); color:var(--danger); font-size:12px; font-weight:700; padding:5px 12px; border-radius:var(--radius-md); cursor:pointer; }
+.alerta-badge.visible { display:flex; }
+.modal { background:var(--bg-card); border:1px solid var(--border-mid); border-radius:var(--radius-xl); padding:28px; width:100%; max-width:480px; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow-elevated); }
+.modal h2 { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:1px; margin-bottom:20px; }
+.modal-footer { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
+.overlay { display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.75); backdrop-filter:blur(4px); align-items:center; justify-content:center; padding:20px; }
+.overlay.abierto { display:flex; }
+.badge { display:inline-block; font-size:11px; font-weight:800; padding:3px 9px; border-radius:5px; letter-spacing:.3px; }
+.badge-a,.badge-b { background:rgba(45,127,186,.2); color:var(--accent-light); border:1px solid rgba(74,159,212,.25); }
+.badge-nc { background:var(--warning-bg); color:var(--warning); border:1px solid rgba(245,158,11,.25); }
+.badge-nd,.badge-rojo { background:var(--danger-bg); color:var(--danger); border:1px solid rgba(239,68,68,.25); }
+.badge-reg { background:var(--success-bg); color:var(--success); border:1px solid rgba(34,197,94,.25); }
+.badge-grab { background:var(--warning-bg); color:var(--warning); border:1px solid rgba(245,158,11,.25); }
+.ctacte-item { background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-lg); padding:16px; margin-bottom:10px; }
+.ctacte-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.ctacte-nombre { font-size:15px; font-weight:700; }
+.ctacte-deuda { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--danger); }
+.medio-card { background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:14px; text-align:center; }
+.medios-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-bottom:20px; }
+@media(max-width:600px) { .form-row{grid-template-columns:1fr;} .contenido{padding:16px;} .tabs{gap:4px;} .tab{padding:8px 12px;font-size:11px;} }
+</style>
+</head>
+<body>
+
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="login-logo">Yunco</div>
+    <div class="login-sub">Reportes Gerenciales · Solo Gerente y Dueño</div>
+    <select id="loginUser">
+      <option value="">— Seleccioná tu usuario —</option>
+      <option value="gerente">📊 Gerente General</option>
+      <option value="dueno">👑 Dueño</option>
+    </select>
+    <input type="password" id="loginClave" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Ingresar →</button>
+    <div class="login-error" id="loginErr">Usuario o contraseña incorrectos.</div>
+  </div>
+</div>
+
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:14px">
+    <a href="index.html" class="back-btn">← Inicio</a>
+    <div><div class="badge-mod">MÓDULO</div><div class="topbar-title">📊 REPORTES GERENCIALES</div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div id="userInfo" style="background:rgba(26,122,60,.2);border:1px solid rgba(39,174,96,.3);padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;color:#2ecc71">👤 —</div>
+    <button class="btn" style="background:var(--card);border:1px solid var(--borde);color:var(--muted);font-size:12px" onclick="logout()">Salir</button>
+  </div>
+</div>
+
+<div class="contenido">
+  <!-- FILTROS -->
+  <div class="filtros-bar">
+    <div class="filtro-group">
+      <label>Período</label>
+      <select id="filPeriodo" onchange="cambiarPeriodo()">
+        <option value="hoy">Hoy</option>
+        <option value="semana">Esta semana</option>
+        <option value="mes" selected>Este mes</option>
+        <option value="anio">Este año</option>
+        <option value="custom">Personalizado</option>
+      </select>
+    </div>
+    <div class="filtro-group" id="filDesdeWrap" style="display:none">
+      <label>Desde</label>
+      <input type="date" id="filDesde">
+    </div>
+    <div class="filtro-group" id="filHastaWrap" style="display:none">
+      <label>Hasta</label>
+      <input type="date" id="filHasta">
+    </div>
+    <div class="filtro-group">
+      <label>Vendedor</label>
+      <select id="filVendedor">
+        <option value="">Todos</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;align-items:flex-end">
+      <button class="btn btn-primario" onclick="generarReportes()">🔄 Actualizar</button>
+      <button class="btn btn-verde" onclick="exportarExcel()">📥 Exportar Excel</button>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-icon">💰</div><div><div class="stat-num" id="stTotal">$0</div><div class="stat-label">Total vendido</div></div></div>
+    <div class="stat-card"><div class="stat-icon">📋</div><div><div class="stat-num" id="stFacturas">0</div><div class="stat-label">Comprobantes</div></div></div>
+    <div class="stat-card"><div class="stat-icon">📦</div><div><div class="stat-num" id="stUnidades">0</div><div class="stat-label">Unidades vendidas</div></div></div>
+    <div class="stat-card"><div class="stat-icon">👤</div><div><div class="stat-num" id="stMejorVend">—</div><div class="stat-label">Mejor vendedor</div></div></div>
+    <div class="stat-card"><div class="stat-icon">⭐</div><div><div class="stat-num" id="stMejorProd">—</div><div class="stat-label">Producto top</div></div></div>
+    <div class="stat-card"><div class="stat-icon">💵</div><div><div class="stat-num" id="stTicket">$0</div><div class="stat-label">Ticket promedio</div></div></div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3>📈 Evolución de Ventas</h3>
+      <div class="chart-wrap"><canvas id="chartEvolucion"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>🏆 Ranking Vendedores</h3>
+      <div class="chart-wrap"><canvas id="chartVendedores"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>📦 Top 10 Productos</h3>
+      <div class="chart-wrap"><canvas id="chartProductos"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>💳 Ventas por Medio de Pago</h3>
+      <div class="chart-wrap"><canvas id="chartPagos"></canvas></div>
+    </div>
+  </div>
+
+  <!-- TABLA VENDEDORES -->
+  <div class="tabla-card">
+    <h3>🏆 Ranking de Vendedores <button class="btn btn-amarillo" style="font-size:11px;padding:5px 12px" onclick="exportarTabla('tablaVendedores','Vendedores')">📥 Excel</button></h3>
+    <div class="tabla-wrap"><table id="tablaVendedores">
+      <thead><tr><th>#</th><th>Vendedor</th><th>Comprobantes</th><th>Unidades</th><th>Total</th><th>Ticket Prom.</th></tr></thead>
+      <tbody id="bodyVendedores"></tbody>
+    </table></div>
+  </div>
+
+  <!-- TABLA PRODUCTOS -->
+  <div class="tabla-card">
+    <h3>📦 Productos Más Vendidos <button class="btn btn-amarillo" style="font-size:11px;padding:5px 12px" onclick="exportarTabla('tablaProductos','Productos')">📥 Excel</button></h3>
+    <div class="tabla-wrap"><table id="tablaProductos">
+      <thead><tr><th>#</th><th>Producto</th><th>Unidades</th><th>Importe</th><th>% del total</th></tr></thead>
+      <tbody id="bodyProductos"></tbody>
+    </table></div>
+  </div>
+
+  <!-- TABLA DETALLE -->
+  <div class="tabla-card">
+    <h3>📋 Detalle de Comprobantes <button class="btn btn-amarillo" style="font-size:11px;padding:5px 12px" onclick="exportarTabla('tablaDetalle','Comprobantes')">📥 Excel</button></h3>
+    <div class="tabla-wrap"><table id="tablaDetalle">
+      <thead><tr><th>N°</th><th>Tipo</th><th>Fecha</th><th>Cliente</th><th>Vendedor</th><th>Pago</th><th>Total</th></tr></thead>
+      <tbody id="bodyDetalle"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<script>
+const S={g:(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}}};
+const fmt=n=>'$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:0,maximumFractionDigits:0});
+const fmtN=n=>parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+const CLAVES=YUNCO_PERMISOS.CLAVES_DEFAULT;
+let vRol=null,vAct=null;
+let chartEv=null,chartVend=null,chartProd=null,chartPago=null;
+
+function doLogin(){
+  const u=document.getElementById('loginUser').value;
+  const c=document.getElementById('loginClave').value;
+  if(!u){document.getElementById('loginErr').style.display='block';return;}
+  const claves={...CLAVES,...S.g('yunco_claves',{})};
+  if(c!==claves[u]){document.getElementById('loginErr').style.display='block';document.getElementById('loginClave').value='';return;}
+  vAct=u;vRol=u;
+  document.getElementById('loginOverlay').style.display='none';
+  document.getElementById('userInfo').textContent='👤 '+(u==='gerente'?'Gerente General':'Dueño');
+  initReportes();
+}
+function logout(){vAct=null;document.getElementById('loginOverlay').style.display='flex';document.getElementById('loginClave').value='';}
+
+function cambiarPeriodo(){
+  const p=document.getElementById('filPeriodo').value;
+  const show=p==='custom';
+  document.getElementById('filDesdeWrap').style.display=show?'':'none';
+  document.getElementById('filHastaWrap').style.display=show?'':'none';
+}
+
+function getFechas(){
+  const p=document.getElementById('filPeriodo').value;
+  const now=new Date();
+  let desde,hasta=new Date(now.getFullYear(),now.getMonth(),now.getDate(),23,59,59);
+  if(p==='hoy'){desde=new Date(now.getFullYear(),now.getMonth(),now.getDate());}
+  else if(p==='semana'){const d=new Date(now);d.setDate(d.getDate()-d.getDay());desde=new Date(d.getFullYear(),d.getMonth(),d.getDate());}
+  else if(p==='mes'){desde=new Date(now.getFullYear(),now.getMonth(),1);}
+  else if(p==='anio'){desde=new Date(now.getFullYear(),0,1);}
+  else{desde=new Date(document.getElementById('filDesde').value);hasta=new Date(document.getElementById('filHasta').value+'T23:59:59');}
+  return{desde,hasta};
+}
+
+function getVentasFiltradas(){
+  const {desde,hasta}=getFechas();
+  const filtVend=document.getElementById('filVendedor').value;
+  return S.g('yunco_comp',[]).filter(v=>{
+    if(!v.fecha||v.modo!=='registrar')return false;
+    const f=new Date(v.fecha);
+    if(f<desde||f>hasta)return false;
+    if(filtVend&&v.vend!==filtVend)return false;
+    return true;
+  });
+}
+
+function getNombreVend(id){
+  const vends=S.g('yunco_vend',{});
+  return vends[id]?.nombre||(id==='gerente'?'Gerente':id==='dueno'?'Dueño':'Vendedor '+id);
+}
+
+function initReportes(){
+  // Fill vendedor filter
+  const ventas=S.g('yunco_comp',[]);
+  const vids=[...new Set(ventas.map(v=>v.vend).filter(Boolean))];
+  const sel=document.getElementById('filVendedor');
+  sel.innerHTML='<option value="">Todos</option>'+vids.map(id=>`<option value="${id}">${getNombreVend(id)}</option>`).join('');
+  generarReportes();
+}
+
+function generarReportes(){
+  const ventas=getVentasFiltradas();
+  
+  // ── STATS ──────────────────────────────────────────────
+  const total=ventas.reduce((a,v)=>a+parseFloat(v.total||0),0);
+  const unidades=ventas.reduce((a,v)=>a+(v.items||[]).reduce((b,it)=>b+parseFloat(it.cant||0),0),0);
+  
+  // Vendedor stats
+  const porVend={};
+  ventas.forEach(v=>{
+    const id=v.vend||'?';
+    if(!porVend[id])porVend[id]={id,nombre:getNombreVend(id),count:0,total:0,unidades:0};
+    porVend[id].count++;
+    porVend[id].total+=parseFloat(v.total||0);
+    porVend[id].unidades+=(v.items||[]).reduce((a,it)=>a+parseFloat(it.cant||0),0);
+  });
+  const vendRank=Object.values(porVend).sort((a,b)=>b.total-a.total);
+  
+  // Producto stats
+  const porProd={};
+  ventas.forEach(v=>{
+    (v.items||[]).forEach(it=>{
+      const k=it.desc||it.cod||'?';
+      if(!porProd[k])porProd[k]={nombre:k,unidades:0,importe:0};
+      porProd[k].unidades+=parseFloat(it.cant||0);
+      porProd[k].importe+=parseFloat(it.cant||0)*parseFloat(it.precio||0);
+    });
+  });
+  const prodRank=Object.values(porProd).sort((a,b)=>b.unidades-a.unidades).slice(0,10);
+  
+  // Pago stats
+  const porPago={};
+  ventas.forEach(v=>{
+    const p=v.pago||'otro';
+    porPago[p]=(porPago[p]||0)+parseFloat(v.total||0);
+  });
+
+  // Evolucion por dia
+  const porDia={};
+  ventas.forEach(v=>{
+    const d=new Date(v.fecha).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'});
+    porDia[d]=(porDia[d]||0)+parseFloat(v.total||0);
+  });
+
+  // ── UPDATE STATS ───────────────────────────────────────
+  document.getElementById('stTotal').textContent=fmt(total);
+  document.getElementById('stFacturas').textContent=ventas.length;
+  document.getElementById('stUnidades').textContent=Math.round(unidades).toLocaleString('es-AR');
+  document.getElementById('stMejorVend').textContent=vendRank[0]?.nombre||'—';
+  document.getElementById('stMejorProd').textContent=prodRank[0]?.nombre?.slice(0,12)||'—';
+  document.getElementById('stTicket').textContent=ventas.length?fmt(total/ventas.length):'$0';
+
+  // ── CHARTS ─────────────────────────────────────────────
+  const chartDefaults={color:'#a8d4f5',borderColor:'rgba(100,180,255,.2)',backgroundColor:'rgba(14,32,56,.8)'};
+  
+  // Evolución
+  const diasLabels=Object.keys(porDia).slice(-30);
+  const diasVals=diasLabels.map(d=>porDia[d]);
+  if(chartEv)chartEv.destroy();
+  chartEv=new Chart(document.getElementById('chartEvolucion'),{
+    type:'line',
+    data:{labels:diasLabels,datasets:[{label:'Ventas $',data:diasVals,borderColor:'#4a9fd4',backgroundColor:'rgba(74,159,212,.15)',tension:.4,fill:true,pointBackgroundColor:'#4a9fd4'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#a8d4f5'}}},scales:{x:{ticks:{color:'#7ab8e8'},grid:{color:'rgba(100,180,255,.08)'}},y:{ticks:{color:'#7ab8e8',callback:v=>fmt(v)},grid:{color:'rgba(100,180,255,.08)'}}}}
+  });
+
+  // Vendedores
+  if(chartVend)chartVend.destroy();
+  const colors=['#4a9fd4','#2ecc71','#f39c12','#e74c3c','#9b59b6','#1abc9c','#e67e22','#3498db','#27ae60'];
+  chartVend=new Chart(document.getElementById('chartVendedores'),{
+    type:'bar',
+    data:{labels:vendRank.map(v=>v.nombre),datasets:[{label:'Total $',data:vendRank.map(v=>v.total),backgroundColor:colors.slice(0,vendRank.length),borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#7ab8e8'},grid:{color:'rgba(100,180,255,.08)'}},y:{ticks:{color:'#7ab8e8',callback:v=>fmt(v)},grid:{color:'rgba(100,180,255,.08)'}}}}
+  });
+
+  // Productos
+  if(chartProd)chartProd.destroy();
+  chartProd=new Chart(document.getElementById('chartProductos'),{
+    type:'bar',
+    data:{labels:prodRank.map(p=>p.nombre.slice(0,20)),datasets:[{label:'Unidades',data:prodRank.map(p=>p.unidades),backgroundColor:'rgba(46,204,113,.7)',borderRadius:6}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#7ab8e8'},grid:{color:'rgba(100,180,255,.08)'}},y:{ticks:{color:'#7ab8e8',font:{size:10}},grid:{color:'rgba(100,180,255,.08)'}}}}
+  });
+
+  // Pagos
+  const pagoLabels={'efectivo':'💵 Efectivo','transferencia':'🏦 Transferencia','qr':'📱 QR','tarjeta':'💳 Tarjeta','cheque':'📄 Cheque','cuenta_corriente':'📒 Cta.Cte'};
+  const pagoKeys=Object.keys(porPago);
+  if(chartPago)chartPago.destroy();
+  chartPago=new Chart(document.getElementById('chartPagos'),{
+    type:'doughnut',
+    data:{labels:pagoKeys.map(k=>pagoLabels[k]||k),datasets:[{data:pagoKeys.map(k=>porPago[k]),backgroundColor:colors.slice(0,pagoKeys.length),borderWidth:2,borderColor:'rgba(14,32,56,.8)'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#a8d4f5',padding:12,font:{size:11}}}}}
+  });
+
+  // ── TABLAS ─────────────────────────────────────────────
+  // Vendedores
+  document.getElementById('bodyVendedores').innerHTML = vendRank.length?vendRank.map((v,i)=>`<tr>
+<td><span class="rank-num rank-${i+1<4?i+1:''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</span></td>
+<td><strong>${v.nombre}</strong></td>
+<td>${v.count}</td>
+<td>${Math.round(v.unidades).toLocaleString('es-AR')}</td>
+<td style="color:#4dff9a;font-weight:700">${fmt(v.total)}</td>
+<td style="color:#a8d4f5">${fmt(v.count?v.total/v.count:0)}</td>
+</tr>`).join(''):'<tr><td colspan="6" class="vacio">No hay datos para el período seleccionado.</td></tr>';
+
+  // Productos
+  document.getElementById('bodyProductos').innerHTML = prodRank.length?prodRank.map((p,i)=>`<tr>
+<td><span class="rank-num">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</span></td>
+<td><strong>${p.nombre}</strong></td>
+<td>${p.unidades.toLocaleString('es-AR')}</td>
+<td style="color:#4dff9a;font-weight:700">${fmt(p.importe)}</td>
+<td style="color:#a8d4f5">${total?((p.importe/total)*100).toFixed(1)+'%':'—'}</td>
+</tr>`).join(''):'<tr><td colspan="5" class="vacio">No hay datos para el período seleccionado.</td></tr>';
+
+  // Detalle
+  const pagoLbl={efectivo:'💵 Efectivo',transferencia:'🏦 Transf.',qr:'📱 QR',tarjeta:'💳 Tarjeta',cheque:'📄 Cheque',cuenta_corriente:'📒 Cta.Cte'};
+  document.getElementById('bodyDetalle').innerHTML = ventas.length?ventas.slice(0,200).map(v=>{
+    const f=new Date(v.fecha).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+    return`<tr>
+<td style="font-size:11px;font-family:'Bebas Neue',sans-serif">${v.nro}</td>
+<td><span style="background:rgba(31,78,120,.5);color:#7ab8e8;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700">Fact.${v.tipo}</span></td>
+<td style="color:#a8d4f5">${f}</td>
+<td>${v.cli?.nom||'Consumidor Final'}</td>
+<td>${getNombreVend(v.vend)}</td>
+<td>${pagoLbl[v.pago]||v.pago}</td>
+<td style="color:#4dff9a;font-weight:700">${fmt(v.total)}</td>
+</tr>`;}).join(''):'<tr><td colspan="7" class="vacio">No hay comprobantes para el período seleccionado.</td></tr>';
+}
+
+function exportarExcel(){
+  const ventas=getVentasFiltradas();
+  const wb=XLSX.utils.book_new();
+  
+  // Hoja resumen vendedores
+  const porVend={};
+  ventas.forEach(v=>{
+    const id=v.vend||'?';
+    if(!porVend[id])porVend[id]={Vendedor:getNombreVend(id),Comprobantes:0,Unidades:0,Total:0};
+    porVend[id].Comprobantes++;
+    porVend[id].Unidades+=(v.items||[]).reduce((a,it)=>a+parseFloat(it.cant||0),0);
+    porVend[id].Total+=parseFloat(v.total||0);
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(Object.values(porVend).sort((a,b)=>b.Total-a.Total)),'Vendedores');
+
+  // Hoja productos
+  const porProd={};
+  ventas.forEach(v=>(v.items||[]).forEach(it=>{
+    const k=it.desc||'?';
+    if(!porProd[k])porProd[k]={Producto:k,Unidades:0,Importe:0};
+    porProd[k].Unidades+=parseFloat(it.cant||0);
+    porProd[k].Importe+=parseFloat(it.cant||0)*parseFloat(it.precio||0);
+  }));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(Object.values(porProd).sort((a,b)=>b.Unidades-a.Unidades)),'Productos');
+
+  // Hoja comprobantes
+  const rows=ventas.map(v=>({
+    Numero:v.nro,Tipo:v.tipo,
+    Fecha:new Date(v.fecha).toLocaleDateString('es-AR'),
+    Cliente:v.cli?.nom||'CF',
+    Vendedor:getNombreVend(v.vend),
+    Pago:v.pago,Total:parseFloat(v.total||0)
+  }));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'Comprobantes');
+
+  const periodo=document.getElementById('filPeriodo').value;
+  XLSX.writeFile(wb,`YUNCO_Reportes_${periodo}_${new Date().toLocaleDateString('es-AR').replace(/\//g,'-')}.xlsx`);
+}
+
+function exportarTabla(tablaId,nombre){
+  const tabla=document.getElementById(tablaId);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.table_to_sheet(tabla),nombre);
+  XLSX.writeFile(wb,`YUNCO_${nombre}_${new Date().toLocaleDateString('es-AR').replace(/\//g,'-')}.xlsx`);
+}
+
+Chart.defaults.color='#a8d4f5';
+Chart.defaults.borderColor='rgba(100,180,255,.1)';
+</script>
+</body>
+</html>
