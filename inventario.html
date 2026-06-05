@@ -4,7 +4,7 @@
 <script src="yunco-permisos.js"></script>
 <script>
 (function(){
-  const s=sessionStorage.getItem('yunco_session');
+  const s=localStorage.getItem('yunco_session');
   if(!s){window.location.href='index.html';return;}
   try{
     const ses=JSON.parse(s);
@@ -152,38 +152,6 @@ tr:hover td { background:rgba(74,159,212,.05)!important; }
 </style>
 </head>
 <body>
-<!-- OVERLAY BLOQUEO -->
-<div class="auth-overlay" id="bloqueoOverlay" style="z-index:998">
-  <div class="auth-box" style="border-color:rgba(231,76,60,.6)">
-    <div style="font-size:56px;margin-bottom:16px">🔒</div>
-    <h3 style="color:var(--rojo3);font-size:24px;margin-bottom:12px">Acceso Bloqueado</h3>
-    <p id="bloqueoMsg" style="margin-bottom:8px;font-size:14px;font-weight:600"></p>
-    <p style="margin-bottom:8px;font-size:13px;color:var(--muted)">Se superaron los 3 intentos permitidos.</p>
-    <p style="margin-bottom:24px;font-size:13px;color:var(--amarillo3)">⚠️ El Gerente o Dueño debe ingresar su clave en este dispositivo para desbloquear.</p>
-    <input type="hidden" id="bloqueoUsuario">
-    <input type="password" id="desbloqueClave" placeholder="Clave del Gerente o Dueño"
-      onkeydown="if(event.key==='Enter')confirmarDesbloqueo()"
-      style="width:100%;background:rgba(13,31,51,.8);border:1px solid var(--borde);color:var(--texto);padding:12px;border-radius:8px;font-size:14px;outline:none;text-align:center;margin-bottom:10px">
-    <div class="auth-error" id="desbloqueoErr">Clave incorrecta. Solo el Gerente o Dueño puede desbloquear.</div>
-    <button class="btn btn-primario" style="width:100%;padding:13px;font-size:15px;margin-top:4px" onclick="confirmarDesbloqueo()">🔓 Desbloquear usuario</button>
-  </div>
-</div>
-
-<!-- LOGIN INVENTARIO -->
-<div class="login-overlay" id="loginOverlay">
-  <div class="login-box">
-    <div class="login-logo">Yunco</div>
-    <div class="login-sub">Inventario y Stock · Ingresá con tu usuario</div>
-    <select id="loginVendedor">
-      <option value="">— Seleccioná tu usuario —</option>
-      <option value="gerente">📊 Gerente General</option>
-      <option value="dueno">👑 Dueño</option>
-      <option value="admin">🔧 Admin Técnico</option>
-    </select>
-    <input type="password" id="loginClave" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLogin()">
-    <button class="login-btn" onclick="doLogin()">Ingresar →</button>
-    <div class="login-error" id="loginErr">Usuario o contraseña incorrectos.</div>
-  </div>
 </div>
 
 
@@ -402,6 +370,55 @@ function confirmarAuth(){if(document.getElementById('authClave').value===getCM()
 function cancelarAuth(){document.getElementById('authOverlay').classList.remove('abierto');authCb=null;}
 
 // TABS
+function renderConsulta(q){
+  const busq = (q !== undefined ? q : (document.getElementById('consultaBusq') ? document.getElementById('consultaBusq').value : '')).toLowerCase().trim();
+  let prods = [];
+  try{ prods = JSON.parse(localStorage.getItem('yunco_inv')||'[]'); } catch(e){ prods=[]; }
+  // Mostrar SIEMPRE la lista completa — el buscador solo filtra
+  const filtrados = busq ? prods.filter(p =>
+    (p.nombre||'').toLowerCase().includes(busq) ||
+    (p.categoria||'').toLowerCase().includes(busq) ||
+    (p.unidad||'').toLowerCase().includes(busq)
+  ) : prods;
+  const el = document.getElementById('consultaTabla');
+  if(!el) return;
+  if(!prods.length){
+    el.innerHTML = '<div class="vacio">No hay productos en el inventario.</div>';
+    return;
+  }
+  if(!filtrados.length){
+    el.innerHTML = '<div class="vacio">No se encontraron productos con ese criterio.</div>';
+    return;
+  }
+  const perm = ROLES_INV[vRol] || ROLES_INV['vendedor'];
+  const fmt = n => '$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2});
+  const fmtStock = p => {
+    const s = parseFloat(p.stock||0);
+    const m = parseFloat(p.min||0);
+    const color = s<=0?'var(--danger)':s<=m?'var(--warning)':'var(--success)';
+    return '<span style="color:'+color+';font-weight:800">'+s+'</span>';
+  };
+  const precioCols = perm.verPrecioVenta ? '<th>Precio Venta</th>' : '';
+  const costoCols = perm.verCostos ? '<th>Costo</th>' : '';
+  const precioRows = p => perm.verPrecioVenta ? '<td>'+(parseFloat(p.venta||0)>0?fmt(p.venta):'<span style="color:var(--text-muted)">Sin precio</span>')+'</td>' : '';
+  const costoRows = p => perm.verCostos ? '<td>'+(parseFloat(p.costo||0)>0?fmt(p.costo):'<span style="color:var(--text-muted)">-</span>')+'</td>' : '';
+  el.innerHTML =
+    '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Mostrando '+filtrados.length+' de '+prods.length+' productos</div>' +
+    '<div class="tabla-wrap"><table><thead><tr>' +
+    '<th>Producto</th><th>Categoria</th><th>Stock</th><th>Unidad</th>' +
+    precioCols + costoCols +
+    '</tr></thead><tbody>' +
+    filtrados.map(p =>
+      '<tr><td><strong>'+p.nombre+'</strong></td>' +
+      '<td><span class="cat-tag">'+p.categoria+'</span></td>' +
+      '<td>'+fmtStock(p)+'</td>' +
+      '<td style="color:var(--text-muted)">'+p.unidad+'</td>' +
+      precioRows(p) + costoRows(p) +
+      '</tr>'
+    ).join('') +
+    '</tbody></table></div>';
+}
+
 function goTab(t){
   document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('activo',['stock','entrada','salida','historial','alertas'][i]===t));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('activo'));
@@ -663,122 +680,49 @@ function renderConsulta(){
 
 
 
-// ── SEGURIDAD DE LOGIN ─────────────────────────────────────────
-const MAX_INTENTOS = YUNCO_PERMISOS.MAX_INTENTOS;
 
-function getIntentos(usuario){
-  const data = S.g('yunco_login_intentos', {});
-  return data[usuario] || {count: 0, bloqueado: false};
-}
 
-function registrarIntento(usuario, exitoso){
-  const data = S.g('yunco_login_intentos', {});
-  if(exitoso){
-    data[usuario] = {count: 0, bloqueado: false};
-  } else {
-    const actual = data[usuario] || {count: 0, bloqueado: false};
-    actual.count += 1;
-    if(actual.count >= MAX_INTENTOS){
-      actual.bloqueado = true;
-      actual.fechaBloqueo = new Date().toISOString();
-    }
-    data[usuario] = actual;
-  }
-  S.s('yunco_login_intentos', data);
-}
 
-function desbloquearUsuario(usuario){
-  const data = S.g('yunco_login_intentos', {});
-  data[usuario] = {count: 0, bloqueado: false};
-  S.s('yunco_login_intentos', data);
-}
+const ROLES_INV = YUNCO_PERMISOS ? YUNCO_PERMISOS.INVENTARIO : {
+  vendedor: {tabs:['consulta','alertas'],verCostos:false,verPrecioVenta:true,modificar:false},
+  gerente:  {tabs:['stock','entrada','salida','historial','alertas','consulta'],verCostos:false,verPrecioVenta:true,modificar:true},
+  dueno:    {tabs:['stock','entrada','salida','historial','alertas','consulta'],verCostos:true,verPrecioVenta:true,modificar:true},
+  admin:    {tabs:['consulta','alertas'],verCostos:false,verPrecioVenta:false,modificar:false},
+};
 
-function mostrarBloqueo(usuario){
-  const overlay = document.getElementById('bloqueoOverlay');
-  const msg = document.getElementById('bloqueoMsg');
-  if(msg) msg.textContent = 'El usuario "' + usuario + '" fue bloqueado por ingresar 3 veces una clave incorrecta.';
-  document.getElementById('bloqueoUsuario').value = usuario;
-  if(overlay) overlay.classList.add('abierto');
-}
+// ── SESIÓN ÚNICA ─────────────────────────────────────────────
+// Lee la sesión del login central (index.html)
+// No requiere login propio en este módulo
+let vAct = null, vRol = null, vNombre = null;
 
-function confirmarDesbloqueo(){
-  const claveIngresada = document.getElementById('desbloqueClave').value;
-  const usuario = document.getElementById('bloqueoUsuario').value;
-  const claves = {...(window.CD||window.CD_INV||{}),...S.g('yunco_claves',{})};
-  const claveGerente = claves['gerente'] || 'gerente2024';
-  const claveDueno = claves['dueno'] || 'dueno2024';
-  if(claveIngresada === claveGerente || claveIngresada === claveDueno){
-    desbloquearUsuario(usuario);
-    document.getElementById('bloqueoOverlay').classList.remove('abierto');
-    document.getElementById('desbloqueClave').value = '';
-    document.getElementById('desbloqueoErr').style.display = 'none';
-    alert('✅ Usuario desbloqueado correctamente.');
-  } else {
-    document.getElementById('desbloqueoErr').style.display = 'block';
-    document.getElementById('desbloqueClave').value = '';
-  }
-}
-
-function cancelarDesbloqueo(){
-  document.getElementById('bloqueoOverlay').classList.remove('abierto');
-  document.getElementById('desbloqueClave').value = '';
-  document.getElementById('desbloqueoErr').style.display = 'none';
-}
-
-// ROLES INVENTARIO
-const CD_INV=YUNCO_PERMISOS.CLAVES_DEFAULT;
-const ROLES_INV = YUNCO_PERMISOS.INVENTARIO;
-let vActInv=null, vRolInv=null;
-
-function doLogin(){
-  const v=document.getElementById('loginVendedor').value;
-  const c=document.getElementById('loginClave').value;
-  if(!v){document.getElementById('loginErr').style.display='block';return;}
-  const claves={...CD_INV,...S.g('yunco_claves',{})};
-  const intentosData = getIntentos(v);
-  if(intentosData.bloqueado){mostrarBloqueo(v);return;}
-  if(c!==claves[v]){
-    registrarIntento(v, false);
-    const intentosActuales = getIntentos(v);
-    if(intentosActuales.bloqueado){
-      document.getElementById('loginErr').style.display='none';
-      mostrarBloqueo(v);
-    } else {
-      const restantes = MAX_INTENTOS - intentosActuales.count;
-      document.getElementById('loginErr').textContent = 'Clave incorrecta. Te quedan ' + restantes + ' intento(s).';
-      document.getElementById('loginErr').style.display='block';
-      document.getElementById('loginClave').value='';
-    }
-    return;
-  }
-  registrarIntento(v, true);
-  vActInv=v;
-  const rolMap={gerente:'gerente',dueno:'dueno',admin:'admin'};
-  vRolInv=rolMap[v]||'vendedor';
-  const vends=S.g('yunco_vend',{});
-  const nombre=vends[v]?.nombre||(v==='admin'?'Admin Técnico':v==='gerente'?'Gerente':v==='dueno'?'Dueño':'Vendedor '+v);
-  document.getElementById('vendedorInfo').textContent='👤 '+nombre;
-  document.getElementById('loginErr').style.display='none';
-  document.getElementById('loginOverlay').style.display='none';
-  // Aplicar tabs segun rol
-  const perm=ROLES_INV[vRolInv];
-  const allTabs=['stock','entrada','salida','historial','alertas','consulta'];
-  document.querySelectorAll('.tab').forEach((el,i)=>{
-    if(allTabs[i]) el.style.display=perm.tabs.includes(allTabs[i])?'':'none';
-  });
-  // Ir al primer tab permitido
-  const primerTab=perm.tabs[0]||'consulta';
-  goTab(primerTab);
-  // Si es vendedor, ir directo a consulta
-  if(vRolInv==='vendedor') goTab('consulta');
-}
+(function initSesion(){
+  const raw = localStorage.getItem('yunco_session');
+  if(!raw){ window.location.href='index.html'; return; }
+  try{
+    const ses = JSON.parse(raw);
+    const permitidos = ['gerente', 'dueno', 'admin'];
+    if(!permitidos.includes(ses.rol)){ window.location.href='index.html'; return; }
+    vAct = ses.usuario;
+    vRol = ses.rol;
+    vNombre = ses.nombre;
+    // Actualizar UI con datos de sesión
+    const ui = document.getElementById('vendedorInfo');
+    if(ui) ui.textContent = '👤 ' + vNombre;
+    
+    const perm = ROLES_INV[vRol] || ROLES_INV['vendedor'];
+    const allTabs = ['stock','entrada','salida','historial','alertas','consulta'];
+    document.querySelectorAll('.tab').forEach((el,i) => {
+      if(allTabs[i]) el.style.display = perm.tabs.includes(allTabs[i]) ? '' : 'none';
+    });
+    const primerTab = perm.tabs[0] || 'consulta';
+    goTab(vRol === 'vendedor' ? 'consulta' : primerTab);
+    setTimeout(function(){ renderConsulta(''); }, 200);
+  } catch(e) { window.location.href='index.html'; }
+})();
 
 function logout(){
-  vActInv=null;vRolInv=null;
-  document.getElementById('loginOverlay').style.display='flex';
-  document.getElementById('loginVendedor').value='';
-  document.getElementById('loginClave').value='';
-  document.getElementById('vendedorInfo').textContent='👤 —';
+  localStorage.removeItem('yunco_session');
+  window.location.href='index.html';
 }
 
 // INIT - forzar guardado en localStorage al cargar
