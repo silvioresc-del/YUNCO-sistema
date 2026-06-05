@@ -501,8 +501,8 @@ function mostrarCajaAbierta(caja,fecha){
 }
 
 // OBTENER VENTAS DEL DIA
-function getVentasHoy(){
-  const hoy=getFechaHoy();
+function getVentasHoy(fecha){
+  const hoy = fecha || getFechaHoy();
   return S.g('yunco_comp',[]).filter(v=>{
     if(!v.fecha)return false;
     return v.fecha.startsWith(hoy)&&v.modo==='registrar';
@@ -511,7 +511,7 @@ function getVentasHoy(){
 
 // STATS
 function actualizarStats(){
-  const ventas=getVentasHoy();
+  const ventas=getVentasHoy(fecha);
   const hoy=getFechaHoy();
   const caja=S.g('yunco_caja_'+hoy,{gastos:[],cobros_cte:[]});
   const gastos=caja.gastos||[];
@@ -555,7 +555,7 @@ function actualizarStats(){
 
 // VENTAS
 function renderVentas(){
-  const ventas=getVentasHoy();
+  const ventas=getVentasHoy(fecha);
   const tbody=document.getElementById('tablaVentas');
   if(!ventas.length){tbody.innerHTML='<tr><td colspan="7"><div class="vacio">No hay ventas registradas hoy.</div></td></tr>';return;}
   const pi={efectivo:'💵',transferencia:'🏦',qr:'📱',tarjeta:'💳',cheque:'📄',cuenta_corriente:'📒'};
@@ -674,24 +674,48 @@ function registrarCobroCte(){
 
 // CERRAR CAJA
 function cerrarCaja(){
-  const hoy=getFechaHoy();
-  const caja=S.g('yunco_caja_'+hoy,{});
-  caja.abierta=false;
-  caja.cierre=new Date().toISOString();
-  caja.resumen=generarResumen();
-  S.s('yunco_caja_'+hoy,caja);
+  // Determinar qué caja cerrar: pendiente de día anterior o la de hoy
+  const estado = getCajaEstado();
+  let fechaCierre;
+  if(estado.estado === 'pendiente'){
+    fechaCierre = estado.fechaPendiente;
+  } else if(estado.estado === 'abierta'){
+    fechaCierre = getFechaHoy();
+  } else {
+    alert('No hay ninguna caja abierta para cerrar.');
+    return;
+  }
+
+  const cajaDatos = S.g('yunco_caja_' + fechaCierre, {});
+  cajaDatos.abierta = false;
+  cajaDatos.cierre = new Date().toISOString();
+  cajaDatos.cierreUsuario = vAct;
+  cajaDatos.cierreUsuarioNom = vNombre;
+  cajaDatos.resumen = generarResumen(fechaCierre);
+
+  // Persistir cierre — fuente única de verdad
+  S.s('yunco_caja_' + fechaCierre, cajaDatos);
+
   // Guardar en historial
-  const hist=S.g('yunco_hist_cajas',[]);
-  hist.unshift({fecha:hoy,...caja.resumen,cierre:caja.cierre});
-  S.s('yunco_hist_cajas',hist);
-  alert('✅ Caja cerrada correctamente.');
-  previsualizarCierre(true);
+  const hist = S.g('yunco_hist_cajas', []);
+  hist.unshift({fecha: fechaCierre, ...cajaDatos.resumen, cierre: cajaDatos.cierre});
+  S.s('yunco_hist_cajas', hist);
+
+  // Verificar que quedó cerrada
+  const verificacion = S.g('yunco_caja_' + fechaCierre, null);
+  if(verificacion && verificacion.abierta === false){
+    alert('Caja del ' + fechaCierre + ' cerrada correctamente.');
+    // Recargar estado — ahora debe mostrar sin caja pendiente
+    initCaja();
+  } else {
+    alert('Error al cerrar la caja. Intentá nuevamente.');
+  }
 }
 
-function generarResumen(){
-  const ventas=getVentasHoy();
-  const hoy=getFechaHoy();
-  const caja=S.g('yunco_caja_'+hoy,{gastos:[],cobros_cte:[]});
+function generarResumen(fecha){
+  const ventas=getVentasHoy(fecha);
+  const hoy = fecha || getFechaHoy();
+  const caja=S.g('yunco_caja_' + hoy,{gastos:[],cobros_cte:[]});
   let totVentas=0,ef=0,tr=0,qr=0,ta=0,ch=0,cc=0;
   ventas.forEach(v=>{const t=parseFloat(v.total)||0;totVentas+=t;if(v.pago==='efectivo')ef+=t;else if(v.pago==='transferencia')tr+=t;else if(v.pago==='qr')qr+=t;else if(v.pago==='tarjeta')ta+=t;else if(v.pago==='cheque')ch+=t;else if(v.pago==='cuenta_corriente')cc+=t;});
   (caja.cobros_cte||[]).forEach(c=>{const m=parseFloat(c.monto)||0;totVentas+=m;if(c.medio==='efectivo')ef+=m;else if(c.medio==='transferencia')tr+=m;else if(c.medio==='cheque')ch+=m;});
