@@ -171,7 +171,7 @@ let vAct=null, vRol=null, vNombre=null;
   }catch(e){window.location.href='index.html';}
 })();
 
-function logout(){sessionStorage.removeItem('yunco_session');window.location.href='index.html';}
+function logout(){localStorage.removeItem('yunco_session');window.location.href='index.html';}
 
 function goTab(t){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('activo'));
