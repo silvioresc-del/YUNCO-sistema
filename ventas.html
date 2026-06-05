@@ -1808,6 +1808,43 @@ document.addEventListener('click',e=>{
 
 
 // CONSULTA STOCK
+
+function renderConsulta(){
+  const q = (document.getElementById('consultaBusq')?.value||'').toLowerCase().trim();
+  let prods = [];
+  try{ prods = JSON.parse(localStorage.getItem('yunco_inv')||'[]'); }catch{ prods=[]; }
+  const filtrados = q ? prods.filter(p =>
+    (p.nombre||'').toLowerCase().includes(q) ||
+    (p.categoria||'').toLowerCase().includes(q)
+  ) : prods;
+  const el = document.getElementById('consultaTabla');
+  if(!el) return;
+  if(!prods.length){
+    el.innerHTML='<div class="vacio">No hay productos en el inventario.</div>';
+    return;
+  }
+  const fmt = n => '$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2});
+  const fmtStock = p => {
+    const s=parseFloat(p.stock||0), m=parseFloat(p.min||0);
+    const color = s<=0?'var(--danger)':s<=m?'var(--warning)':'var(--success)';
+    return '<span style="color:'+color+';font-weight:800">'+s+'</span>';
+  };
+  el.innerHTML =
+    '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">'+filtrados.length+' productos</div>'+
+    '<div class="tabla-wrap"><table><thead><tr>'+
+    '<th>Producto</th><th>Categoría</th><th>Stock</th><th>Unidad</th><th>Precio Venta</th>'+
+    '</tr></thead><tbody>'+
+    filtrados.map(p =>
+      '<tr><td><strong>'+p.nombre+'</strong></td>'+
+      '<td><span class="cat-tag">'+p.categoria+'</span></td>'+
+      '<td>'+fmtStock(p)+'</td>'+
+      '<td style="color:var(--text-muted)">'+p.unidad+'</td>'+
+      '<td>'+(parseFloat(p.venta||0)>0?fmt(p.venta):'<span style="color:var(--text-muted)">Sin precio</span>')+'</td>'+
+      '</tr>'
+    ).join('')+
+    '</tbody></table></div>';
+}
+
 function renderConsultaStock(){
   const q=(document.getElementById('consultaStockBusq').value||'').toLowerCase();
   const el=document.getElementById('consultaStockRes');
