@@ -1238,6 +1238,7 @@ let vAct = null, vRol = null, vNombre = null;
     
     // Aplicar tabs y permisos según rol de sesión
     setTimeout(() => {
+      goTab('nueva');  // Mostrar nueva venta por defecto
       actualizarOpcionesComprobante();
       const perm = PERMISOS[vRol] || PERMISOS['vendedor'];
       const allTabs = ['nueva','presupuesto','comprobantes','clientes','consulta','ctacte','config'];
@@ -2121,6 +2122,29 @@ function emitirPres(imprimir){
 }
 
 // COMPROBANTES
+
+function goTab(t){
+  // Ocultar todos los panels
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('activo'));
+  document.querySelectorAll('.tab').forEach(tb => tb.classList.remove('activo'));
+
+  // Mostrar panel seleccionado
+  const panel = document.getElementById('panel-' + t);
+  if(panel) panel.classList.add('activo');
+
+  // Marcar tab activo
+  document.querySelectorAll('.tab').forEach(tb => {
+    if(tb.getAttribute('onclick') === "goTab('" + t + "')") tb.classList.add('activo');
+  });
+
+  // Acciones específicas por tab
+  if(t === 'comprobantes') renderComp();
+  if(t === 'clientes') renderClientes();
+  if(t === 'consulta') renderConsulta('');
+  if(t === 'ctacte') renderCtaCte();
+  if(t === 'config') renderConfig && renderConfig();
+}
+
 function renderComp(){
   const q=(document.getElementById('busqComp').value||'').toLowerCase();
   const tipo=document.getElementById('filtTipo').value,est=document.getElementById('filtEstado').value;
