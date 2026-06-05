@@ -4,7 +4,7 @@
 <script src="yunco-permisos.js"></script>
 <script>
 (function(){
-  const s=sessionStorage.getItem('yunco_session');
+  const s=localStorage.getItem('yunco_session');
   if(!s){window.location.href='index.html';return;}
   try{
     const ses=JSON.parse(s);
@@ -155,19 +155,6 @@ tr:hover td { background:rgba(74,159,212,.05)!important; }
 </head>
 <body>
 
-<div class="login-overlay" id="loginOverlay">
-  <div class="login-box">
-    <div class="login-logo">Yunco</div>
-    <div class="login-sub">Reportes Gerenciales · Solo Gerente y Dueño</div>
-    <select id="loginUser">
-      <option value="">— Seleccioná tu usuario —</option>
-      <option value="gerente">📊 Gerente General</option>
-      <option value="dueno">👑 Dueño</option>
-    </select>
-    <input type="password" id="loginClave" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLogin()">
-    <button class="login-btn" onclick="doLogin()">Ingresar →</button>
-    <div class="login-error" id="loginErr">Usuario o contraseña incorrectos.</div>
-  </div>
 </div>
 
 <div class="topbar">
@@ -277,29 +264,12 @@ const S={g:(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;
 const fmt=n=>'$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:0,maximumFractionDigits:0});
 const fmtN=n=>parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
 
-const CLAVES=YUNCO_PERMISOS.CLAVES_DEFAULT;
-let vRol=null,vAct=null;
+
+
 let chartEv=null,chartVend=null,chartProd=null,chartPago=null;
 
-function doLogin(){
-  const u=document.getElementById('loginUser').value;
-  const c=document.getElementById('loginClave').value;
-  if(!u){document.getElementById('loginErr').style.display='block';return;}
-  const claves={...CLAVES,...S.g('yunco_claves',{})};
-  if(c!==claves[u]){document.getElementById('loginErr').style.display='block';document.getElementById('loginClave').value='';return;}
-  vAct=u;vRol=u;
-  document.getElementById('loginOverlay').style.display='none';
-  document.getElementById('userInfo').textContent='👤 '+(u==='gerente'?'Gerente General':'Dueño');
-  initReportes();
-}
-function logout(){vAct=null;document.getElementById('loginOverlay').style.display='flex';document.getElementById('loginClave').value='';}
 
-function cambiarPeriodo(){
-  const p=document.getElementById('filPeriodo').value;
-  const show=p==='custom';
-  document.getElementById('filDesdeWrap').style.display=show?'':'none';
-  document.getElementById('filHastaWrap').style.display=show?'':'none';
-}
+
 
 function getFechas(){
   const p=document.getElementById('filPeriodo').value;
@@ -510,6 +480,37 @@ function exportarTabla(tablaId,nombre){
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.table_to_sheet(tabla),nombre);
   XLSX.writeFile(wb,`YUNCO_${nombre}_${new Date().toLocaleDateString('es-AR').replace(/\//g,'-')}.xlsx`);
+}
+
+
+// ── SESIÓN ÚNICA ─────────────────────────────────────────────
+// Lee la sesión del login central (index.html)
+// No requiere login propio en este módulo
+let vAct = null, vRol = null, vNombre = null;
+
+(function initSesion(){
+  const raw = localStorage.getItem('yunco_session');
+  if(!raw){ window.location.href='index.html'; return; }
+  try{
+    const ses = JSON.parse(raw);
+    const permitidos = ['gerente', 'dueno'];
+    if(!permitidos.includes(ses.rol)){ window.location.href='index.html'; return; }
+    vAct = ses.usuario;
+    vRol = ses.rol;
+    vNombre = ses.nombre;
+    // Actualizar UI con datos de sesión
+    const ui = document.getElementById('vendedorInfo');
+    if(ui) ui.textContent = '👤 ' + vNombre;
+    
+    const ub = document.getElementById('userInfo');
+    if(ub) ub.textContent = '👤 ' + vNombre;
+    initReportes();
+  } catch(e) { window.location.href='index.html'; }
+})();
+
+function logout(){
+  localStorage.removeItem('yunco_session');
+  window.location.href='index.html';
 }
 
 Chart.defaults.color='#a8d4f5';
