@@ -1151,8 +1151,8 @@ tr:hover td { background: rgba(74,159,212,.05) !important; }
   <!-- CONSULTA STOCK -->
   <div class="panel" id="panel-consulta">
     <div style="max-width:700px;margin-bottom:16px">
-      <input type="text" id="consultaStockBusq" placeholder="🔍 Buscá cualquier producto del inventario..." 
-        oninput="renderConsultaStock()"
+      <input type="text" id="consultaBusq" placeholder="🔍 Buscá cualquier producto del inventario..." 
+        oninput="renderConsulta()"
         style="width:100%;background:var(--card);border:1px solid var(--borde2);color:var(--texto);padding:14px 18px;border-radius:10px;font-family:'Barlow',sans-serif;font-size:15px;outline:none">
     </div>
     <div id="consultaStockRes"></div>
@@ -1239,7 +1239,7 @@ let vAct = null, vRol = null, vNombre = null;
   if(!raw){ window.location.href='index.html'; return; }
   try{
     const ses = JSON.parse(raw);
-    const permitidos = ['vendedor', 'gerente', 'dueno'];
+    const permitidos = ['vendedor', 'gerente', 'dueno', 'admin'];
     if(!permitidos.includes(ses.rol)){ window.location.href='index.html'; return; }
     vAct = ses.usuario;
     vRol = ses.rol;
@@ -1252,6 +1252,9 @@ let vAct = null, vRol = null, vNombre = null;
     setTimeout(() => {
       goTab('nueva');  // Mostrar nueva venta por defecto
       verificarEstadoCajaAlCargar();
+      // Ocultar tab config para vendedor
+      const tabConfig = document.getElementById('tabConfig');
+      if(tabConfig) tabConfig.style.display = (vRol==='vendedor') ? 'none' : '';
       actualizarOpcionesComprobante();
       const perm = PERMISOS[vRol] || PERMISOS['vendedor'];
       const allTabs = ['nueva','presupuesto','comprobantes','clientes','consulta','ctacte','config'];
@@ -2182,12 +2185,11 @@ function goTab(t){
     if(tb.getAttribute('onclick') === "goTab('" + t + "')") tb.classList.add('activo');
   });
 
-  // Acciones específicas por tab
-  if(t === 'comprobantes') renderComp();
-  if(t === 'clientes') renderClientes();
-  if(t === 'consulta') renderConsulta('');
-  if(t === 'ctacte') renderCtaCte();
-  if(t === 'config') renderConfig && renderConfig();
+  // Render por tab
+  if(t === 'comprobantes' && typeof renderComp === 'function') renderComp();
+  if(t === 'clientes' && typeof renderClis === 'function') renderClis();
+  if(t === 'consulta' && typeof renderConsulta === 'function') renderConsulta();
+  if(t === 'ctacte' && typeof renderCtaCte === 'function') renderCtaCte();
 }
 
 function renderComp(){
@@ -2363,6 +2365,90 @@ function renderHistorialCliente(c){
       +'<div style="color:var(--text-muted)">Saldo: '+fmt(m.saldoResultante)+'</div></div>'
       +'</div>';
   }).join('');
+}
+
+
+function renderCtaCte(){
+  const q = (document.getElementById('ctaBusq')?.value||'').toLowerCase();
+  const filtro = document.getElementById('ctaFiltro')?.value||'todos';
+  const ct = S.g('yunco_ctacte',{});
+  let clientes = Object.values(ct);
+  if(q) clientes = clientes.filter(c => c.nom.toLowerCase().includes(q)||(c.cuit||'').includes(q));
+  if(filtro==='deuda') clientes = clientes.filter(c => c.saldo > 0);
+  if(filtro==='cancelado') clientes = clientes.filter(c => c.saldo <= 0);
+  const el = document.getElementById('listaCtaCte');
+  if(!el) return;
+  if(!clientes.length){
+    el.innerHTML='<div class="vacio">No hay clientes en cuenta corriente.</div>';
+    return;
+  }
+  const fmt = n => '$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2});
+  el.innerHTML = clientes.sort((a,b)=>b.saldo-a.saldo).map(c => {
+    const saldoColor = c.saldo>0 ? 'var(--warning)' : 'var(--success)';
+    const borderColor = c.saldo>0 ? 'rgba(245,158,11,.3)' : 'rgba(34,197,94,.2)';
+    return '<div style="background:var(--bg-card);border:1px solid '+borderColor+';border-radius:12px;padding:16px;margin-bottom:10px">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px">' +
+      '<div><div style="font-size:15px;font-weight:700">'+c.nom+'</div>' +
+      '<div style="font-size:12px;color:var(--text-muted)">'+(c.cuit||'Sin CUIT')+' · '+(c.iva||'CF')+'</div></div>' +
+      '<div style="text-align:right">' +
+      '<div style="font-family:Bebas Neue,sans-serif;font-size:24px;color:'+saldoColor+'">'+fmt(c.saldo)+'</div>' +
+      '<div style="font-size:11px;color:var(--text-muted)">'+(c.saldo>0?'saldo pendiente':'cuenta cancelada')+'</div></div></div>' +
+      (c.saldo>0?'<button class="btn btn-verde btn-sm" onclick="abrirCobroCte(this)" data-key="'+c.key+'">💰 Registrar cobro</button>':'') +
+      '<button class="btn btn-outline btn-sm" style="margin-left:'+(c.saldo>0?'8px':'0')+'" onclick="toggleHistorial(this)" data-target="hist_'+c.key+'">📋 Ver historial</button>' +
+      '<div id="hist_'+c.key+'" style="display:none;margin-top:12px;border-top:1px solid var(--border-subtle);padding-top:12px">' +
+      renderHistorialCliente(c) + '</div></div>';
+  }).join('');
+}
+
+function toggleHistorial(btn){
+  const id = typeof btn === 'string' ? btn : btn.dataset.target;
+  const el = document.getElementById(id);
+  if(el) el.style.display = el.style.display==='none' ? 'block' : 'none';
+}
+
+function abrirCobroCte(el){
+  const key = typeof el === 'string' ? el : el.dataset.key;
+  const ct = S.g('yunco_ctacte',{});
+  const c = ct[key];
+  if(!c) return;
+  document.getElementById('cobroClienteKey').value = key;
+  document.getElementById('cobroClienteNom').textContent = c.nom;
+  document.getElementById('cobroSaldoActual').textContent = 'Saldo pendiente: $'+parseFloat(c.saldo).toLocaleString('es-AR',{minimumFractionDigits:2});
+  document.getElementById('cobroMonto').value = '';
+  document.getElementById('overlayCobroCte').classList.add('abierto');
+  setTimeout(()=>document.getElementById('cobroMonto').focus(),100);
+}
+
+
+function exportarStockExcel(){
+  const prods = JSON.parse(localStorage.getItem('yunco_inv')||'[]');
+  const rows = prods.map(p=>({
+    Producto:p.nombre, Categoria:p.categoria,
+    Stock:parseFloat(p.stock||0), Minimo:parseFloat(p.min||0),
+    Unidad:p.unidad, PrecioVenta:parseFloat(p.venta||0)
+  }));
+  const wb = typeof XLSX !== 'undefined' ? XLSX.utils.book_new() : null;
+  if(!wb){ alert('Exportación no disponible.'); return; }
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Stock');
+  XLSX.writeFile(wb, 'YUNCO_Stock_'+new Date().toLocaleDateString('es-AR').replace(/\//g,'-')+'.xlsx');
+}
+
+function imprimirStock(){
+  const prods = JSON.parse(localStorage.getItem('yunco_inv')||'[]');
+  const busq = (document.getElementById('consultaBusq')?.value||'').toLowerCase();
+  const filtrados = busq ? prods.filter(p=>(p.nombre||'').toLowerCase().includes(busq)||(p.categoria||'').toLowerCase().includes(busq)) : prods;
+  const rows = filtrados.map(p=>{
+    const s=parseFloat(p.stock||0),m=parseFloat(p.min||0);
+    const estado=s<=0?'SIN STOCK':s<=m?'STOCK BAJO':'OK';
+    return '<tr><td>'+p.nombre+'</td><td>'+p.categoria+'</td><td style="text-align:right;font-weight:700">'+s+'</td><td style="text-align:right">'+m+'</td><td>'+p.unidad+'</td><td style="text-align:right">'+(p.venta>0?'$'+parseFloat(p.venta).toLocaleString('es-AR',{minimumFractionDigits:2}):'—')+'</td><td>'+estado+'</td></tr>';
+  }).join('');
+  const w = window.open('','_blank');
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Stock YUNCO</title><style>*{font-family:Arial,sans-serif;font-size:11px;}h1{font-size:16px;margin-bottom:4px;}p{color:#555;margin-bottom:12px;}table{width:100%;border-collapse:collapse;}th{background:#1a3a5c;color:#fff;padding:6px 8px;text-align:left;}td{padding:5px 8px;border-bottom:1px solid #eee;}tr:nth-child(even) td{background:#f5f5f5;}@media print{@page{size:A4 landscape;margin:10mm;}}</style></head><body>');
+  w.document.write('<h1>YUNCO — Listado de Stock</h1><p>'+new Date().toLocaleString('es-AR')+' · '+filtrados.length+' productos</p>');
+  w.document.write('<table><thead><tr><th>Producto</th><th>Categoría</th><th>Stock</th><th>Mínimo</th><th>Unidad</th><th>Precio Venta</th><th>Estado</th></tr></thead><tbody>'+rows+'</tbody></table>');
+  w.document.write('</body></html>');
+  w.document.close();
+  setTimeout(()=>w.print(),500);
 }
 
 </script>
