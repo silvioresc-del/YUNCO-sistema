@@ -682,7 +682,7 @@ const MODULOS_ROL={
   gerente:[
     {id:'ventas',href:'ventas.html',icono:'💵',nombre:'Ventas y Facturación',desc:'Emitir comprobantes · Clientes · Cuenta corriente',color:'azul'},
     {id:'inventario',href:'inventario.html',icono:'📦',nombre:'Inventario y Stock',desc:'Stock · Entradas y salidas · Historial',color:'verde'},
-    {id:'caja',href:'caja.html',icono:'🧾',nombre:'Cierre de Caja',desc:'Apertura · Cierre · Resumen diario',color:'naranja'},
+    {id:'caja',href:'caja.html',icono:'🧾',nombre:'Caja',desc:'Apertura · Cierre · Resumen diario',color:'naranja'},
     {id:'reportes',href:'reportes.html',icono:'📊',nombre:'Reportes Gerenciales',desc:'Ranking · Productos · Exportar Excel',color:'esmeralda'},
     {id:'admin',href:'admin.html',icono:'⚙️',nombre:'Administración',desc:'Vendedores · Usuarios · Permisos',color:'violeta'},
     {id:'auditoria',href:'auditoria.html',icono:'📋',nombre:'Auditoría',desc:'Registro de operaciones · Trazabilidad',color:'naranja'},
@@ -690,7 +690,7 @@ const MODULOS_ROL={
   dueno:[
     {id:'ventas',href:'ventas.html',icono:'💵',nombre:'Ventas y Facturación',desc:'Emitir comprobantes · Clientes · Cuenta corriente',color:'azul'},
     {id:'inventario',href:'inventario.html',icono:'📦',nombre:'Inventario y Stock',desc:'Stock · Entradas y salidas · Historial',color:'verde'},
-    {id:'caja',href:'caja.html',icono:'🧾',nombre:'Cierre de Caja',desc:'Apertura · Cierre · Resumen diario',color:'naranja'},
+    {id:'caja',href:'caja.html',icono:'🧾',nombre:'Caja',desc:'Apertura · Cierre · Resumen diario',color:'naranja'},
     {id:'reportes',href:'reportes.html',icono:'📊',nombre:'Reportes Gerenciales',desc:'Ranking · Productos · Exportar Excel',color:'esmeralda'},
     {id:'admin',href:'admin.html',icono:'⚙️',nombre:'Administración',desc:'Vendedores · Usuarios · Permisos',color:'violeta'},
     {id:'auditoria',href:'auditoria.html',icono:'📋',nombre:'Auditoría',desc:'Registro de operaciones · Trazabilidad',color:'naranja'},
@@ -755,7 +755,7 @@ function doLogin(){
   const nombre=vends[u]?.nombre||(u==='gerente'?'Gerente General':u==='dueno'?'Dueño':u==='admin'?'Admin Técnico':'Vendedor '+u);
   // Guardar sesión
   const sesion={usuario:u,rol,nombre,inicio:new Date().toISOString()};
-  localStorage.setItem('yunco_session',JSON.stringify(sesion));
+  sessionStorage.setItem('yunco_session',JSON.stringify(sesion));
   errEl.style.display='none';
   mostrarSistema(sesion);
 }
@@ -793,7 +793,7 @@ function cerrarSesion(){
 
 // VERIFICAR SESION EXISTENTE AL CARGAR
 window.addEventListener('load',()=>{
-  const s=localStorage.getItem('yunco_session');
+  const s=sessionStorage.getItem('yunco_session');
   if(s){try{mostrarSistema(JSON.parse(s));}catch{localStorage.removeItem('yunco_session');}}
 });
 
