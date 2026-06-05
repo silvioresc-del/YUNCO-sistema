@@ -7,7 +7,7 @@
 <script src="yunco-permisos.js"></script>
 <script>
 (function(){
-  const s=sessionStorage.getItem('yunco_session');
+  const s=localStorage.getItem('yunco_session');
   if(!s){window.location.href='index.html';return;}
   try{
     const ses=JSON.parse(s);
@@ -161,7 +161,7 @@ const fmtFecha = s => s ? new Date(s).toLocaleString('es-AR',{day:'2-digit',mont
 let vAct=null, vRol=null, vNombre=null;
 
 (function(){
-  const raw=sessionStorage.getItem('yunco_session');
+  const raw=localStorage.getItem('yunco_session');
   if(!raw){window.location.href='index.html';return;}
   try{
     const ses=JSON.parse(raw);
