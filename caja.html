@@ -4,7 +4,7 @@
 <script src="yunco-permisos.js"></script>
 <script>
 (function(){
-  const s=sessionStorage.getItem('yunco_session');
+  const s=localStorage.getItem('yunco_session');
   if(!s){window.location.href='index.html';return;}
   try{
     const ses=JSON.parse(s);
@@ -374,7 +374,7 @@ function formatFecha(fechaStr){
 let vAct = null, vRol = null, vNombre = null;
 
 (function initSesion(){
-  const raw = sessionStorage.getItem('yunco_session');
+  const raw = localStorage.getItem('yunco_session');
   if(!raw){ window.location.href='index.html'; return; }
   try{
     const ses = JSON.parse(raw);
@@ -412,7 +412,7 @@ function verCajaPendiente(fecha){
 }
 
 function logout(){
-  sessionStorage.removeItem('yunco_session');
+  localStorage.removeItem('yunco_session');
   window.location.href='index.html';
 }
 
