@@ -7,7 +7,7 @@
 <script src="yunco-permisos.js"></script>
 <script>
 (function(){
-  const s=sessionStorage.getItem('yunco_session');
+  const s=localStorage.getItem('yunco_session');
   if(!s){window.location.href='index.html';return;}
   try{
     const ses=JSON.parse(s);
@@ -212,7 +212,7 @@ const CD_DEFAULT={'1':'1111','2':'2222','3':'3333','4':'4444','5':'5555','6':'66
 let vAct=null, vRol=null, vNombre=null;
 
 (function initSesion(){
-  const raw=sessionStorage.getItem('yunco_session');
+  const raw=localStorage.getItem('yunco_session');
   if(!raw){window.location.href='index.html';return;}
   try{
     const ses=JSON.parse(raw);
@@ -229,7 +229,7 @@ let vAct=null, vRol=null, vNombre=null;
   }catch(e){window.location.href='index.html';}
 })();
 
-function logout(){sessionStorage.removeItem('yunco_session');window.location.href='index.html';}
+function logout(){localStorage.removeItem('yunco_session');window.location.href='index.html';}
 
 function goTab(t){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('activo'));
