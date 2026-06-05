@@ -487,6 +487,7 @@ function abrirCaja(){
   const hoy = getFechaHoy();
   const cajaDatos = {abierta:true, fecha:hoy, apertura:new Date().toISOString(), gastos:[], cobros_cte:[], usuario:vAct, nombreUsuario:vNombre};
   S.s('yunco_caja_' + hoy, cajaDatos);
+  auditCajaOp('CAJA_APERTURA', 'Caja abierta para el día ' + hoy);
   mostrarCajaAbierta(cajaDatos, hoy);
 }
 
@@ -704,6 +705,7 @@ function cerrarCaja(){
   // Verificar que quedó cerrada
   const verificacion = S.g('yunco_caja_' + fechaCierre, null);
   if(verificacion && verificacion.abierta === false){
+    auditCajaOp('CAJA_CIERRE', 'Caja del ' + fechaCierre + ' cerrada correctamente');
     alert('Caja del ' + fechaCierre + ' cerrada correctamente.');
     // Recargar estado — ahora debe mostrar sin caja pendiente
     initCaja();
@@ -834,6 +836,27 @@ function renderHistCajas(){
 
 // INIT
 initCaja();
+
+// Auditoría desde caja
+function auditCajaOp(accion, detalle){
+  try{
+    const reg = {
+      id: Date.now(),
+      fecha: new Date().toISOString(),
+      usuario: vAct, usuarioNom: vNombre, rol: vRol,
+      accion, detalle: detalle||''
+    };
+    const lista = JSON.parse(localStorage.getItem('yunco_audit_op')||'[]');
+    lista.unshift(reg);
+    localStorage.setItem('yunco_audit_op', JSON.stringify(lista));
+    // Also sys audit
+    const sys = JSON.parse(localStorage.getItem('yunco_audit_sys')||'[]');
+    sys.unshift({...reg, modulo:'caja'});
+    if(sys.length>2000) sys.splice(2000);
+    localStorage.setItem('yunco_audit_sys', JSON.stringify(sys));
+  } catch(e){}
+}
+
 </script>
 </body>
 </html>
