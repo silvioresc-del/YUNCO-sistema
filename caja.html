@@ -388,6 +388,29 @@ let vAct = null, vRol = null, vNombre = null;
   } catch(e){ window.location.href='index.html'; }
 })();
 
+
+function verCajaPendiente(fecha){
+  const cajaDatos = S.g('yunco_caja_' + fecha, null);
+  if(!cajaDatos){
+    alert('No se encontraron datos de la caja del ' + formatFecha(fecha));
+    return;
+  }
+  // Show the pending caja in the abierta view
+  mostrarCajaAbierta(cajaDatos, fecha);
+  // Add warning banner inside the view
+  const viewAb = document.getElementById('viewAbierta');
+  if(viewAb){
+    const existing = document.getElementById('cajaPendienteBanner');
+    if(!existing){
+      const banner = document.createElement('div');
+      banner.id = 'cajaPendienteBanner';
+      banner.style.cssText = 'background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:10px;padding:14px 18px;margin-bottom:16px;font-size:13px;color:#f59e0b;font-weight:600;line-height:1.6;';
+      banner.innerHTML = 'Caja pendiente del ' + formatFecha(fecha) + '. Revisa los movimientos y realizá el cierre para poder operar normalmente.';
+      viewAb.insertBefore(banner, viewAb.firstChild);
+    }
+  }
+}
+
 function logout(){
   sessionStorage.removeItem('yunco_session');
   window.location.href='index.html';
@@ -409,18 +432,40 @@ function goHistorialCajas(){document.getElementById('viewCerrada').style.display
 
 // INIT CAJA
 function initCaja(){
-  const hoy=getFechaHoy();
-  const caja=S.g('yunco_caja_'+hoy,null);
-  if(caja&&caja.abierta){
-    mostrarCajaAbierta(caja,hoy);
-  } else {
-    document.getElementById('viewCerrada').style.display='block';
-    document.getElementById('viewAbierta').style.display='none';
-    // Solo gerente/admin puede abrir
-    if(vRol==='vendedor'){
-      document.getElementById('btnAbrirWrap').innerHTML='<div style="color:var(--muted);font-size:14px">Solo el Gerente General o el Dueño puede abrir la caja.</div>';
-    }
+  const estado = getCajaEstado();
+  const hoy = getFechaHoy();
+
+  if(estado.estado === 'pendiente'){
+    document.getElementById('viewCerrada').style.display = 'block';
+    document.getElementById('viewAbierta').style.display = 'none';
+    const wrap = document.getElementById('btnAbrirWrap');
+    wrap.innerHTML = '';
+    const div = document.createElement('div');
+    div.style.cssText = 'background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.4);border-radius:12px;padding:20px;max-width:500px;margin:0 auto';
+    const fp = estado.fechaPendiente;
+    div.innerHTML = '<div style="font-size:22px;margin-bottom:8px">⚠️</div>'
+      + '<div style="font-weight:700;font-size:15px;color:#f59e0b;margin-bottom:8px">Caja pendiente de cierre</div>'
+      + '<div style="font-size:13px;color:#8baec8;margin-bottom:16px;line-height:1.6">'
+      + 'Existe una caja del <strong>' + formatFecha(fp) + '</strong> que no fue cerrada.<br>'
+      + 'Puede deberse a un corte de energia, cierre accidental del navegador u otro imprevisto.<br><br>'
+      + 'Debe cerrar esa caja antes de abrir una nueva.</div>';
+    const btn = document.createElement('button');
+    btn.textContent = 'Ver y cerrar caja pendiente';
+    btn.style.cssText = 'background:#f59e0b;color:#000;border:none;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer';
+    btn.onclick = function(){ verCajaPendiente(fp); };
+    div.appendChild(btn);
+    wrap.appendChild(div);
+    return;
   }
+
+  if(estado.estado === 'abierta'){
+    const cajaDatos = S.g('yunco_caja_' + hoy, null);
+    mostrarCajaAbierta(cajaDatos, hoy);
+    return;
+  }
+
+  document.getElementById('viewCerrada').style.display = 'block';
+  document.getElementById('viewAbierta').style.display = 'none';
 }
 
 
