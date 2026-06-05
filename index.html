@@ -654,7 +654,7 @@ const CD=YUNCO_PERMISOS.CLAVES_DEFAULT;
 // ── Auditoría del Sistema desde index ────────────────────────
 function auditSys(modulo, accion, detalle){
   try{
-    const ses = sessionStorage.getItem('yunco_session');
+    const ses = localStorage.getItem('yunco_session');
     const usuario = ses ? JSON.parse(ses).usuario : 'desconocido';
     const rol = ses ? JSON.parse(ses).rol : '?';
     const nombre = ses ? JSON.parse(ses).nombre : '?';
@@ -755,7 +755,7 @@ function doLogin(){
   const nombre=vends[u]?.nombre||(u==='gerente'?'Gerente General':u==='dueno'?'Dueño':u==='admin'?'Admin Técnico':'Vendedor '+u);
   // Guardar sesión
   const sesion={usuario:u,rol,nombre,inicio:new Date().toISOString()};
-  sessionStorage.setItem('yunco_session',JSON.stringify(sesion));
+  localStorage.setItem('yunco_session',JSON.stringify(sesion));
   errEl.style.display='none';
   mostrarSistema(sesion);
 }
@@ -772,7 +772,7 @@ function mostrarSistema(ses){
   // Render módulos según rol
   const mods=MODULOS_ROL[ses.rol]||MODULOS_ROL['vendedor'];
   document.getElementById('modulosGrid').innerHTML=mods.map((m,i)=>`
-<a href="${m.href}" class="modulo ${m.color}" onclick="auditSys('index','MODULO_ABIERTO','Acceso a: '+this.querySelector('.mod-nombre').textContent)" style="animation:fadeUp .4s ${i*.08}s ease both">
+<a href="${m.href}" class="modulo ${m.color}" style="animation:fadeUp .4s ${i*.08}s ease both">
   <div class="icono-wrap">${m.icono}</div>
   <div style="flex:1">
     <div class="mod-nombre">${m.nombre}</div>
@@ -784,7 +784,7 @@ function mostrarSistema(ses){
 
 function cerrarSesion(){
   auditSys('index', 'LOGOUT', 'Cierre de sesión desde menú principal');
-  sessionStorage.removeItem('yunco_session');
+  localStorage.removeItem('yunco_session');
   document.getElementById('sistemaWrap').style.display='none';
   document.getElementById('loginWrap').style.display='flex';
   document.getElementById('loginUsuario').value='';
@@ -793,8 +793,8 @@ function cerrarSesion(){
 
 // VERIFICAR SESION EXISTENTE AL CARGAR
 window.addEventListener('load',()=>{
-  const s=sessionStorage.getItem('yunco_session');
-  if(s){try{mostrarSistema(JSON.parse(s));}catch{sessionStorage.removeItem('yunco_session');}}
+  const s=localStorage.getItem('yunco_session');
+  if(s){try{mostrarSistema(JSON.parse(s));}catch{localStorage.removeItem('yunco_session');}}
 });
 
 // Auditoría desde index
