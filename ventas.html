@@ -1172,22 +1172,22 @@ const ROLES = {
 const PERMISOS = {
   vendedor: {
     tabs:['nueva','presupuesto','consulta','clientes','ctacte'],
-    comprobantes:['A','B','NC','PRES'],
+    comprobantes:['A','B','NC'],
     verTodosComp:false, eliminarComp:false, config:false, gestionUsuarios:false,
   },
   gerente: {
     tabs:['nueva','presupuesto','comprobantes','consulta','clientes','ctacte'],
-    comprobantes:['A','B','NC','ND','PRES'],
+    comprobantes:['A','B','NC','ND'],
     verTodosComp:true, eliminarComp:true, config:false, gestionUsuarios:false,
   },
   dueno: {
     tabs:['nueva','presupuesto','comprobantes','consulta','clientes','ctacte'],
-    comprobantes:['A','B','NC','ND','PRES'],
+    comprobantes:['A','B','NC','ND'],
     verTodosComp:true, eliminarComp:true, config:true, gestionUsuarios:true,
   },
   admin: {
     tabs:['nueva','presupuesto','comprobantes','consulta','clientes','ctacte'],
-    comprobantes:['A','B','NC','ND','PRES'],
+    comprobantes:['A','B','NC','ND'],
     verTodosComp:true, eliminarComp:true, config:true, gestionUsuarios:false,
   },
 };
@@ -1214,6 +1214,7 @@ let vAct = null, vRol = null, vNombre = null;
     
     // Aplicar tabs y permisos según rol de sesión
     setTimeout(() => {
+      actualizarOpcionesComprobante();  // Configurar opciones según rol
       goTab('nueva');  // Mostrar nueva venta por defecto
       verificarEstadoCajaAlCargar();
       // Ocultar tab config para vendedor
@@ -1415,16 +1416,15 @@ function actualizarOpcionesComprobante(){
   if(!sel) return;
   const perm = PERMISOS[vRol] || PERMISOS['vendedor'];
   const opciones = {
-    'B':    'Factura B',
-    'A':    'Factura A',
-    'NC':   'Nota de Crédito',
-    'ND':   'Nota de Débito',
-    'PRES': 'Presupuesto',
+    'B':  'Factura B',
+    'A':  'Factura A',
+    'NC': 'Nota de Crédito',
+    'ND': 'Nota de Débito',
   };
-  // Limpiar y reconstruir
+  // PRES no va en el selector — solo se accede desde la pestaña Presupuesto
   const current = sel.value;
   sel.innerHTML = '';
-  ['B','A','NC','ND','PRES'].forEach(tipo => {
+  ['B','A','NC','ND'].forEach(tipo => {
     if(perm.comprobantes.includes(tipo)){
       const opt = document.createElement('option');
       opt.value = tipo;
@@ -1432,8 +1432,9 @@ function actualizarOpcionesComprobante(){
       sel.appendChild(opt);
     }
   });
-  // Restaurar valor si sigue disponible
-  if(perm.comprobantes.includes(current)) sel.value = current;
+  // Restaurar valor si sigue disponible (y no es PRES)
+  if(current !== 'PRES' && perm.comprobantes.includes(current)) sel.value = current;
+  else sel.value = 'B';
 }
 
 // BUSQUEDA DINAMICA CLIENTE
@@ -2037,8 +2038,7 @@ function procesar(modo){
   }
 
   // Vendedor necesita autorización para venta en Cuenta Corriente
-  const pagoSel = document.getElementById('pagoSelect')?.value ||
-    document.querySelector('input[name="pago"]:checked')?.value || '';
+  const pagoSel = document.getElementById('medioPago')?.value || '';
   if(vRol === 'vendedor' && pagoSel === 'cuenta_corriente'){
     requiereAutorizacion('cuenta_corriente', function(auth){
       auditSys('ventas', 'VENTA_CC', 'Cuenta Corriente autorizado por ' + auth.nomAut);
