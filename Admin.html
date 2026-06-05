@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Administración — YUNCO</title>
+<script src="yunco-permisos.js"></script>
+<script>
+(function(){
+  const s=sessionStorage.getItem('yunco_session');
+  if(!s){window.location.href='index.html';return;}
+  try{
+    const ses=JSON.parse(s);
+    const permitidos=['gerente','dueno','admin'];
+    if(!permitidos.includes(ses.rol)){window.location.href='index.html';return;}
+    window.YUNCO_SESSION=ses;
+  }catch(e){window.location.href='index.html';}
+})();
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg-base:#080f1a;--bg-card:#111f33;--bg-input:#0a1525;--border-subtle:rgba(255,255,255,.06);--border-mid:rgba(74,159,212,.2);--border-strong:rgba(74,159,212,.45);--text-primary:#eef4fb;--text-secondary:#8baec8;--text-muted:#4d6a82;--accent:#2d7fba;--accent-light:#4a9fd4;--success:#22c55e;--danger:#ef4444;--warning:#f59e0b;--radius-md:10px;--radius-lg:14px;--radius-xl:20px;--shadow-card:0 2px 16px rgba(0,0,0,.35);}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Barlow',sans-serif;background:var(--bg-base);min-height:100vh;color:var(--text-primary);font-size:14px;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse 70% 50% at 10% 0%,rgba(31,78,120,.4) 0%,transparent 60%);}
+.topbar{position:sticky;top:0;z-index:100;background:rgba(8,15,26,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;padding:12px 20px;}
+.back-btn{display:flex;align-items:center;gap:5px;background:transparent;border:1px solid var(--border-subtle);color:var(--text-muted);text-decoration:none;padding:7px 13px;border-radius:var(--radius-md);font-size:12px;font-weight:700;transition:color .2s,border-color .2s;}
+.back-btn:hover{color:var(--text-primary);border-color:var(--border-mid);}
+.topbar-title{font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:2px;}
+.topbar-badge{font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:2px;}
+.user-badge{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);padding:6px 13px;border-radius:var(--radius-md);font-size:12px;font-weight:700;color:var(--success);}
+.logout-btn{background:transparent;border:1px solid var(--border-subtle);color:var(--text-muted);padding:6px 12px;border-radius:var(--radius-md);font-size:12px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;}
+.logout-btn:hover{color:var(--danger);border-color:rgba(239,68,68,.3);}
+.contenido{max-width:900px;margin:0 auto;padding:24px 20px;}
+.tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;}
+.tab{padding:9px 16px;border-radius:var(--radius-md);font-size:12px;font-weight:700;border:1px solid var(--border-subtle);background:transparent;color:var(--text-muted);cursor:pointer;transition:color .2s,background .2s,border-color .2s;}
+.tab:hover{color:var(--text-secondary);background:rgba(255,255,255,.03);border-color:var(--border-mid);}
+.tab.activo{background:var(--bg-card);border-color:var(--border-mid);color:var(--accent-light);font-weight:800;}
+.panel{display:none;animation:fadeUp .3s ease both;}
+.panel.activo{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.form-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:20px;margin-bottom:14px;box-shadow:var(--shadow-card);}
+.form-card h3{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--text-secondary);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border-subtle);}
+.form-group{margin-bottom:12px;}
+.form-group label{display:block;font-size:10px;font-weight:800;letter-spacing:1px;color:var(--text-muted);margin-bottom:5px;text-transform:uppercase;}
+.form-group input,.form-group select{width:100%;background:var(--bg-input);border:1px solid var(--border-subtle);color:var(--text-primary);padding:10px 13px;border-radius:var(--radius-md);font-family:'Barlow',sans-serif;font-size:14px;outline:none;transition:border-color .2s;}
+.form-group input:focus,.form-group select:focus{border-color:var(--border-strong);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:var(--radius-md);font-family:'Barlow',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:opacity .2s,transform .15s;}
+.btn:hover{opacity:.88;transform:translateY(-1px);}
+.btn-primario{background:linear-gradient(135deg,var(--accent),var(--accent-light));color:#fff;}
+.btn-rojo{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--danger);}
+.btn-outline{background:transparent;border:1px solid var(--border-subtle);color:var(--text-secondary);}
+.tabla-wrap{overflow-x:auto;border-radius:var(--radius-md);border:1px solid var(--border-subtle);}
+table{width:100%;border-collapse:collapse;}
+thead{background:rgba(13,31,51,.9);}
+th{padding:10px 14px;text-align:left;font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);}
+td{padding:11px 14px;font-size:13px;color:var(--text-primary);border-bottom:1px solid var(--border-subtle);vertical-align:middle;}
+tr:nth-child(even) td{background:rgba(255,255,255,.02);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(74,159,212,.05)!important;}
+.badge{display:inline-block;font-size:11px;font-weight:800;padding:3px 9px;border-radius:5px;}
+.badge-vend{background:rgba(45,127,186,.2);color:var(--accent-light);border:1px solid rgba(74,159,212,.25);}
+.badge-ger{background:rgba(34,197,94,.1);color:var(--success);border:1px solid rgba(34,197,94,.25);}
+.badge-dueno{background:rgba(245,158,11,.1);color:var(--warning);border:1px solid rgba(245,158,11,.25);}
+.badge-admin{background:rgba(139,92,246,.1);color:#a78bfa;border:1px solid rgba(139,92,246,.25);}
+.alert-box{padding:12px 16px;border-radius:var(--radius-md);font-size:13px;margin-bottom:14px;}
+.alert-success{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--success);}
+.alert-error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--danger);}
+@media(max-width:600px){.form-row{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:12px">
+    <a href="index.html" class="back-btn">← Inicio</a>
+    <div><div class="topbar-badge">MÓDULO</div><div class="topbar-title">⚙️ ADMINISTRACIÓN</div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="user-badge" id="userBadge">👤 —</div>
+    <button class="logout-btn" onclick="logout()">Salir</button>
+  </div>
+</div>
+
+<div class="contenido">
+  <div class="tabs">
+    <div class="tab activo" onclick="goTab('vendedores')">👤 Vendedores</div>
+    <div class="tab" onclick="goTab('clave_maestra')">🔑 Clave Maestra</div>
+    <div class="tab" id="tabDueno" onclick="goTab('sistema')">🛡️ Sistema</div>
+  </div>
+
+  <!-- VENDEDORES -->
+  <div class="panel activo" id="panel-vendedores">
+    <div class="form-card">
+      <h3>➕ Agregar / Editar Vendedor</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label>ID de Vendedor</label>
+          <select id="vendId">
+            <option value="1">Vendedor 1</option>
+            <option value="2">Vendedor 2</option>
+            <option value="3">Vendedor 3</option>
+            <option value="4">Vendedor 4</option>
+            <option value="5">Vendedor 5</option>
+            <option value="6">Vendedor 6</option>
+            <option value="7">Vendedor 7</option>
+            <option value="8">Vendedor 8</option>
+            <option value="9">Vendedor 9</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Nombre completo</label>
+          <input type="text" id="vendNombre" placeholder="Nombre del vendedor">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nueva contraseña</label>
+          <input type="password" id="vendClave" placeholder="Dejar vacío para no cambiar">
+        </div>
+        <div class="form-group">
+          <label>Confirmar contraseña</label>
+          <input type="password" id="vendClaveConf" placeholder="Repetir contraseña">
+        </div>
+      </div>
+      <div id="vendMsg" style="display:none" class="alert-box"></div>
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <button class="btn btn-primario" onclick="guardarVendedor()">💾 Guardar</button>
+        <button class="btn btn-outline" onclick="cargarVendedor()">🔄 Cargar datos actuales</button>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <h3>📋 Lista de Vendedores</h3>
+      <div class="tabla-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Nombre</th><th>Rol</th><th>Contraseña</th><th>Acciones</th></tr></thead>
+          <tbody id="tablaVendedores"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLAVE MAESTRA -->
+  <div class="panel" id="panel-clave_maestra">
+    <div class="form-card">
+      <h3>🔑 Cambiar Clave Maestra del Sistema</h3>
+      <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px;line-height:1.6">
+        La clave maestra se usa para autorizar operaciones sensibles como eliminar comprobantes y cerrar caja. Guardala en un lugar seguro.
+      </p>
+      <div class="form-group">
+        <label>Clave maestra actual</label>
+        <input type="password" id="cmActual" placeholder="Ingresá la clave actual">
+      </div>
+      <div class="form-group">
+        <label>Nueva clave maestra</label>
+        <input type="password" id="cmNueva" placeholder="Mínimo 6 caracteres">
+      </div>
+      <div class="form-group">
+        <label>Confirmar nueva clave</label>
+        <input type="password" id="cmConf" placeholder="Repetir nueva clave">
+      </div>
+      <div id="cmMsg" style="display:none" class="alert-box"></div>
+      <button class="btn btn-primario" onclick="cambiarClaveMaestra()">🔑 Actualizar clave maestra</button>
+    </div>
+    <div class="form-card" style="border-color:rgba(245,158,11,.3)">
+      <h3>⚠️ Clave Maestra Actual</h3>
+      <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">Solo visible para el Dueño.</p>
+      <div id="cmMostrar" style="font-family:monospace;font-size:18px;letter-spacing:4px;color:var(--warning);background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px 16px;display:none"></div>
+      <button class="btn btn-outline" style="margin-top:10px" id="btnVerCM" onclick="verClaveMaestra()">👁 Ver clave actual</button>
+    </div>
+  </div>
+
+  <!-- SISTEMA -->
+  <div class="panel" id="panel-sistema">
+    <div class="form-card">
+      <h3>🛡️ Gestión de Accesos Gerente / Dueño</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nueva clave Gerente General</label>
+          <input type="password" id="gerenteClave" placeholder="Nueva contraseña">
+        </div>
+        <div class="form-group">
+          <label>Confirmar clave Gerente</label>
+          <input type="password" id="gerenteClaveConf" placeholder="Repetir contraseña">
+        </div>
+      </div>
+      <div id="gerMsg" style="display:none" class="alert-box"></div>
+      <button class="btn btn-primario" onclick="cambiarClaveGerente()">💾 Actualizar clave Gerente</button>
+    </div>
+    <div class="form-card" style="border-color:rgba(239,68,68,.2)">
+      <h3>⚠️ Zona de Peligro</h3>
+      <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">Estas acciones son irreversibles. Usar con precaución.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-rojo" onclick="limpiarDatos('ventas')">🗑 Limpiar historial de ventas</button>
+        <button class="btn btn-rojo" onclick="limpiarDatos('cajas')">🗑 Limpiar historial de cajas</button>
+        <button class="btn btn-rojo" onclick="limpiarDatos('clientes')">🗑 Limpiar clientes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const S={
+  g:(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}},
+  s:(k,v)=>{localStorage.setItem(k,JSON.stringify(v));}
+};
+
+const CD_DEFAULT={'1':'1111','2':'2222','3':'3333','4':'4444','5':'5555','6':'6666','7':'7777','8':'8888','9':'9999','gerente':'gerente2024','dueno':'dueno2024','admin':'yunco2024'};
+
+let vAct=null, vRol=null, vNombre=null;
+
+(function initSesion(){
+  const raw=sessionStorage.getItem('yunco_session');
+  if(!raw){window.location.href='index.html';return;}
+  try{
+    const ses=JSON.parse(raw);
+    const permitidos=['gerente','dueno','admin'];
+    if(!permitidos.includes(ses.rol)){window.location.href='index.html';return;}
+    vAct=ses.usuario; vRol=ses.rol; vNombre=ses.nombre;
+    document.getElementById('userBadge').textContent='👤 '+vNombre;
+    // Solo dueno ve tab Sistema y puede ver clave maestra
+    const tabDueno=document.getElementById('tabDueno');
+    if(tabDueno) tabDueno.style.display=(vRol==='dueno')?'':'none';
+    const btnVerCM=document.getElementById('btnVerCM');
+    if(btnVerCM) btnVerCM.style.display=(vRol==='dueno')?'':'none';
+    renderTablaVendedores();
+  }catch(e){window.location.href='index.html';}
+})();
+
+function logout(){sessionStorage.removeItem('yunco_session');window.location.href='index.html';}
+
+function goTab(t){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('activo'));
+  document.querySelectorAll('.tab').forEach(tb=>tb.classList.remove('activo'));
+  const panel=document.getElementById('panel-'+t);
+  if(panel) panel.classList.add('activo');
+  document.querySelectorAll('.tab').forEach(tb=>{
+    if(tb.getAttribute('onclick')==="goTab('"+t+"')") tb.classList.add('activo');
+  });
+  if(t==='vendedores') renderTablaVendedores();
+}
+
+function getClaves(){
+  const saved=S.g('yunco_claves',{});
+  return {...CD_DEFAULT,...saved};
+}
+
+function getVendedores(){
+  return S.g('yunco_vend',{});
+}
+
+function renderTablaVendedores(){
+  const claves=getClaves();
+  const vends=getVendedores();
+  const roles=['1','2','3','4','5','6','7','8','9'];
+  const especiales=['gerente','dueno','admin'];
+  const badgeClass={vendedor:'badge-vend',gerente:'badge-ger',dueno:'badge-dueno',admin:'badge-admin'};
+  const rolLabel={vendedor:'Vendedor',gerente:'Gerente General',dueno:'Dueño',admin:'Admin Técnico'};
+
+  const allUsers=[
+    ...roles.map(id=>({id,nombre:vends[id]?.nombre||'Vendedor '+id,rol:'vendedor'})),
+    {id:'gerente',nombre:'Gerente General',rol:'gerente'},
+    {id:'dueno',nombre:'Dueño',rol:'dueno'},
+    {id:'admin',nombre:'Admin Técnico',rol:'admin'},
+  ];
+
+  document.getElementById('tablaVendedores').innerHTML=allUsers.map(u=>`
+    <tr>
+      <td style="font-family:'Bebas Neue',sans-serif;font-size:16px">${u.id}</td>
+      <td><strong>${u.nombre}</strong></td>
+      <td><span class="badge ${badgeClass[u.rol]||'badge-vend'}">${rolLabel[u.rol]||u.rol}</span></td>
+      <td style="color:var(--text-muted);font-family:monospace">${vRol==='dueno'?claves[u.id]||'—':'••••••'}</td>
+      <td>
+        ${u.rol==='vendedor'?`<button class="btn btn-outline" style="font-size:11px;padding:5px 10px" onclick="editarVendedor('${u.id}')">✏️ Editar</button>`:''}
+      </td>
+    </tr>`).join('');
+}
+
+function editarVendedor(id){
+  document.getElementById('vendId').value=id;
+  cargarVendedor();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function cargarVendedor(){
+  const id=document.getElementById('vendId').value;
+  const vends=getVendedores();
+  document.getElementById('vendNombre').value=vends[id]?.nombre||'Vendedor '+id;
+  document.getElementById('vendClave').value='';
+  document.getElementById('vendClaveConf').value='';
+  document.getElementById('vendMsg').style.display='none';
+}
+
+function guardarVendedor(){
+  const id=document.getElementById('vendId').value;
+  const nombre=document.getElementById('vendNombre').value.trim();
+  const clave=document.getElementById('vendClave').value;
+  const claveConf=document.getElementById('vendClaveConf').value;
+  const msg=document.getElementById('vendMsg');
+
+  if(!nombre){showMsg(msg,'Ingresá un nombre para el vendedor.','error');return;}
+  if(clave&&clave!==claveConf){showMsg(msg,'Las contraseñas no coinciden.','error');return;}
+  if(clave&&clave.length<4){showMsg(msg,'La contraseña debe tener al menos 4 caracteres.','error');return;}
+
+  const vends=getVendedores();
+  vends[id]={...(vends[id]||{}),nombre};
+  S.s('yunco_vend',vends);
+
+  if(clave){
+    const claves=S.g('yunco_claves',{});
+    claves[id]=clave;
+    S.s('yunco_claves',claves);
+  }
+
+  showMsg(msg,'Vendedor '+(nombre)+' guardado correctamente.','success');
+  renderTablaVendedores();
+}
+
+function cambiarClaveMaestra(){
+  const actual=document.getElementById('cmActual').value;
+  const nueva=document.getElementById('cmNueva').value;
+  const conf=document.getElementById('cmConf').value;
+  const msg=document.getElementById('cmMsg');
+  const cmActual=localStorage.getItem('yunco_cm')||'SANTINO15';
+
+  if(actual!==cmActual){showMsg(msg,'La clave actual es incorrecta.','error');return;}
+  if(!nueva||nueva.length<6){showMsg(msg,'La nueva clave debe tener al menos 6 caracteres.','error');return;}
+  if(nueva!==conf){showMsg(msg,'Las claves no coinciden.','error');return;}
+
+  localStorage.setItem('yunco_cm',nueva);
+  showMsg(msg,'Clave maestra actualizada correctamente.','success');
+  document.getElementById('cmActual').value='';
+  document.getElementById('cmNueva').value='';
+  document.getElementById('cmConf').value='';
+  document.getElementById('cmMostrar').style.display='none';
+}
+
+function verClaveMaestra(){
+  if(vRol!=='dueno'){return;}
+  const cm=localStorage.getItem('yunco_cm')||'SANTINO15';
+  const el=document.getElementById('cmMostrar');
+  if(el.style.display==='none'){
+    el.textContent=cm;
+    el.style.display='block';
+    document.getElementById('btnVerCM').textContent='🙈 Ocultar';
+  } else {
+    el.style.display='none';
+    document.getElementById('btnVerCM').textContent='👁 Ver clave actual';
+  }
+}
+
+function cambiarClaveGerente(){
+  const nueva=document.getElementById('gerenteClave').value;
+  const conf=document.getElementById('gerenteClaveConf').value;
+  const msg=document.getElementById('gerMsg');
+  if(!nueva||nueva.length<6){showMsg(msg,'La clave debe tener al menos 6 caracteres.','error');return;}
+  if(nueva!==conf){showMsg(msg,'Las claves no coinciden.','error');return;}
+  const claves=S.g('yunco_claves',{});
+  claves['gerente']=nueva;
+  S.s('yunco_claves',claves);
+  showMsg(msg,'Clave del Gerente actualizada correctamente.','success');
+  document.getElementById('gerenteClave').value='';
+  document.getElementById('gerenteClaveConf').value='';
+  renderTablaVendedores();
+}
+
+function limpiarDatos(tipo){
+  const labels={ventas:'el historial de ventas (yunco_comp)',cajas:'el historial de cajas (yunco_hist_cajas)',clientes:'la lista de clientes (yunco_clis)'};
+  const keys={ventas:'yunco_comp',cajas:'yunco_hist_cajas',clientes:'yunco_clis'};
+  if(!confirm('¿Estás seguro que querés eliminar '+labels[tipo]+'? Esta acción es IRREVERSIBLE.')) return;
+  if(!confirm('Confirmación final: se eliminarán TODOS los datos de '+labels[tipo]+'. ¿Continuar?')) return;
+  localStorage.removeItem(keys[tipo]);
+  alert('Datos eliminados correctamente.');
+}
+
+function showMsg(el,msg,tipo){
+  el.textContent=msg;
+  el.className='alert-box alert-'+tipo;
+  el.style.display='block';
+  setTimeout(()=>{el.style.display='none';},4000);
+}
+
+document.getElementById('vendId').addEventListener('change',cargarVendedor);
+cargarVendedor();
+</script>
+</body>
+</html>
