@@ -650,6 +650,28 @@ const YUNCO_PERMISOS = {
 <script>
 const S={g:(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}}};
 const CD=YUNCO_PERMISOS.CLAVES_DEFAULT;
+
+// ── Auditoría del Sistema desde index ────────────────────────
+function auditSys(modulo, accion, detalle){
+  try{
+    const ses = sessionStorage.getItem('yunco_session');
+    const usuario = ses ? JSON.parse(ses).usuario : 'desconocido';
+    const rol = ses ? JSON.parse(ses).rol : '?';
+    const nombre = ses ? JSON.parse(ses).nombre : '?';
+    const reg = {
+      id: Date.now(),
+      fecha: new Date().toISOString(),
+      usuario, usuarioNom: nombre, rol,
+      modulo: modulo||'index',
+      accion, detalle: detalle||''
+    };
+    const lista = JSON.parse(localStorage.getItem('yunco_audit_sys')||'[]');
+    lista.unshift(reg);
+    if(lista.length > 2000) lista.splice(2000);
+    localStorage.setItem('yunco_audit_sys', JSON.stringify(lista));
+  }catch(e){}
+}
+
 const MAX_INTENTOS=YUNCO_PERMISOS.MAX_INTENTOS;
 
 // MODULOS POR ROL
@@ -663,6 +685,7 @@ const MODULOS_ROL={
     {id:'caja',href:'caja.html',icono:'🧾',nombre:'Cierre de Caja',desc:'Apertura · Cierre · Resumen diario',color:'naranja'},
     {id:'reportes',href:'reportes.html',icono:'📊',nombre:'Reportes Gerenciales',desc:'Ranking · Productos · Exportar Excel',color:'esmeralda'},
     {id:'admin',href:'admin.html',icono:'⚙️',nombre:'Administración',desc:'Vendedores · Usuarios · Permisos',color:'violeta'},
+    {id:'auditoria',href:'auditoria.html',icono:'📋',nombre:'Auditoría',desc:'Registro de operaciones · Trazabilidad',color:'naranja'},
   ],
   dueno:[
     {id:'ventas',href:'ventas.html',icono:'💵',nombre:'Ventas y Facturación',desc:'Emitir comprobantes · Clientes · Cuenta corriente',color:'azul'},
@@ -670,6 +693,7 @@ const MODULOS_ROL={
     {id:'caja',href:'caja.html',icono:'🧾',nombre:'Cierre de Caja',desc:'Apertura · Cierre · Resumen diario',color:'naranja'},
     {id:'reportes',href:'reportes.html',icono:'📊',nombre:'Reportes Gerenciales',desc:'Ranking · Productos · Exportar Excel',color:'esmeralda'},
     {id:'admin',href:'admin.html',icono:'⚙️',nombre:'Administración',desc:'Vendedores · Usuarios · Permisos',color:'violeta'},
+    {id:'auditoria',href:'auditoria.html',icono:'📋',nombre:'Auditoría',desc:'Registro de operaciones · Trazabilidad',color:'naranja'},
   ],
   admin:[
     {id:'dashboard',href:'dashboard.html',icono:'🔍',nombre:'Dashboard Técnico',desc:'Consulta de datos del sistema · Solo lectura',color:'violeta'},
@@ -737,6 +761,8 @@ function doLogin(){
 }
 
 function mostrarSistema(ses){
+  // Registrar login en auditoría
+  auditSys('index', 'LOGIN', 'Ingreso al sistema — rol: ' + ses.rol);
   document.getElementById('loginWrap').style.display='none';
   const sw=document.getElementById('sistemaWrap');
   sw.style.display='flex';
@@ -746,7 +772,7 @@ function mostrarSistema(ses){
   // Render módulos según rol
   const mods=MODULOS_ROL[ses.rol]||MODULOS_ROL['vendedor'];
   document.getElementById('modulosGrid').innerHTML=mods.map((m,i)=>`
-<a href="${m.href}" class="modulo ${m.color}" style="animation:fadeUp .4s ${i*.08}s ease both">
+<a href="${m.href}" class="modulo ${m.color}" onclick="auditSys('index','MODULO_ABIERTO','Acceso a: '+this.querySelector('.mod-nombre').textContent)" style="animation:fadeUp .4s ${i*.08}s ease both">
   <div class="icono-wrap">${m.icono}</div>
   <div style="flex:1">
     <div class="mod-nombre">${m.nombre}</div>
@@ -757,6 +783,7 @@ function mostrarSistema(ses){
 }
 
 function cerrarSesion(){
+  auditSys('index', 'LOGOUT', 'Cierre de sesión desde menú principal');
   sessionStorage.removeItem('yunco_session');
   document.getElementById('sistemaWrap').style.display='none';
   document.getElementById('loginWrap').style.display='flex';
@@ -769,6 +796,24 @@ window.addEventListener('load',()=>{
   const s=sessionStorage.getItem('yunco_session');
   if(s){try{mostrarSistema(JSON.parse(s));}catch{sessionStorage.removeItem('yunco_session');}}
 });
+
+// Auditoría desde index
+function auditLogin(usuario, nombre, rol, accion){
+  try{
+    const reg = {
+      id: Date.now(),
+      fecha: new Date().toISOString(),
+      usuario, usuarioNom: nombre, rol,
+      modulo: 'index', accion,
+      detalle: accion==='LOGIN' ? 'Inicio de sesión exitoso' : 'Cierre de sesión'
+    };
+    const lista = JSON.parse(localStorage.getItem('yunco_audit_sys')||'[]');
+    lista.unshift(reg);
+    if(lista.length > 2000) lista.splice(2000);
+    localStorage.setItem('yunco_audit_sys', JSON.stringify(lista));
+  } catch(e){}
+}
+
 </script>
 </body>
 </html>
