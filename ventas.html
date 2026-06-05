@@ -755,7 +755,7 @@ tr:hover td { background: rgba(74,159,212,.05) !important; }
 
 
 <!-- OVERLAY CAJA BLOQUEADA -->
-<div class="auth-overlay" id="cajaBlockOverlay" style="z-index:995">
+<div class="auth-overlay" id="cajaBlockOverlay_old" style="display:none" style="z-index:995">
   <div class="auth-box" style="border-color:rgba(245,158,11,.5);max-width:440px">
     <div style="font-size:52px;margin-bottom:14px">🔒</div>
     <h3 style="color:var(--warning,#f59e0b);font-family:'Bebas Neue',sans-serif;font-size:22px;margin-bottom:10px">Operación Bloqueada</h3>
@@ -764,6 +764,18 @@ tr:hover td { background: rgba(74,159,212,.05) !important; }
       style="width:100%;background:var(--accent,#2d7fba);color:#fff;border:none;padding:12px;border-radius:8px;font-family:'Barlow',sans-serif;font-size:14px;font-weight:700;cursor:pointer">
       Entendido
     </button>
+  </div>
+</div>
+
+
+<!-- BLOQUEO POR CAJA -->
+<div id="cajaBloqueoPantalla" style="display:none;position:fixed;inset:0;z-index:500;background:var(--bg-base,#080f1a);display:flex;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--bg-card,#111f33);border:1px solid rgba(245,158,11,.4);border-radius:20px;padding:40px;width:100%;max-width:480px;text-align:center">
+    <div style="font-size:56px;margin-bottom:16px">🔒</div>
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;color:#f59e0b;margin-bottom:12px">Ventas Bloqueadas</h2>
+    <p id="cajaBloqueMsg" style="color:#8baec8;font-size:14px;line-height:1.7;margin-bottom:24px"></p>
+    <div id="cajaBloqueAccion"></div>
+    <a href="index.html" style="display:inline-block;margin-top:16px;color:#4d6a82;font-size:13px;text-decoration:none">← Volver al menú principal</a>
   </div>
 </div>
 
@@ -1239,6 +1251,7 @@ let vAct = null, vRol = null, vNombre = null;
     // Aplicar tabs y permisos según rol de sesión
     setTimeout(() => {
       goTab('nueva');  // Mostrar nueva venta por defecto
+      verificarEstadoCajaAlCargar();
       actualizarOpcionesComprobante();
       const perm = PERMISOS[vRol] || PERMISOS['vendedor'];
       const allTabs = ['nueva','presupuesto','comprobantes','clientes','consulta','ctacte','config'];
@@ -1976,6 +1989,38 @@ function registrarCobroCC(clienteKey, monto, medio, cajaActiva){
   return { ok: true, montoReal, saldoNuevo: ct[clienteKey].saldo, cancelada: ct[clienteKey].saldo <= 0 };
 }
 
+
+function confirmarCobro(){
+  const key = document.getElementById('cobroClienteKey').value;
+  const monto = parseFloat(document.getElementById('cobroMonto').value)||0;
+  const medio = document.getElementById('cobroMedio').value;
+  if(!key){ alert('Error: cliente no identificado.'); return; }
+  if(monto <= 0){ alert('Ingresa un monto valido mayor a cero.'); return; }
+  const ct = getCtaCte();
+  if(!ct[key]){ alert('Cliente no encontrado en cuenta corriente.'); return; }
+  if(monto > ct[key].saldo + 0.01){
+    alert('El monto ($' + monto.toLocaleString('es-AR',{minimumFractionDigits:2}) + ') supera el saldo pendiente ($' + ct[key].saldo.toLocaleString('es-AR',{minimumFractionDigits:2}) + ').');
+    return;
+  }
+  const cajaActiva = getCajaActiva();
+  if(!cajaActiva){
+    alert('No hay caja abierta. El cobro no puede registrarse sin una caja activa.');
+    return;
+  }
+  const resultado = registrarCobroCC(key, monto, medio, cajaActiva);
+  if(resultado && resultado.ok){
+    document.getElementById('overlayCobroCte').classList.remove('abierto');
+    const saldoNuevo = resultado.saldoNuevo;
+    const msg = resultado.cancelada
+      ? 'Cobro registrado correctamente. La cuenta quedó cancelada.'
+      : 'Cobro registrado. Saldo restante: $' + saldoNuevo.toLocaleString('es-AR',{minimumFractionDigits:2});
+    alert(msg);
+    renderCtaCte();
+  } else {
+    alert('Error al registrar el cobro. Verificá los datos e intentá nuevamente.');
+  }
+}
+
 function procesar(modo){
   // Verificar caja abierta para CUALQUIER modo de registro
   const cajaCheck = verificarCajaParaVender();
@@ -2272,21 +2317,36 @@ document.getElementById('overlayCli').addEventListener('click',function(e){if(e.
 document.getElementById('previewOverlay').addEventListener('click',function(e){if(e.target===this)closePreview();});
 recalc();
 
+
+function verificarEstadoCajaAlCargar(){
+  const check = verificarCajaParaVender();
+  const pantalla = document.getElementById('cajaBloqueoPantalla');
+  if(!pantalla) return;
+
+  if(!check.ok){
+    // Show blocking screen
+    pantalla.style.display = 'flex';
+    document.getElementById('cajaBloqueMsg').textContent = check.mensaje;
+
+    // If gerente/dueno show link to caja module
+    const accion = document.getElementById('cajaBloqueAccion');
+    if(vRol === 'gerente' || vRol === 'dueno'){
+      accion.innerHTML = '<a href="caja.html" style="display:inline-block;background:#f59e0b;color:#000;padding:12px 24px;border-radius:10px;font-weight:700;font-size:14px;text-decoration:none">Ir a Caja →</a>';
+    } else {
+      accion.innerHTML = '<div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:14px;font-size:13px;color:#f59e0b">Esperá a que el Gerente o Dueño abra la caja para comenzar a operar.</div>';
+    }
+  } else {
+    // Hide blocking screen — caja is valid
+    pantalla.style.display = 'none';
+  }
+}
+
 window.addEventListener('load', function(){
   setTimeout(function(){
-    if(typeof verificarCajaParaVender !== 'function') return;
-    const check = verificarCajaParaVender();
-    if(!check.ok){
-      const existing = document.getElementById('cajaBanner');
-      if(existing) return;
-      const banner = document.createElement('div');
-      banner.id = 'cajaBanner';
-      banner.style.cssText = 'background:rgba(245,158,11,.12);border-bottom:1px solid rgba(245,158,11,.4);padding:10px 20px;text-align:center;font-size:13px;color:#f59e0b;font-weight:600;position:sticky;top:60px;z-index:99;';
-      banner.innerHTML = 'Advertencia: ' + check.mensaje;
-      const topbar = document.querySelector('.topbar');
-      if(topbar && topbar.nextSibling) topbar.parentNode.insertBefore(banner, topbar.nextSibling);
+    if(typeof verificarCajaParaVender === 'function'){
+      verificarEstadoCajaAlCargar();
     }
-  }, 600);
+  }, 400);
 });
 
 function renderHistorialCliente(c){
