@@ -755,7 +755,7 @@ function doLogin(){
   const nombre=vends[u]?.nombre||(u==='gerente'?'Gerente General':u==='dueno'?'Dueño':u==='admin'?'Admin Técnico':'Vendedor '+u);
   // Guardar sesión
   const sesion={usuario:u,rol,nombre,inicio:new Date().toISOString()};
-  sessionStorage.setItem('yunco_session',JSON.stringify(sesion));
+  localStorage.setItem('yunco_session',JSON.stringify(sesion));
   errEl.style.display='none';
   mostrarSistema(sesion);
 }
@@ -793,7 +793,7 @@ function cerrarSesion(){
 
 // VERIFICAR SESION EXISTENTE AL CARGAR
 window.addEventListener('load',()=>{
-  const s=sessionStorage.getItem('yunco_session');
+  const s=localStorage.getItem('yunco_session');
   if(s){try{mostrarSistema(JSON.parse(s));}catch{localStorage.removeItem('yunco_session');}}
 });
 
