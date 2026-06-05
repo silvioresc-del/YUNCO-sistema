@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Técnico — YUNCO</title>
+<script src="yunco-permisos.js"></script>
+<script>
+(function(){
+  const s=sessionStorage.getItem('yunco_session');
+  if(!s){window.location.href='index.html';return;}
+  try{
+    const ses=JSON.parse(s);
+    if(ses.rol!=='admin'){window.location.href='index.html';return;}
+    window.YUNCO_SESSION=ses;
+  }catch(e){window.location.href='index.html';}
+})();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg-base:#080f1a;--bg-card:#111f33;--bg-input:#0a1525;--border-subtle:rgba(255,255,255,.06);--border-mid:rgba(74,159,212,.2);--text-primary:#eef4fb;--text-secondary:#8baec8;--text-muted:#4d6a82;--accent:#2d7fba;--accent-light:#4a9fd4;--success:#22c55e;--danger:#ef4444;--warning:#f59e0b;--radius-md:10px;--radius-lg:14px;--radius-xl:20px;--shadow-card:0 2px 16px rgba(0,0,0,.35);}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Barlow',sans-serif;background:var(--bg-base);min-height:100vh;color:var(--text-primary);font-size:14px;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse 70% 50% at 10% 0%,rgba(31,78,120,.4) 0%,transparent 60%);}
+.topbar{position:sticky;top:0;z-index:100;background:rgba(8,15,26,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;padding:12px 20px;}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.back-btn{display:flex;align-items:center;gap:5px;background:transparent;border:1px solid var(--border-subtle);color:var(--text-muted);text-decoration:none;padding:7px 13px;border-radius:var(--radius-md);font-size:12px;font-weight:700;transition:color .2s,border-color .2s;}
+.back-btn:hover{color:var(--text-primary);border-color:var(--border-mid);}
+.topbar-badge{font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:2px;}
+.topbar-title{font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:2px;}
+.user-badge{background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.3);padding:6px 13px;border-radius:var(--radius-md);font-size:12px;font-weight:700;color:#a78bfa;}
+.logout-btn{background:transparent;border:1px solid var(--border-subtle);color:var(--text-muted);padding:6px 12px;border-radius:var(--radius-md);font-size:12px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;}
+.logout-btn:hover{color:var(--danger);}
+.readonly-badge{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:var(--warning);font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;letter-spacing:1px;}
+.contenido{max-width:1100px;margin:0 auto;padding:20px;}
+.tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;}
+.tab{padding:9px 16px;border-radius:var(--radius-md);font-size:12px;font-weight:700;border:1px solid var(--border-subtle);background:transparent;color:var(--text-muted);cursor:pointer;transition:color .2s,background .2s,border-color .2s;}
+.tab:hover{color:var(--text-secondary);border-color:var(--border-mid);}
+.tab.activo{background:var(--bg-card);border-color:var(--border-mid);color:var(--accent-light);font-weight:800;}
+.panel{display:none;animation:fadeUp .3s ease both;}
+.panel.activo{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px;}
+.stat-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:16px 18px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow-card);}
+.stat-icon{font-size:26px;flex-shrink:0;}
+.stat-num{font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--text-primary);letter-spacing:1px;line-height:1;}
+.stat-label{font-size:11px;color:var(--text-muted);margin-top:2px;font-weight:600;}
+.form-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:18px 20px;margin-bottom:12px;box-shadow:var(--shadow-card);}
+.form-card h3{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:1px;color:var(--text-secondary);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;}
+.toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
+.toolbar input,.toolbar select{background:var(--bg-input);border:1px solid var(--border-subtle);color:var(--text-primary);padding:9px 13px;border-radius:var(--radius-md);font-family:'Barlow',sans-serif;font-size:13px;outline:none;transition:border-color .2s;}
+.toolbar input:focus,.toolbar select:focus{border-color:var(--border-mid);}
+.tabla-wrap{overflow-x:auto;border-radius:var(--radius-md);border:1px solid var(--border-subtle);}
+table{width:100%;border-collapse:collapse;}
+thead{background:rgba(13,31,51,.9);}
+th{padding:10px 14px;text-align:left;font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);white-space:nowrap;}
+td{padding:10px 14px;font-size:13px;color:var(--text-primary);border-bottom:1px solid var(--border-subtle);vertical-align:middle;}
+tr:nth-child(even) td{background:rgba(255,255,255,.02);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(74,159,212,.05)!important;}
+.badge{display:inline-block;font-size:11px;font-weight:800;padding:3px 8px;border-radius:5px;}
+.badge-a,.badge-b{background:rgba(45,127,186,.2);color:var(--accent-light);border:1px solid rgba(74,159,212,.25);}
+.badge-nc{background:rgba(245,158,11,.1);color:var(--warning);border:1px solid rgba(245,158,11,.25);}
+.badge-nd{background:rgba(239,68,68,.1);color:var(--danger);border:1px solid rgba(239,68,68,.25);}
+.badge-pres{background:rgba(139,92,246,.1);color:#a78bfa;border:1px solid rgba(139,92,246,.25);}
+.badge-reg{background:rgba(34,197,94,.1);color:var(--success);border:1px solid rgba(34,197,94,.25);}
+.badge-grab{background:rgba(245,158,11,.1);color:var(--warning);border:1px solid rgba(245,158,11,.25);}
+.stock-ok{color:var(--success);font-weight:800;}
+.stock-bajo{color:var(--warning);font-weight:800;}
+.stock-cero{color:var(--danger);font-weight:800;}
+.cat-tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px;background:rgba(45,127,186,.15);border:1px solid rgba(74,159,212,.2);color:var(--accent-light);}
+.vacio{text-align:center;padding:40px;color:var(--text-muted);font-size:14px;}
+.mov-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-subtle);font-size:12px;}
+.mov-item:last-child{border-bottom:none;}
+.expand-btn{background:transparent;border:1px solid var(--border-subtle);color:var(--text-muted);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;}
+.expand-btn:hover{border-color:var(--border-mid);color:var(--text-secondary);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <a href="index.html" class="back-btn">← Inicio</a>
+    <div>
+      <div class="topbar-badge">MÓDULO</div>
+      <div class="topbar-title">🔍 DASHBOARD TÉCNICO</div>
+    </div>
+    <span class="readonly-badge">SOLO LECTURA</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="user-badge" id="userBadge">👤 Admin</div>
+    <button class="logout-btn" onclick="logout()">Salir</button>
+  </div>
+</div>
+
+<div class="contenido">
+
+  <!-- STATS GENERALES -->
+  <div class="stats-grid" id="statsGrid"></div>
+
+  <div class="tabs">
+    <div class="tab activo" onclick="goTab('facturacion')">📋 Facturación</div>
+    <div class="tab" onclick="goTab('stock')">📦 Stock</div>
+    <div class="tab" onclick="goTab('clientes')">👥 Clientes / CC</div>
+    <div class="tab" onclick="goTab('caja')">🧾 Caja</div>
+    <div class="tab" onclick="goTab('reportes')">📊 Reportes</div>
+  </div>
+
+  <!-- FACTURACIÓN -->
+  <div class="panel activo" id="panel-facturacion">
+    <div class="form-card">
+      <h3>📋 Historial de Comprobantes <span style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text-muted);font-family:'Barlow',sans-serif;font-weight:500">Solo lectura</span><button onclick="exportarExcel('facturacion')" style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--success);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">📥 Excel</button><button onclick="imprimirSeccion('facturacion')" style="background:rgba(45,127,186,.1);border:1px solid rgba(45,127,186,.3);color:var(--accent-light);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">🖨 Imprimir</button></span></h3>
+      <div class="toolbar">
+        <input type="text" id="factBusq" placeholder="Buscar por cliente, N° o vendedor..." oninput="renderFacturacion()" style="flex:1;min-width:200px">
+        <select id="factTipo" onchange="renderFacturacion()">
+          <option value="">Todos los tipos</option>
+          <option value="A">Factura A</option>
+          <option value="B">Factura B</option>
+          <option value="NC">Nota de Crédito</option>
+          <option value="ND">Nota de Débito</option>
+          <option value="PRES">Presupuesto</option>
+        </select>
+        <select id="factEstado" onchange="renderFacturacion()">
+          <option value="">Todos</option>
+          <option value="registrar">Registrado</option>
+          <option value="grabar">Grabado</option>
+        </select>
+      </div>
+      <div id="tablaFacturacion"></div>
+    </div>
+  </div>
+
+  <!-- STOCK -->
+  <div class="panel" id="panel-stock">
+    <div class="form-card">
+      <h3>📦 Stock Completo <span style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text-muted);font-family:'Barlow',sans-serif;font-weight:500">Solo lectura</span><button onclick="exportarExcel('stock')" style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--success);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">📥 Excel</button><button onclick="imprimirSeccion('stock')" style="background:rgba(45,127,186,.1);border:1px solid rgba(45,127,186,.3);color:var(--accent-light);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">🖨 Imprimir</button></span></h3>
+      <div class="toolbar">
+        <input type="text" id="stockBusq" placeholder="Buscar producto o categoría..." oninput="renderStock()" style="flex:1;min-width:200px">
+        <select id="stockCat" onchange="renderStock()">
+          <option value="">Todas las categorías</option>
+        </select>
+        <select id="stockFiltro" onchange="renderStock()">
+          <option value="">Todo el stock</option>
+          <option value="bajo">Stock bajo</option>
+          <option value="cero">Sin stock</option>
+          <option value="ok">Stock normal</option>
+        </select>
+      </div>
+      <div id="tablaStock"></div>
+    </div>
+  </div>
+
+  <!-- CLIENTES / CC -->
+  <div class="panel" id="panel-clientes">
+    <div class="form-card">
+      <h3>👥 Clientes y Cuenta Corriente <span style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text-muted);font-family:'Barlow',sans-serif;font-weight:500">Solo lectura</span><button onclick="exportarExcel('clientes')" style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--success);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">📥 Excel</button><button onclick="imprimirSeccion('clientes')" style="background:rgba(45,127,186,.1);border:1px solid rgba(45,127,186,.3);color:var(--accent-light);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">🖨 Imprimir</button></span></h3>
+      <div class="toolbar">
+        <input type="text" id="cliBusq" placeholder="Buscar cliente..." oninput="renderClientes()" style="flex:1;min-width:200px">
+        <select id="cliFiltro" onchange="renderClientes()">
+          <option value="">Todos</option>
+          <option value="deuda">Con saldo pendiente</option>
+          <option value="cancelado">Saldo cero</option>
+        </select>
+      </div>
+      <div id="tablaClientes"></div>
+    </div>
+  </div>
+
+  <!-- CAJA -->
+  <div class="panel" id="panel-caja">
+    <div class="form-card">
+      <h3>🧾 Estado de Caja <span style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text-muted);font-family:'Barlow',sans-serif;font-weight:500">Solo lectura</span><button onclick="exportarExcel('caja')" style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--success);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">📥 Excel</button><button onclick="imprimirSeccion('caja')" style="background:rgba(45,127,186,.1);border:1px solid rgba(45,127,186,.3);color:var(--accent-light);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">🖨 Imprimir</button></span></h3>
+      <div id="cajaDashboard"></div>
+    </div>
+    <div class="form-card">
+      <h3>📅 Historial de Cierres</h3>
+      <div id="histCierres"></div>
+    </div>
+  </div>
+
+  <!-- REPORTES -->
+  <div class="panel" id="panel-reportes">
+    <div class="form-card">
+      <h3>📊 Resumen General del Sistema <span style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text-muted);font-family:'Barlow',sans-serif;font-weight:500">Solo lectura</span><button onclick="exportarExcel('reportes')" style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--success);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">📥 Excel</button><button onclick="imprimirSeccion('reportes')" style="background:rgba(45,127,186,.1);border:1px solid rgba(45,127,186,.3);color:var(--accent-light);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">🖨 Imprimir</button></span></h3>
+      <div class="toolbar">
+        <select id="repPeriodo" onchange="renderReportes()">
+          <option value="hoy">Hoy</option>
+          <option value="semana">Esta semana</option>
+          <option value="mes" selected>Este mes</option>
+          <option value="todo">Todo el historial</option>
+        </select>
+      </div>
+      <div id="tablaReportes"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const S={
+  g:(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}}
+};
+const fmt=n=>'$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2});
+const fmtN=n=>parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:0});
+
+let vAct=null, vRol=null, vNombre=null;
+
+(function initSesion(){
+  const raw=sessionStorage.getItem('yunco_session');
+  if(!raw){window.location.href='index.html';return;}
+  try{
+    const ses=JSON.parse(raw);
+    if(ses.rol!=='admin'){window.location.href='index.html';return;}
+    vAct=ses.usuario; vRol=ses.rol; vNombre=ses.nombre;
+    document.getElementById('userBadge').textContent='👤 '+vNombre;
+    initDashboard();
+  }catch(e){window.location.href='index.html';}
+})();
+
+function logout(){sessionStorage.removeItem('yunco_session');window.location.href='index.html';}
+
+function goTab(t){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('activo'));
+  document.querySelectorAll('.tab').forEach(tb=>tb.classList.remove('activo'));
+  const panel=document.getElementById('panel-'+t);
+  if(panel) panel.classList.add('activo');
+  document.querySelectorAll('.tab').forEach(tb=>{
+    if(tb.getAttribute('onclick')==="goTab('"+t+"')") tb.classList.add('activo');
+  });
+  if(t==='facturacion') renderFacturacion();
+  if(t==='stock') renderStock();
+  if(t==='clientes') renderClientes();
+  if(t==='caja') renderCaja();
+  if(t==='reportes') renderReportes();
+}
+
+function initDashboard(){
+  // Stats
+  const comps=S.g('yunco_comp',[]);
+  const prods=S.g('yunco_inv',[]);
+  const ct=S.g('yunco_ctacte',{});
+  const hoy=new Date().toISOString().split('T')[0];
+  const cajHoy=S.g('yunco_caja_'+hoy,null);
+  const totalHoy=comps.filter(c=>c.fecha&&c.fecha.startsWith(hoy)&&c.modo==='registrar').reduce((a,c)=>a+parseFloat(c.total||0),0);
+  const saldoCC=Object.values(ct).reduce((a,c)=>a+parseFloat(c.saldo||0),0);
+  const sinStock=prods.filter(p=>parseFloat(p.stock||0)<=0).length;
+
+  document.getElementById('statsGrid').innerHTML=`
+    <div class="stat-card"><div class="stat-icon">📋</div><div><div class="stat-num">${comps.length}</div><div class="stat-label">Comprobantes totales</div></div></div>
+    <div class="stat-card"><div class="stat-icon">💵</div><div><div class="stat-num">${fmt(totalHoy)}</div><div class="stat-label">Ventas hoy</div></div></div>
+    <div class="stat-card"><div class="stat-icon">📦</div><div><div class="stat-num">${prods.length}</div><div class="stat-label">Productos en sistema</div></div></div>
+    <div class="stat-card"><div class="stat-icon">⚠️</div><div><div class="stat-num">${sinStock}</div><div class="stat-label">Productos sin stock</div></div></div>
+    <div class="stat-card"><div class="stat-icon">📒</div><div><div class="stat-num">${fmt(saldoCC)}</div><div class="stat-label">Saldo CC pendiente</div></div></div>
+    <div class="stat-card"><div class="stat-icon">🧾</div><div><div class="stat-num">${cajHoy?(cajHoy.abierta?'Abierta':'Cerrada'):'Sin abrir'}</div><div class="stat-label">Caja hoy</div></div></div>
+  `;
+  renderFacturacion();
+}
+
+function renderFacturacion(){
+  const q=(document.getElementById('factBusq')?.value||'').toLowerCase();
+  const tipo=document.getElementById('factTipo')?.value||'';
+  const estado=document.getElementById('factEstado')?.value||'';
+  let comps=S.g('yunco_comp',[]);
+  if(q) comps=comps.filter(c=>(c.cli?.nom||'').toLowerCase().includes(q)||(c.nro||'').toLowerCase().includes(q)||(c.vend||'').includes(q));
+  if(tipo) comps=comps.filter(c=>c.tipo===tipo);
+  if(estado) comps=comps.filter(c=>c.modo===estado);
+  const vends=S.g('yunco_vend',{});
+  const getNom=id=>vends[id]?.nombre||'Vendedor '+id;
+  const tipoB={'A':'badge-a','B':'badge-b','NC':'badge-nc','ND':'badge-nd','PRES':'badge-pres'};
+  const modoB={'registrar':'badge-reg','grabar':'badge-grab'};
+  const el=document.getElementById('tablaFacturacion');
+  if(!comps.length){el.innerHTML='<div class="vacio">No hay comprobantes.</div>';return;}
+  el.innerHTML='<div class="tabla-wrap"><table><thead><tr><th>N°</th><th>Tipo</th><th>Fecha</th><th>Cliente</th><th>Vendedor</th><th>Pago</th><th>Total</th><th>Estado</th></tr></thead><tbody>'+
+    comps.slice(0,200).map(c=>{
+      const f=new Date(c.fecha).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+      return '<tr><td style="font-family:monospace;font-size:15px">'+c.nro+'</td>'+
+        '<td><span class="badge '+(tipoB[c.tipo]||'badge-b')+'">'+c.tipo+'</span></td>'+
+        '<td style="color:var(--text-secondary)">'+f+'</td>'+
+        '<td>'+(c.cli?.nom||'CF')+'</td>'+
+        '<td style="color:var(--text-secondary)">'+getNom(c.vend)+'</td>'+
+        '<td style="color:var(--text-muted)">'+( c.pago||'-')+'</td>'+
+        '<td style="color:var(--success);font-weight:700">'+fmt(c.total)+'</td>'+
+        '<td><span class="badge '+(modoB[c.modo]||'')+'">'+( c.modo==='registrar'?'Registrado':'Grabado')+'</span></td>'+
+        '</tr>';
+    }).join('')+'</tbody></table></div>'+
+    (comps.length>200?'<div style="text-align:center;padding:10px;color:var(--text-muted);font-size:12px">Mostrando 200 de '+comps.length+' comprobantes.</div>':'');
+}
+
+function renderStock(){
+  const q=(document.getElementById('stockBusq')?.value||'').toLowerCase();
+  const cat=document.getElementById('stockCat')?.value||'';
+  const filtro=document.getElementById('stockFiltro')?.value||'';
+  let prods=S.g('yunco_inv',[]);
+  // Fill categories
+  const cats=[...new Set(prods.map(p=>p.categoria).filter(Boolean))].sort();
+  const selCat=document.getElementById('stockCat');
+  if(selCat&&selCat.options.length<=1){
+    cats.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;selCat.appendChild(o);});
+  }
+  if(q) prods=prods.filter(p=>(p.nombre||'').toLowerCase().includes(q)||(p.categoria||'').toLowerCase().includes(q));
+  if(cat) prods=prods.filter(p=>p.categoria===cat);
+  if(filtro==='bajo') prods=prods.filter(p=>parseFloat(p.stock||0)>0&&parseFloat(p.stock||0)<=parseFloat(p.min||0));
+  if(filtro==='cero') prods=prods.filter(p=>parseFloat(p.stock||0)<=0);
+  if(filtro==='ok') prods=prods.filter(p=>parseFloat(p.stock||0)>parseFloat(p.min||0));
+  const el=document.getElementById('tablaStock');
+  if(!prods.length){el.innerHTML='<div class="vacio">No hay productos.</div>';return;}
+  const fmtS=p=>{const s=parseFloat(p.stock||0),m=parseFloat(p.min||0);
+    const cls=s<=0?'stock-cero':s<=m?'stock-bajo':'stock-ok';
+    return '<span class="'+cls+'">'+s+'</span>';};
+  el.innerHTML='<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Mostrando '+prods.length+' productos</div>'+
+    '<div class="tabla-wrap"><table><thead><tr><th>Producto</th><th>Categoría</th><th>Stock</th><th>Mínimo</th><th>Unidad</th><th>Precio Venta</th></tr></thead><tbody>'+
+    prods.map(p=>'<tr><td><strong>'+p.nombre+'</strong></td>'+
+      '<td><span class="cat-tag">'+p.categoria+'</span></td>'+
+      '<td>'+fmtS(p)+'</td>'+
+      '<td style="color:var(--text-muted)">'+p.min+'</td>'+
+      '<td style="color:var(--text-muted)">'+p.unidad+'</td>'+
+      '<td>'+(parseFloat(p.venta||0)>0?fmt(p.venta):'<span style="color:var(--text-muted)">Sin precio</span>')+'</td></tr>').join('')+
+    '</tbody></table></div>';
+}
+
+function renderClientes(){
+  const q=(document.getElementById('cliBusq')?.value||'').toLowerCase();
+  const filtro=document.getElementById('cliFiltro')?.value||'';
+  const ct=S.g('yunco_ctacte',{});
+  let clientes=Object.values(ct);
+  if(q) clientes=clientes.filter(c=>c.nom.toLowerCase().includes(q)||(c.cuit||'').includes(q));
+  if(filtro==='deuda') clientes=clientes.filter(c=>c.saldo>0);
+  if(filtro==='cancelado') clientes=clientes.filter(c=>c.saldo<=0);
+  const el=document.getElementById('tablaClientes');
+  if(!clientes.length){el.innerHTML='<div class="vacio">No hay clientes con cuenta corriente.</div>';return;}
+  el.innerHTML=clientes.sort((a,b)=>b.saldo-a.saldo).map(c=>`
+    <div style="background:var(--bg-card);border:1px solid ${c.saldo>0?'rgba(245,158,11,.3)':'rgba(34,197,94,.2)'};border-radius:12px;padding:14px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px">
+        <div>
+          <div style="font-size:15px;font-weight:700">${c.nom}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${c.cuit||'Sin CUIT'} · ${c.iva||'CF'}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${c.saldo>0?'var(--warning)':'var(--success)'}">$${parseFloat(c.saldo).toLocaleString('es-AR',{minimumFractionDigits:2})}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${c.saldo>0?'saldo pendiente':'cuenta cancelada'}</div>
+        </div>
+      </div>
+      <button class="expand-btn" onclick="toggleHist('h_${c.key}')">📋 Ver historial</button>
+      <div id="h_${c.key}" style="display:none;margin-top:10px;border-top:1px solid var(--border-subtle);padding-top:10px">
+        ${(c.movimientos||[]).slice(0,15).map(m=>`
+          <div class="mov-item">
+            <div><div style="font-weight:600">${m.label||m.tipo}${m.compNro?' — '+m.compNro:''}</div>
+            <div style="color:var(--text-muted);font-size:11px">${new Date(m.fecha).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${m.usuarioNom||m.usuario||''}</div></div>
+            <div style="text-align:right"><div style="font-weight:700;color:${m.tipo==='venta_cc'?'var(--danger)':'var(--success)'}">${m.tipo==='venta_cc'?'+':'-'}${fmt(m.monto)}</div>
+            <div style="color:var(--text-muted);font-size:11px">Saldo: ${fmt(m.saldoResultante)}</div></div>
+          </div>`).join('')}
+        ${!c.movimientos?.length?'<div style="color:var(--text-muted);font-size:13px">Sin movimientos.</div>':''}
+      </div>
+    </div>`).join('');
+}
+
+function toggleHist(id){const el=document.getElementById(id);if(el)el.style.display=el.style.display==='none'?'block':'none';}
+
+function renderCaja(){
+  const hoy=new Date().toISOString().split('T')[0];
+  const cajHoy=S.g('yunco_caja_'+hoy,null);
+  const el=document.getElementById('cajaDashboard');
+
+  // Check for pending cajas
+  const keys=Object.keys(localStorage).filter(k=>{
+    if(!k.startsWith('yunco_caja_')) return false;
+    const f=k.replace('yunco_caja_','');
+    if(f===hoy) return false;
+    try{const c=JSON.parse(localStorage.getItem(k));return c&&c.abierta===true;}catch{return false;}
+  });
+
+  let html='';
+  if(keys.length>0){
+    const fp=keys[0].replace('yunco_caja_','');
+    html+='<div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:14px;margin-bottom:14px;color:var(--warning);font-size:13px;font-weight:600">⚠️ Caja pendiente de cierre del '+fp+'</div>';
+  }
+
+  if(cajHoy){
+    const estado=cajHoy.abierta?'🟢 Abierta':'🔴 Cerrada';
+    const apertura=cajHoy.apertura?new Date(cajHoy.apertura).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'-';
+    const cierre=cajHoy.cierre?new Date(cajHoy.cierre).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'-';
+    const compsHoy=S.g('yunco_comp',[]).filter(c=>c.fecha&&c.fecha.startsWith(hoy)&&c.modo==='registrar');
+    const totalHoy=compsHoy.reduce((a,c)=>a+parseFloat(c.total||0),0);
+    const cobrosCC=(cajHoy.cobros_cte||[]).reduce((a,c)=>a+parseFloat(c.monto||0),0);
+    html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px">
+      <div class="stat-card"><div class="stat-icon">🧾</div><div><div class="stat-num" style="font-size:16px">${estado}</div><div class="stat-label">Estado hoy</div></div></div>
+      <div class="stat-card"><div class="stat-icon">🕐</div><div><div class="stat-num" style="font-size:16px">${apertura}</div><div class="stat-label">Apertura</div></div></div>
+      <div class="stat-card"><div class="stat-icon">💵</div><div><div class="stat-num" style="font-size:18px">${fmt(totalHoy)}</div><div class="stat-label">Ventas del día</div></div></div>
+      <div class="stat-card"><div class="stat-icon">📒</div><div><div class="stat-num" style="font-size:18px">${fmt(cobrosCC)}</div><div class="stat-label">Cobros CC</div></div></div>
+    </div>`;
+    if(cajHoy.gastos&&cajHoy.gastos.length){
+      html+='<h4 style="color:var(--text-secondary);margin-bottom:8px;font-size:13px">Gastos del día</h4>'+
+        cajHoy.gastos.map(g=>'<div class="mov-item"><div>'+g.desc+'<span style="color:var(--text-muted);margin-left:8px;font-size:11px">'+g.cat+'</span></div><div style="color:var(--danger);font-weight:700">-'+fmt(g.monto)+'</div></div>').join('');
+    }
+  } else {
+    html+='<div class="vacio">No hay caja abierta para el día de hoy.</div>';
+  }
+  el.innerHTML=html;
+
+  // Historial cierres
+  const hist=S.g('yunco_hist_cajas',[]);
+  const elH=document.getElementById('histCierres');
+  if(!hist.length){elH.innerHTML='<div class="vacio">Sin historial de cierres.</div>';return;}
+  elH.innerHTML='<div class="tabla-wrap"><table><thead><tr><th>Fecha</th><th>Apertura</th><th>Cierre</th><th>Ventas</th><th>Cobros CC</th><th>Gastos</th></tr></thead><tbody>'+
+    hist.slice(0,30).map(h=>'<tr><td><strong>'+h.fecha+'</strong></td>'+
+      '<td style="color:var(--text-secondary)">'+( h.apertura?new Date(h.apertura).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}):'-')+'</td>'+
+      '<td style="color:var(--text-secondary)">'+(h.cierre?new Date(h.cierre).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}):'-')+'</td>'+
+      '<td style="color:var(--success);font-weight:700">'+fmt(h.totalVentas||0)+'</td>'+
+      '<td style="color:var(--accent-light)">'+fmt(h.totalCobrosCC||0)+'</td>'+
+      '<td style="color:var(--danger)">'+fmt(h.totalGastos||0)+'</td></tr>').join('')+
+    '</tbody></table></div>';
+}
+
+function renderReportes(){
+  const periodo=document.getElementById('repPeriodo')?.value||'mes';
+  const now=new Date();
+  let desde;
+  if(periodo==='hoy') desde=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  else if(periodo==='semana'){const d=new Date(now);d.setDate(d.getDate()-7);desde=d;}
+  else if(periodo==='mes') desde=new Date(now.getFullYear(),now.getMonth(),1);
+  else desde=new Date(2000,0,1);
+
+  const comps=S.g('yunco_comp',[]).filter(c=>c.modo==='registrar'&&c.fecha&&new Date(c.fecha)>=desde);
+  const vends=S.g('yunco_vend',{});
+  const getNom=id=>vends[id]?.nombre||'Vendedor '+id;
+
+  // By vendedor
+  const porVend={};
+  comps.forEach(c=>{
+    const id=c.vend||'?';
+    if(!porVend[id])porVend[id]={nombre:getNom(id),count:0,total:0};
+    porVend[id].count++;
+    porVend[id].total+=parseFloat(c.total||0);
+  });
+  const vendRank=Object.values(porVend).sort((a,b)=>b.total-a.total);
+
+  // By tipo
+  const porTipo={};
+  comps.forEach(c=>{
+    const t=c.tipo||'?';
+    if(!porTipo[t])porTipo[t]={tipo:t,count:0,total:0};
+    porTipo[t].count++;
+    porTipo[t].total+=parseFloat(c.total||0);
+  });
+
+  const total=comps.reduce((a,c)=>a+parseFloat(c.total||0),0);
+  const el=document.getElementById('tablaReportes');
+  el.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div>
+        <h4 style="color:var(--text-secondary);margin-bottom:10px;font-size:13px;font-weight:800">RANKING VENDEDORES</h4>
+        ${vendRank.map((v,i)=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-subtle);font-size:13px">
+          <span>${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)} ${v.nombre}</span>
+          <span style="color:var(--success);font-weight:700">${fmt(v.total)}</span>
+        </div>`).join('')||'<div class="vacio">Sin datos.</div>'}
+      </div>
+      <div>
+        <h4 style="color:var(--text-secondary);margin-bottom:10px;font-size:13px;font-weight:800">POR TIPO DE COMPROBANTE</h4>
+        ${Object.values(porTipo).map(t=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-subtle);font-size:13px">
+          <span>${t.tipo} <span style="color:var(--text-muted)">(${t.count})</span></span>
+          <span style="color:var(--accent-light);font-weight:700">${fmt(t.total)}</span>
+        </div>`).join('')||'<div class="vacio">Sin datos.</div>'}
+        <div style="display:flex;justify-content:space-between;padding:10px 0;font-size:14px;font-weight:800;color:var(--text-primary);border-top:2px solid var(--border-mid);margin-top:4px">
+          <span>TOTAL</span><span style="color:var(--success)">${fmt(total)}</span>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── EXPORTAR EXCEL ────────────────────────────────────────────
+function exportarExcel(seccion){
+  const wb = XLSX.utils.book_new();
+  const fecha = new Date().toLocaleDateString('es-AR').replace(/\//g,'-');
+
+  if(seccion === 'facturacion'){
+    const comps = S.g('yunco_comp',[]);
+    const vends = S.g('yunco_vend',{});
+    const rows = comps.map(c=>({
+      Numero: c.nro, Tipo: c.tipo,
+      Fecha: new Date(c.fecha).toLocaleDateString('es-AR'),
+      Cliente: c.cli?.nom||'CF',
+      CUIT: c.cli?.cuit||'',
+      Vendedor: vends[c.vend]?.nombre||c.vend,
+      Pago: c.pago, Total: parseFloat(c.total||0),
+      Estado: c.modo==='registrar'?'Registrado':'Grabado'
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Facturación');
+    XLSX.writeFile(wb, `YUNCO_Facturacion_${fecha}.xlsx`);
+  }
+
+  else if(seccion === 'stock'){
+    const prods = S.g('yunco_inv',[]);
+    const rows = prods.map(p=>({
+      Producto: p.nombre, Categoria: p.categoria,
+      Stock: parseFloat(p.stock||0), Minimo: parseFloat(p.min||0),
+      Unidad: p.unidad, PrecioVenta: parseFloat(p.venta||0)
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Stock');
+    XLSX.writeFile(wb, `YUNCO_Stock_${fecha}.xlsx`);
+  }
+
+  else if(seccion === 'clientes'){
+    const ct = S.g('yunco_ctacte',{});
+    const rows = Object.values(ct).map(c=>({
+      Cliente: c.nom, CUIT: c.cuit||'', IVA: c.iva||'CF',
+      Saldo: parseFloat(c.saldo||0),
+      Movimientos: (c.movimientos||[]).length
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Clientes CC');
+    XLSX.writeFile(wb, `YUNCO_ClientesCC_${fecha}.xlsx`);
+  }
+
+  else if(seccion === 'caja'){
+    const hist = S.g('yunco_hist_cajas',[]);
+    const rows = hist.map(h=>({
+      Fecha: h.fecha,
+      Apertura: h.apertura?new Date(h.apertura).toLocaleTimeString('es-AR'):'-',
+      Cierre: h.cierre?new Date(h.cierre).toLocaleTimeString('es-AR'):'-',
+      TotalVentas: parseFloat(h.totalVentas||0),
+      CobrosCC: parseFloat(h.totalCobrosCC||0),
+      Gastos: parseFloat(h.totalGastos||0)
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Historial Cajas');
+    XLSX.writeFile(wb, `YUNCO_Cajas_${fecha}.xlsx`);
+  }
+
+  else if(seccion === 'reportes'){
+    const periodo = document.getElementById('repPeriodo')?.value||'mes';
+    const now = new Date();
+    let desde;
+    if(periodo==='hoy') desde=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+    else if(periodo==='semana'){const d=new Date(now);d.setDate(d.getDate()-7);desde=d;}
+    else if(periodo==='mes') desde=new Date(now.getFullYear(),now.getMonth(),1);
+    else desde=new Date(2000,0,1);
+    const comps = S.g('yunco_comp',[]).filter(c=>c.modo==='registrar'&&c.fecha&&new Date(c.fecha)>=desde);
+    const vends = S.g('yunco_vend',{});
+    const rows = comps.map(c=>({
+      Fecha: new Date(c.fecha).toLocaleDateString('es-AR'),
+      Numero: c.nro, Tipo: c.tipo,
+      Cliente: c.cli?.nom||'CF',
+      Vendedor: vends[c.vend]?.nombre||c.vend,
+      Total: parseFloat(c.total||0)
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Reporte');
+    XLSX.writeFile(wb, `YUNCO_Reporte_${fecha}.xlsx`);
+  }
+}
+
+// ── IMPRIMIR SECCIÓN ──────────────────────────────────────────
+function imprimirSeccion(seccion){
+  const panelId = 'panel-' + seccion;
+  const panel = document.getElementById(panelId);
+  if(!panel) return;
+
+  const titulo = {
+    facturacion: 'Historial de Facturación',
+    stock: 'Listado de Stock',
+    clientes: 'Clientes y Cuenta Corriente',
+    caja: 'Estado de Caja',
+    reportes: 'Reportes del Sistema'
+  }[seccion] || seccion;
+
+  const fecha = new Date().toLocaleString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+
+  const win = window.open('','_blank','width=900,height=700');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>${titulo} — YUNCO</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif;}
+  body{padding:16px;font-size:12px;color:#111;}
+  .header{border-bottom:2px solid #000;margin-bottom:14px;padding-bottom:10px;display:flex;justify-content:space-between;align-items:flex-end;}
+  .header h1{font-size:18px;font-weight:900;}
+  .header p{font-size:11px;color:#555;}
+  .badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;border:1px solid #ccc;margin-right:4px;}
+  table{width:100%;border-collapse:collapse;margin-top:8px;}
+  th{background:#1a3a5c;color:#fff;padding:6px 8px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;}
+  td{padding:5px 8px;border-bottom:1px solid #eee;font-size:11px;}
+  tr:nth-child(even) td{background:#f5f5f5;}
+  .footer{margin-top:16px;font-size:10px;color:#777;text-align:center;border-top:1px solid #ccc;padding-top:8px;}
+  @media print{@page{size:A4;margin:10mm;}}
+</style>
+</head><body>
+<div class="header">
+  <div><h1>YUNCO — FEMO SRL</h1><p>${titulo} · Consulta de solo lectura</p></div>
+  <div style="text-align:right"><p>Impreso: ${fecha}</p><p>Admin: ${vNombre}</p></div>
+</div>
+${panel.innerHTML}
+<div class="footer">YUNCO de FEMO SRL · CUIT 30-718081463-3 · Documento informativo — No es comprobante fiscal</div>
+</body></html>`);
+  win.document.close();
+  setTimeout(()=>{win.print();}, 500);
+}
+
+</script>
+</body>
+</html>
