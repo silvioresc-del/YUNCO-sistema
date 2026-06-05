@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auditoría — YUNCO</title>
+<script src="yunco-permisos.js"></script>
+<script>
+(function(){
+  const s=sessionStorage.getItem('yunco_session');
+  if(!s){window.location.href='index.html';return;}
+  try{
+    const ses=JSON.parse(s);
+    const permitidos=['gerente','dueno'];
+    if(!permitidos.includes(ses.rol)){window.location.href='index.html';return;}
+    window.YUNCO_SESSION=ses;
+  }catch(e){window.location.href='index.html';}
+})();
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg-base:#080f1a;--bg-card:#111f33;--bg-input:#0a1525;--border-subtle:rgba(255,255,255,.06);--border-mid:rgba(74,159,212,.2);--text-primary:#eef4fb;--text-secondary:#8baec8;--text-muted:#4d6a82;--accent:#2d7fba;--accent-light:#4a9fd4;--success:#22c55e;--danger:#ef4444;--warning:#f59e0b;--radius-md:10px;--radius-lg:14px;--shadow-card:0 2px 16px rgba(0,0,0,.35);}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Barlow',sans-serif;background:var(--bg-base);min-height:100vh;color:var(--text-primary);font-size:14px;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse 70% 50% at 10% 0%,rgba(31,78,120,.4) 0%,transparent 60%);}
+.topbar{position:sticky;top:0;z-index:100;background:rgba(8,15,26,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;padding:12px 20px;}
+.back-btn{display:flex;align-items:center;gap:5px;background:transparent;border:1px solid var(--border-subtle);color:var(--text-muted);text-decoration:none;padding:7px 13px;border-radius:var(--radius-md);font-size:12px;font-weight:700;}
+.back-btn:hover{color:var(--text-primary);border-color:var(--border-mid);}
+.topbar-title{font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:2px;}
+.topbar-badge{font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:2px;}
+.user-badge{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);padding:6px 13px;border-radius:var(--radius-md);font-size:12px;font-weight:700;color:var(--success);}
+.logout-btn{background:transparent;border:1px solid var(--border-subtle);color:var(--text-muted);padding:6px 12px;border-radius:var(--radius-md);font-size:12px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;}
+.logout-btn:hover{color:var(--danger);}
+.contenido{max-width:1200px;margin:0 auto;padding:20px;}
+.tabs{display:flex;gap:6px;margin-bottom:20px;}
+.tab{padding:9px 16px;border-radius:var(--radius-md);font-size:12px;font-weight:700;border:1px solid var(--border-subtle);background:transparent;color:var(--text-muted);cursor:pointer;transition:.2s;}
+.tab:hover{color:var(--text-secondary);border-color:var(--border-mid);}
+.tab.activo{background:var(--bg-card);border-color:var(--border-mid);color:var(--accent-light);font-weight:800;}
+.panel{display:none;animation:fadeUp .3s ease both;}
+.panel.activo{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
+.toolbar input,.toolbar select{background:var(--bg-input);border:1px solid var(--border-subtle);color:var(--text-primary);padding:9px 13px;border-radius:var(--radius-md);font-family:'Barlow',sans-serif;font-size:13px;outline:none;}
+.toolbar input:focus,.toolbar select:focus{border-color:var(--border-mid);}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:var(--radius-md);font-family:'Barlow',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:opacity .2s;}
+.btn:hover{opacity:.88;}
+.btn-primario{background:linear-gradient(135deg,var(--accent),var(--accent-light));color:#fff;}
+.btn-verde{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--success);}
+.btn-outline{background:transparent;border:1px solid var(--border-subtle);color:var(--text-secondary);}
+.btn-rojo{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--danger);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.tabla-wrap{overflow-x:auto;border-radius:var(--radius-md);border:1px solid var(--border-subtle);}
+table{width:100%;border-collapse:collapse;}
+thead{background:rgba(13,31,51,.9);}
+th{padding:10px 14px;text-align:left;font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);white-space:nowrap;}
+td{padding:9px 14px;font-size:12px;color:var(--text-primary);border-bottom:1px solid var(--border-subtle);vertical-align:middle;}
+tr:nth-child(even) td{background:rgba(255,255,255,.02);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(74,159,212,.05)!important;}
+.badge{display:inline-block;font-size:10px;font-weight:800;padding:2px 8px;border-radius:4px;}
+.badge-venta{background:rgba(34,197,94,.15);color:var(--success);border:1px solid rgba(34,197,94,.25);}
+.badge-cobro{background:rgba(45,127,186,.15);color:var(--accent-light);border:1px solid rgba(74,159,212,.25);}
+.badge-caja{background:rgba(245,158,11,.15);color:var(--warning);border:1px solid rgba(245,158,11,.25);}
+.badge-auth{background:rgba(139,92,246,.15);color:#a78bfa;border:1px solid rgba(139,92,246,.25);}
+.badge-anulacion{background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.25);}
+.badge-sistema{background:rgba(100,180,255,.1);color:#7ab8e8;border:1px solid rgba(100,180,255,.2);}
+.stat-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;}
+.stat-item{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:12px 14px;}
+.stat-num{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--text-primary);}
+.stat-lbl{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.vacio{text-align:center;padding:40px;color:var(--text-muted);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:12px">
+    <a href="index.html" class="back-btn">← Inicio</a>
+    <div><div class="topbar-badge">MÓDULO</div><div class="topbar-title">📋 AUDITORÍA</div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="user-badge" id="userBadge">👤 —</div>
+    <button class="logout-btn" onclick="logout()">Salir</button>
+  </div>
+</div>
+
+<div class="contenido">
+  <div class="tabs">
+    <div class="tab activo" onclick="goTab('operativa')">📊 Auditoría Operativa</div>
+    <div class="tab" onclick="goTab('sistema')">🖥 Auditoría del Sistema</div>
+  </div>
+
+  <!-- AUDITORÍA OPERATIVA -->
+  <div class="panel activo" id="panel-operativa">
+    <div class="stat-strip" id="statsOp"></div>
+    <div style="background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:18px 20px;">
+      <div class="toolbar">
+        <input type="text" id="opBusq" placeholder="Buscar..." oninput="renderOp()" style="flex:1;min-width:180px">
+        <select id="opAccion" onchange="renderOp()">
+          <option value="">Todas las acciones</option>
+          <option value="VENTA_REGISTRADA">Ventas registradas</option>
+          <option value="VENTA_GRABADA">Ventas grabadas</option>
+          <option value="COBRO_CC">Cobros CC</option>
+          <option value="AUTORIZACION">Autorizaciones</option>
+          <option value="CAJA">Caja</option>
+          <option value="ANULACION">Anulaciones</option>
+        </select>
+        <select id="opUsuario" onchange="renderOp()">
+          <option value="">Todos los usuarios</option>
+        </select>
+        <input type="date" id="opDesde" onchange="renderOp()">
+        <input type="date" id="opHasta" onchange="renderOp()">
+        <button class="btn btn-verde btn-sm" onclick="exportarOp()">📥 Excel</button>
+        <button class="btn btn-outline btn-sm" onclick="imprimirOp()">🖨 Imprimir</button>
+        <button class="btn btn-rojo btn-sm" id="btnLimpiarOp" onclick="limpiarAuditoria('op')">🗑 Limpiar</button>
+      </div>
+      <div id="tablaOp"></div>
+    </div>
+  </div>
+
+  <!-- AUDITORÍA SISTEMA -->
+  <div class="panel" id="panel-sistema">
+    <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:var(--radius-md);padding:12px 16px;margin-bottom:14px;font-size:12px;color:var(--warning)">
+      ⚠️ Esta auditoría conserva los últimos 2000 registros. Los más antiguos se eliminan automáticamente.
+    </div>
+    <div style="background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:18px 20px;">
+      <div class="toolbar">
+        <input type="text" id="sysBusq" placeholder="Buscar..." oninput="renderSys()" style="flex:1;min-width:180px">
+        <select id="sysModulo" onchange="renderSys()">
+          <option value="">Todos los módulos</option>
+          <option value="ventas">Ventas</option>
+          <option value="inventario">Inventario</option>
+          <option value="caja">Caja</option>
+          <option value="reportes">Reportes</option>
+          <option value="admin">Admin</option>
+          <option value="dashboard">Dashboard</option>
+          <option value="index">Login</option>
+        </select>
+        <select id="sysUsuario" onchange="renderSys()">
+          <option value="">Todos los usuarios</option>
+        </select>
+        <input type="date" id="sysDesde" onchange="renderSys()">
+        <input type="date" id="sysHasta" onchange="renderSys()">
+        <button class="btn btn-verde btn-sm" onclick="exportarSys()">📥 Excel</button>
+        <button class="btn btn-outline btn-sm" onclick="imprimirSys()">🖨 Imprimir</button>
+        <button class="btn btn-rojo btn-sm" onclick="limpiarAuditoria('sys')">🗑 Limpiar</button>
+      </div>
+      <div id="tablaSys"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const S={
+  g:(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}},
+  s:(k,v)=>{localStorage.setItem(k,JSON.stringify(v));}
+};
+const fmtFecha = s => s ? new Date(s).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+
+let vAct=null, vRol=null, vNombre=null;
+
+(function(){
+  const raw=sessionStorage.getItem('yunco_session');
+  if(!raw){window.location.href='index.html';return;}
+  try{
+    const ses=JSON.parse(raw);
+    vAct=ses.usuario; vRol=ses.rol; vNombre=ses.nombre;
+    document.getElementById('userBadge').textContent='👤 '+vNombre;
+    initAuditoria();
+  }catch(e){window.location.href='index.html';}
+})();
+
+function logout(){sessionStorage.removeItem('yunco_session');window.location.href='index.html';}
+
+function goTab(t){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('activo'));
+  document.querySelectorAll('.tab').forEach(tb=>tb.classList.remove('activo'));
+  document.getElementById('panel-'+t).classList.add('activo');
+  document.querySelectorAll('.tab').forEach(tb=>{
+    if(tb.getAttribute('onclick')==="goTab('"+t+"')") tb.classList.add('activo');
+  });
+  if(t==='operativa') renderOp();
+  if(t==='sistema') renderSys();
+}
+
+function initAuditoria(){
+  // Fill user filters
+  const opData = S.g('yunco_audit_op',[]);
+  const sysData = S.g('yunco_audit_sys',[]);
+  const usersOp=[...new Set(opData.map(r=>r.usuario).filter(Boolean))];
+  const usersSys=[...new Set(sysData.map(r=>r.usuario).filter(Boolean))];
+  const vends = S.g('yunco_vend',{});
+  const getNom = id => vends[id]?.nombre || (id==='gerente'?'Gerente':id==='dueno'?'Dueño':id==='admin'?'Admin':'Vendedor '+id);
+  const selOp=document.getElementById('opUsuario');
+  usersOp.forEach(u=>{const o=document.createElement('option');o.value=u;o.textContent=getNom(u);selOp.appendChild(o);});
+  const selSys=document.getElementById('sysUsuario');
+  usersSys.forEach(u=>{const o=document.createElement('option');o.value=u;o.textContent=getNom(u);selSys.appendChild(o);});
+
+  // Stats operativa
+  const total=opData.length;
+  const ventas=opData.filter(r=>r.accion.startsWith('VENTA')).length;
+  const cobros=opData.filter(r=>r.accion==='COBRO_CC').length;
+  const auths=opData.filter(r=>r.accion==='AUTORIZACION').length;
+  document.getElementById('statsOp').innerHTML=
+    '<div class="stat-item"><div class="stat-num">'+total+'</div><div class="stat-lbl">Total registros</div></div>'+
+    '<div class="stat-item"><div class="stat-num">'+ventas+'</div><div class="stat-lbl">Operaciones de venta</div></div>'+
+    '<div class="stat-item"><div class="stat-num">'+cobros+'</div><div class="stat-lbl">Cobros CC</div></div>'+
+    '<div class="stat-item"><div class="stat-num">'+auths+'</div><div class="stat-lbl">Autorizaciones</div></div>';
+
+  renderOp();
+}
+
+function filtrarDatos(data, busqId, accionId, usuarioId, desdeId, hastaId){
+  const q=(document.getElementById(busqId)?.value||'').toLowerCase();
+  const accion=document.getElementById(accionId)?.value||'';
+  const usuario=document.getElementById(usuarioId)?.value||'';
+  const desde=document.getElementById(desdeId)?.value;
+  const hasta=document.getElementById(hastaId)?.value;
+  return data.filter(r=>{
+    if(q && !JSON.stringify(r).toLowerCase().includes(q)) return false;
+    if(accion && !r.accion.includes(accion)) return false;
+    if(usuario && r.usuario!==usuario) return false;
+    if(desde && r.fecha < desde) return false;
+    if(hasta && r.fecha > hasta+'T23:59:59') return false;
+    return true;
+  });
+}
+
+function getBadgeClass(accion){
+  if(accion.startsWith('VENTA')) return 'badge-venta';
+  if(accion==='COBRO_CC') return 'badge-cobro';
+  if(accion.includes('CAJA')) return 'badge-caja';
+  if(accion==='AUTORIZACION') return 'badge-auth';
+  if(accion.includes('ANULACION')) return 'badge-anulacion';
+  return 'badge-sistema';
+}
+
+function renderOp(){
+  const data = filtrarDatos(S.g('yunco_audit_op',[]),'opBusq','opAccion','opUsuario','opDesde','opHasta');
+  const vends=S.g('yunco_vend',{});
+  const getNom=id=>vends[id]?.nombre||(id==='gerente'?'Gerente':id==='dueno'?'Dueño':'Vendedor '+id);
+  const el=document.getElementById('tablaOp');
+  if(!data.length){el.innerHTML='<div class="vacio">No hay registros.</div>';return;}
+  el.innerHTML='<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">'+data.length+' registros</div>'+
+    '<div class="tabla-wrap"><table><thead><tr><th>Fecha</th><th>Acción</th><th>Usuario</th><th>Detalle</th><th>Autorizante</th></tr></thead><tbody>'+
+    data.slice(0,500).map(r=>'<tr>'+
+      '<td style="white-space:nowrap;color:var(--text-secondary)">'+fmtFecha(r.fecha)+'</td>'+
+      '<td><span class="badge '+getBadgeClass(r.accion)+'">'+r.accion+'</span></td>'+
+      '<td>'+getNom(r.usuario)+'</td>'+
+      '<td style="color:var(--text-secondary)">'+r.detalle+'</td>'+
+      '<td style="color:var(--text-muted)">'+(r.autorizanteNom||'—')+'</td>'+
+      '</tr>').join('')+'</tbody></table></div>'+
+    (data.length>500?'<div style="text-align:center;padding:10px;color:var(--text-muted);font-size:11px">Mostrando 500 de '+data.length+'</div>':'');
+}
+
+function renderSys(){
+  const data = filtrarDatos(S.g('yunco_audit_sys',[]),'sysBusq','sysModulo','sysUsuario','sysDesde','sysHasta');
+  const vends=S.g('yunco_vend',{});
+  const getNom=id=>vends[id]?.nombre||(id==='gerente'?'Gerente':id==='dueno'?'Dueño':'Vendedor '+id);
+  const el=document.getElementById('tablaSys');
+  if(!data.length){el.innerHTML='<div class="vacio">No hay registros del sistema.</div>';return;}
+  el.innerHTML='<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">'+data.length+' registros (máx. 2000)</div>'+
+    '<div class="tabla-wrap"><table><thead><tr><th>Fecha</th><th>Módulo</th><th>Acción</th><th>Usuario</th><th>Rol</th><th>Detalle</th></tr></thead><tbody>'+
+    data.slice(0,500).map(r=>'<tr>'+
+      '<td style="white-space:nowrap;color:var(--text-secondary)">'+fmtFecha(r.fecha)+'</td>'+
+      '<td><span class="badge badge-sistema">'+r.modulo+'</span></td>'+
+      '<td style="color:var(--text-primary);font-weight:600">'+r.accion+'</td>'+
+      '<td>'+getNom(r.usuario)+'</td>'+
+      '<td style="color:var(--text-muted)">'+r.rol+'</td>'+
+      '<td style="color:var(--text-secondary)">'+r.detalle+'</td>'+
+      '</tr>').join('')+'</tbody></table></div>';
+}
+
+function exportarOp(){
+  const data=filtrarDatos(S.g('yunco_audit_op',[]),'opBusq','opAccion','opUsuario','opDesde','opHasta');
+  const rows=data.map(r=>({Fecha:fmtFecha(r.fecha),Accion:r.accion,Usuario:r.usuarioNom||r.usuario,Rol:r.rol,Detalle:r.detalle,Autorizante:r.autorizanteNom||''}));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'Auditoria Operativa');
+  XLSX.writeFile(wb,'YUNCO_AuditoriaOperativa_'+new Date().toLocaleDateString('es-AR').replace(/\//g,'-')+'.xlsx');
+}
+
+function exportarSys(){
+  const data=filtrarDatos(S.g('yunco_audit_sys',[]),'sysBusq','sysModulo','sysUsuario','sysDesde','sysHasta');
+  const rows=data.map(r=>({Fecha:fmtFecha(r.fecha),Modulo:r.modulo,Accion:r.accion,Usuario:r.usuarioNom||r.usuario,Rol:r.rol,Detalle:r.detalle}));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'Auditoria Sistema');
+  XLSX.writeFile(wb,'YUNCO_AuditoriaSistema_'+new Date().toLocaleDateString('es-AR').replace(/\//g,'-')+'.xlsx');
+}
+
+function imprimirOp(){
+  const data=filtrarDatos(S.g('yunco_audit_op',[]),'opBusq','opAccion','opUsuario','opDesde','opHasta');
+  imprimirTabla(data,['Fecha','Acción','Usuario','Detalle','Autorizante'],'Auditoría Operativa');
+}
+
+function imprimirSys(){
+  const data=filtrarDatos(S.g('yunco_audit_sys',[]),'sysBusq','sysModulo','sysUsuario','sysDesde','sysHasta');
+  imprimirTabla(data,['Fecha','Módulo','Acción','Usuario','Detalle'],'Auditoría del Sistema');
+}
+
+function imprimirTabla(data, cols, titulo){
+  const w=window.open('','_blank');
+  const fecha=new Date().toLocaleString('es-AR');
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+titulo+'</title>');
+  w.document.write('<style>*{font-family:Arial,sans-serif;font-size:11px;}h1{font-size:16px;}p{color:#555;margin-bottom:10px;}table{width:100%;border-collapse:collapse;}th{background:#1a3a5c;color:#fff;padding:5px 8px;text-align:left;}td{padding:4px 8px;border-bottom:1px solid #eee;}tr:nth-child(even) td{background:#f5f5f5;}@media print{@page{size:A4 landscape;margin:8mm;}}</style>');
+  w.document.write('</head><body><h1>YUNCO — '+titulo+'</h1><p>'+fecha+' · '+data.length+' registros</p>');
+  w.document.write('<table><thead><tr>'+cols.map(c=>'<th>'+c+'</th>').join('')+'</tr></thead><tbody>');
+  data.slice(0,1000).forEach(r=>{
+    const vals=titulo.includes('Operativa')
+      ? [fmtFecha(r.fecha),r.accion,r.usuarioNom||r.usuario,r.detalle,r.autorizanteNom||'—']
+      : [fmtFecha(r.fecha),r.modulo,r.accion,r.usuarioNom||r.usuario,r.detalle];
+    w.document.write('<tr>'+vals.map(v=>'<td>'+( v||'')+'</td>').join('')+'</tr>');
+  });
+  w.document.write('</tbody></table></body></html>');
+  w.document.close();
+  setTimeout(()=>w.print(),500);
+}
+
+function limpiarAuditoria(tipo){
+  const key = tipo==='op' ? 'yunco_audit_op' : 'yunco_audit_sys';
+  const nombre = tipo==='op' ? 'Auditoría Operativa' : 'Auditoría del Sistema';
+  if(!confirm('¿Estás seguro que querés limpiar la '+nombre+'? Esta acción es irreversible.')) return;
+  localStorage.removeItem(key);
+  tipo==='op' ? renderOp() : renderSys();
+  alert(nombre+' limpiada.');
+}
+</script>
+</body>
+</html>
