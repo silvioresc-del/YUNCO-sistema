@@ -779,6 +779,35 @@ tr:hover td { background: rgba(74,159,212,.05) !important; }
   </div>
 </div>
 
+
+<!-- AUTORIZACIÓN OPERATIVA -->
+<div class="auth-overlay" id="authOpOverlay" style="z-index:600">
+  <div class="auth-box" style="max-width:420px;border-color:rgba(245,158,11,.5)">
+    <div style="font-size:44px;margin-bottom:12px">🔐</div>
+    <h3 style="color:var(--warning,#f59e0b);font-size:20px;margin-bottom:8px">Autorización Requerida</h3>
+    <p style="color:var(--text-secondary,#8baec8);font-size:13px;margin-bottom:6px">
+      La operación <strong id="authOp_tipo" style="color:var(--text-primary)">—</strong> requiere autorización del Gerente General o Dueño.
+    </p>
+    <p style="color:var(--text-muted,#4d6a82);font-size:12px;margin-bottom:20px">
+      Ingresá las credenciales del autorizante. La autorización aplica únicamente a esta operación.
+    </p>
+    <select id="authOp_usuario"
+      style="width:100%;background:var(--bg-input,#0a1525);border:1px solid var(--border-subtle);color:var(--text-primary);padding:11px 14px;border-radius:8px;font-family:'Barlow',sans-serif;font-size:14px;outline:none;margin-bottom:10px">
+      <option value="">— Seleccioná el autorizante —</option>
+      <option value="gerente">Gerente General</option>
+      <option value="dueno">Dueño</option>
+    </select>
+    <input type="password" id="authOp_clave" placeholder="Contraseña del autorizante"
+      onkeydown="if(event.key==='Enter')confirmarAuthOp()"
+      style="width:100%;background:var(--bg-input,#0a1525);border:1px solid var(--border-subtle);color:var(--text-primary);padding:11px 14px;border-radius:8px;font-family:'Barlow',sans-serif;font-size:14px;outline:none;margin-bottom:10px;letter-spacing:3px">
+    <div id="authOp_err" style="display:none;color:var(--danger,#ef4444);font-size:12px;margin-bottom:10px;background:rgba(239,68,68,.1);padding:8px 12px;border-radius:6px"></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline" style="flex:1" onclick="cancelarAuthOp()">Cancelar</button>
+      <button class="btn btn-primario" style="flex:1" onclick="confirmarAuthOp()">✅ Autorizar</button>
+    </div>
+  </div>
+</div>
+
 <div class="topbar">
   <div class="topbar-left">
     <a href="index.html" class="back-btn">← Inicio</a>
@@ -1052,11 +1081,20 @@ tr:hover td { background: rgba(74,159,212,.05) !important; }
 
   <!-- CLIENTES -->
   <div class="panel" id="panel-clientes">
-    <div class="toolbar">
-      <input type="text" id="busqCli" placeholder="🔍 Buscar cliente..." oninput="renderClis()">
-      <button class="btn btn-primario" onclick="openModalCli()">+ Nuevo cliente</button>
+    <div class="form-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+        <input type="text" id="busqCli" placeholder="🔍 Buscar por nombre o CUIT..." oninput="renderClis()"
+          style="flex:1;min-width:200px;background:var(--bg-input);border:1px solid var(--border-subtle);color:var(--text-primary);padding:10px 14px;border-radius:8px;font-family:'Barlow',sans-serif;font-size:14px;outline:none">
+      </div>
+      <div id="listaClis">
+        <div class="tabla-wrap">
+          <table>
+            <thead><tr><th>Nombre / Razón Social</th><th>CUIT / DNI</th><th>Condición IVA</th><th>Domicilio</th><th>Saldo CC</th></tr></thead>
+            <tbody><tr><td colspan="5" class="vacio">Cargando clientes...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
     </div>
-    <div id="listaClis"></div>
   </div>
 
 
@@ -1150,12 +1188,19 @@ tr:hover td { background: rgba(74,159,212,.05) !important; }
 
   <!-- CONSULTA STOCK -->
   <div class="panel" id="panel-consulta">
-    <div style="max-width:700px;margin-bottom:16px">
-      <input type="text" id="consultaBusq" placeholder="🔍 Buscá cualquier producto del inventario..." 
-        oninput="renderConsulta()"
-        style="width:100%;background:var(--card);border:1px solid var(--borde2);color:var(--texto);padding:14px 18px;border-radius:10px;font-family:'Barlow',sans-serif;font-size:15px;outline:none">
+    <div class="form-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+        <input type="text" id="consultaBusq" placeholder="🔍 Buscar producto o categoría..." 
+          oninput="renderConsulta()"
+          style="flex:1;min-width:200px;background:var(--bg-input);border:1px solid var(--border-subtle);color:var(--text-primary);padding:10px 14px;border-radius:8px;font-family:'Barlow',sans-serif;font-size:14px;outline:none">
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-verde btn-sm" onclick="exportarStockExcel()">📥 Excel</button>
+          <button class="btn btn-outline btn-sm" onclick="imprimirStock()">🖨 Imprimir</button>
+        </div>
+      </div>
+      <div id="consultaTabla"></div>
     </div>
-    <div id="consultaStockRes"></div>
+    
   </div>
 
 <!-- MODAL CLIENTE -->
@@ -1255,6 +1300,8 @@ let vAct = null, vRol = null, vNombre = null;
       // Ocultar tab config para vendedor
       const tabConfig = document.getElementById('tabConfig');
       if(tabConfig) tabConfig.style.display = (vRol==='vendedor') ? 'none' : '';
+      // Auditoría sistema — acceso al módulo
+      auditSys('ventas', 'MODULO_ABIERTO', 'Ingreso a Ventas y Facturación');
       actualizarOpcionesComprobante();
       const perm = PERMISOS[vRol] || PERMISOS['vendedor'];
       const allTabs = ['nueva','presupuesto','comprobantes','clientes','consulta','ctacte','config'];
@@ -1268,6 +1315,7 @@ let vAct = null, vRol = null, vNombre = null;
 })();
 
 function logout(){
+  auditSys('ventas', 'LOGOUT', 'Cierre de sesión desde ventas');
   sessionStorage.removeItem('yunco_session');
   window.location.href='index.html';
 }
@@ -1302,12 +1350,18 @@ function onTipoChange(){
   updNro();
   const t = document.getElementById('tipoComp').value;
   document.getElementById('dolarWrap').style.display = t==='A' ? 'block' : 'none';
-  // Mostrar panel NC/ND solo cuando corresponde
   const isNcNd = t==='NC' || t==='ND';
   const panel = document.getElementById('ncndPanel');
   if(panel) panel.style.display = isNcNd ? 'block' : 'none';
-  // Limpiar referencia si cambia tipo
   if(!isNcNd) limpiarNcNd();
+
+  // Vendedor necesita autorización para NC y ND
+  if(vRol === 'vendedor' && (t === 'NC' || t === 'ND')){
+    requiereAutorizacion(t, function(auth){
+      // Autorizado — continuar con tipo seleccionado
+      auditSys('ventas', 'TIPO_COMPROBANTE', t + ' autorizado por ' + auth.nomAut);
+    });
+  }
   recalc();
 }
 
@@ -1424,7 +1478,7 @@ function actualizarOpcionesComprobante(){
   // Limpiar y reconstruir
   const current = sel.value;
   sel.innerHTML = '';
-  ['B','A','NC','ND'].forEach(tipo => {
+  ['B','A','NC','ND','PRES'].forEach(tipo => {
     if(perm.comprobantes.includes(tipo)){
       const opt = document.createElement('option');
       opt.value = tipo;
@@ -1615,6 +1669,9 @@ function imprimirDesdePreview(){
 
 
 // ── SISTEMA DE IMPRESIÓN ─────────────────────────────────────
+function registrarImpresion(nro, tipo){
+  auditSys('ventas', 'IMPRESION', 'Comprobante ' + tipo + ' ' + nro + ' impreso');
+}
 function closePrint(){
   const el = document.getElementById('printOverlay');
   if(el) el.style.display = 'none';
@@ -2014,6 +2071,7 @@ function confirmarCobro(){
   if(resultado && resultado.ok){
     document.getElementById('overlayCobroCte').classList.remove('abierto');
     const saldoNuevo = resultado.saldoNuevo;
+    auditOp('COBRO_CC', 'Cobro de $'+monto.toLocaleString('es-AR')+' a '+ct[key].nom, {clienteKey:key,monto,medio});
     const msg = resultado.cancelada
       ? 'Cobro registrado correctamente. La cuenta quedó cancelada.'
       : 'Cobro registrado. Saldo restante: $' + saldoNuevo.toLocaleString('es-AR',{minimumFractionDigits:2});
@@ -2029,6 +2087,18 @@ function procesar(modo){
   const cajaCheck = verificarCajaParaVender();
   if(!cajaCheck.ok){
     mostrarAlertaCaja(cajaCheck.mensaje, cajaCheck.tipo);
+    return;
+  }
+
+  // Vendedor necesita autorización para venta en Cuenta Corriente
+  const pagoSel = document.getElementById('pagoSelect')?.value ||
+    document.querySelector('input[name="pago"]:checked')?.value || '';
+  if(vRol === 'vendedor' && pagoSel === 'cuenta_corriente'){
+    requiereAutorizacion('cuenta_corriente', function(auth){
+      auditSys('ventas', 'VENTA_CC', 'Cuenta Corriente autorizado por ' + auth.nomAut);
+      // Re-run procesar after authorization
+      procesar(modo);
+    });
     return;
   }
   const items=getItemsFrom('itemsBody');
@@ -2105,6 +2175,13 @@ function procesar(modo){
     data.cajaFecha = cajaActiva.fecha;
   }
   const comp=S.g('yunco_comp',[]);comp.unshift(data);S.s('yunco_comp',comp);
+  // Auditoría operativa
+  auditOp(data.modo==='registrar'?'VENTA_REGISTRADA':'VENTA_GRABADA',
+    data.tipo + ' ' + data.nro + ' — ' + (data.cli?.nom||'CF') + ' — $' + parseFloat(data.total||0).toLocaleString('es-AR'),
+    {compId: data.id, tipo: data.tipo, total: data.total, pago: data.pago}
+  );
+  // Auditoría sistema
+  auditSys('ventas', 'COMPROBANTE_' + data.modo.toUpperCase(), data.tipo + ' ' + data.nro);
   // Si es venta en cuenta corriente, registrar en ctacte
   if(data.pago === 'cuenta_corriente' && data.modo === 'registrar'){
     registrarVentaCC(data);
@@ -2190,6 +2267,8 @@ function goTab(t){
   if(t === 'clientes' && typeof renderClis === 'function') renderClis();
   if(t === 'consulta' && typeof renderConsulta === 'function') renderConsulta();
   if(t === 'ctacte' && typeof renderCtaCte === 'function') renderCtaCte();
+  // Auditoría sistema
+  if(typeof auditSys === 'function') auditSys('ventas', 'TAB_' + t.toUpperCase(), 'Pestaña activa: ' + t);
 }
 
 function renderComp(){
@@ -2241,27 +2320,30 @@ function delComp(id){S.s('yunco_comp',S.g('yunco_comp',[]).filter(c=>c.id!==id))
 
 // CLIENTES
 function renderClis(){
-  const q=(document.getElementById('busqCli').value||'').toLowerCase();
-  let cl=S.g('yunco_clis',[]);
-  if(q)cl=cl.filter(c=>(c.nom||'').toLowerCase().includes(q)||(c.cuit||'').includes(q));
-  const el=document.getElementById('listaClis');
-  if(!cl.length){el.innerHTML='<div class="vacio"><div class="vacio-icon">👥</div><p>No hay clientes.</p></div>';return;}
-  const todos=S.g('yunco_clis',[]);
-  el.innerHTML=cl.map(c=>{const i=todos.indexOf(c);return`<div class="cliente-item">
-<div class="cli-av">${(c.nom||'?').charAt(0).toUpperCase()}</div>
-<div class="cli-info"><div style="font-size:14px;font-weight:600">${c.nom}</div>
-<div style="font-size:12px;color:#8bbadd">${c.cuit||'Sin CUIT'} · ${c.iva||'CF'}${c.tel?' · '+c.tel:''}</div></div>
-<div style="display:flex;gap:6px">
-  ${(vRol==='gerente'||vRol==='dueno'||vRol==='admin')?'<button class="btn btn-outline btn-sm" onclick="editCliModal('+i+')">✏️</button>':''}
-  ${(vRol==='gerente'||vRol==='dueno'||vRol==='admin')?'<button class="btn btn-rojo btn-sm" onclick="solAuth(\'Eliminar cliente\',()=>delCliByIdx('+i+'))">🗑</button>':''}
-</div></div>`}).join('');}
-
-function openModalCli(idx=null){
-  editCli=idx;
-  document.getElementById('modalCliTit').textContent=idx!==null?'✏️ Editar Cliente':'👤 Nuevo Cliente';
-  if(idx!==null){const c=S.g('yunco_clis',[])[idx];document.getElementById('mcCuit').value=c.cuit||'';document.getElementById('mcNom').value=c.nom||'';document.getElementById('mcIva').value=c.iva||'Consumidor Final';document.getElementById('mcDom').value=c.dom||'';document.getElementById('mcTel').value=c.tel||'';document.getElementById('mcMail').value=c.mail||'';}
-  else{['mcCuit','mcNom','mcDom','mcTel','mcMail'].forEach(f=>document.getElementById(f).value='');}
-  document.getElementById('overlayCli').classList.add('abierto');
+  const q = (document.getElementById('busqCli')?.value||'').toLowerCase();
+  const clis = S.g('yunco_clis',[]);
+  const ct = S.g('yunco_ctacte',{});
+  const filtrados = q ? clis.filter(c =>
+    (c.nom||'').toLowerCase().includes(q) ||
+    (c.cuit||'').toLowerCase().includes(q)
+  ) : clis;
+  const el = document.getElementById('listaClis');
+  if(!el) return;
+  const fmt = n => '$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2});
+  const tbody = filtrados.length ? filtrados.map(c => {
+    const key = c.cuit ? 'cuit_' + c.cuit.replace(/[^0-9]/g,'') : 'nom_' + (c.nom||'').toLowerCase().replace(/\s+/g,'_');
+    const saldo = ct[key]?.saldo||0;
+    return '<tr>' +
+      '<td><strong>' + c.nom + '</strong></td>' +
+      '<td style="color:var(--text-secondary)">' + (c.cuit||'—') + '</td>' +
+      '<td><span class="cat-tag">' + (c.iva||'CF') + '</span></td>' +
+      '<td style="color:var(--text-muted)">' + (c.dom||'—') + '</td>' +
+      '<td style="color:' + (saldo>0?'var(--warning)':'var(--text-muted)') + ';font-weight:' + (saldo>0?'700':'400') + '">' + (saldo>0?fmt(saldo):'$0,00') + '</td>' +
+      '</tr>';
+  }).join('') : '<tr><td colspan="5" class="vacio">No hay clientes registrados aún.</td></tr>';
+  el.innerHTML = '<div class="tabla-wrap"><table><thead><tr>' +
+    '<th>Nombre / Razón Social</th><th>CUIT / DNI</th><th>Condición IVA</th><th>Domicilio</th><th>Saldo CC</th>' +
+    '</tr></thead><tbody>' + tbody + '</tbody></table></div>';
 }
 function editCliModal(i){openModalCli(i);}
 function closeModalCli(){document.getElementById('overlayCli').classList.remove('abierto');editCli=null;}
@@ -2379,7 +2461,7 @@ function renderCtaCte(){
   const el = document.getElementById('listaCtaCte');
   if(!el) return;
   if(!clientes.length){
-    el.innerHTML='<div class="vacio">No hay clientes en cuenta corriente.</div>';
+    el.innerHTML='<div style="background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:12px;padding:32px;text-align:center;color:var(--text-muted)"><div style="font-size:32px;margin-bottom:12px">📒</div><div style="font-size:14px">No hay clientes con cuenta corriente todavía.</div><div style="font-size:12px;margin-top:6px">Las ventas en cuenta corriente aparecerán aquí.</div></div>';
     return;
   }
   const fmt = n => '$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2});
@@ -2449,6 +2531,125 @@ function imprimirStock(){
   w.document.write('</body></html>');
   w.document.close();
   setTimeout(()=>w.print(),500);
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// SISTEMA DE AUDITORÍA
+// ══════════════════════════════════════════════════════════════
+
+// ── Auditoría Operativa (permanente, sin rotación) ────────────
+function auditOp(accion, detalle, extra){
+  const reg = {
+    id: Date.now(),
+    fecha: new Date().toISOString(),
+    usuario: vAct,
+    usuarioNom: vNombre,
+    rol: vRol,
+    accion,
+    detalle: detalle||'',
+    ...( extra||{} )
+  };
+  const lista = S.g('yunco_audit_op',[]);
+  lista.unshift(reg);
+  S.s('yunco_audit_op', lista);
+}
+
+// ── Auditoría del Sistema (rotación cada 2000 registros) ──────
+function auditSys(modulo, accion, detalle){
+  const reg = {
+    id: Date.now(),
+    fecha: new Date().toISOString(),
+    usuario: vAct||'?',
+    usuarioNom: vNombre||'?',
+    rol: vRol||'?',
+    modulo: modulo||'ventas',
+    accion,
+    detalle: detalle||''
+  };
+  const lista = S.g('yunco_audit_sys',[]);
+  lista.unshift(reg);
+  // Rotación: conservar 2000 registros
+  if(lista.length > 2000) lista.splice(2000);
+  S.s('yunco_audit_sys', lista);
+}
+
+// ══════════════════════════════════════════════════════════════
+// SISTEMA DE AUTORIZACIÓN
+// ══════════════════════════════════════════════════════════════
+
+let _authPendiente = null; // { tipo, callback }
+
+function requiereAutorizacion(tipo, callback){
+  _authPendiente = { tipo, callback };
+
+  const labels = {
+    'NC': 'Nota de Crédito',
+    'ND': 'Nota de Débito',
+    'cuenta_corriente': 'Venta en Cuenta Corriente'
+  };
+
+  document.getElementById('authOp_tipo').textContent = labels[tipo] || tipo;
+  document.getElementById('authOp_usuario').value = '';
+  document.getElementById('authOp_clave').value = '';
+  document.getElementById('authOp_err').style.display = 'none';
+  document.getElementById('authOpOverlay').classList.add('abierto');
+  setTimeout(()=>document.getElementById('authOp_usuario').focus(), 100);
+}
+
+function confirmarAuthOp(){
+  const usuario = document.getElementById('authOp_usuario').value;
+  const clave = document.getElementById('authOp_clave').value;
+  const err = document.getElementById('authOp_err');
+
+  if(!usuario || !clave){
+    err.textContent = 'Ingresá usuario y clave.';
+    err.style.display = 'block';
+    return;
+  }
+
+  // Validar que sea gerente o dueno
+  const claves = { ...YUNCO_PERMISOS.CLAVES_DEFAULT, ...S.g('yunco_claves',{}) };
+  const vends = S.g('yunco_vend',{});
+  const esGerente = usuario === 'gerente' && clave === claves['gerente'];
+  const esDueno = usuario === 'dueno' && clave === claves['dueno'];
+
+  if(!esGerente && !esDueno){
+    err.textContent = 'Credenciales incorrectas. Solo Gerente o Dueño pueden autorizar.';
+    err.style.display = 'block';
+    document.getElementById('authOp_clave').value = '';
+    return;
+  }
+
+  // Registrar autorización en auditoría operativa
+  const autorizante = esGerente ? 'gerente' : 'dueno';
+  const nomAut = autorizante === 'gerente' ? 'Gerente General' : 'Dueño';
+
+  auditOp('AUTORIZACION', 'Operación autorizada: ' + _authPendiente.tipo, {
+    vendedor: vAct,
+    vendedorNom: vNombre,
+    autorizante: autorizante,
+    autorizanteNom: nomAut,
+    tipoOperacion: _authPendiente.tipo
+  });
+
+  document.getElementById('authOpOverlay').classList.remove('abierto');
+
+  // Ejecutar callback con datos del autorizante
+  const cb = _authPendiente.callback;
+  _authPendiente = null;
+  if(cb) cb({ autorizante, nomAut });
+}
+
+function cancelarAuthOp(){
+  _authPendiente = null;
+  document.getElementById('authOpOverlay').classList.remove('abierto');
+  // Volver a factura B si el tipo no está permitido
+  if(vRol === 'vendedor'){
+    const sel = document.getElementById('tipoComp');
+    if(sel) sel.value = 'B';
+    onTipoChange();
+  }
 }
 
 </script>
