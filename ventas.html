@@ -1747,18 +1747,71 @@ function buscarProdItem(id, calcFn){
   const res=document.getElementById(id+'_res');
   const q=(input?.value||'').toLowerCase();
   if(!q||q.length<2){if(res)res.style.display='none';calcFn==='recalc'?recalc():recalcPres();return;}
+
+  // Lee yunco_productos (nueva arquitectura) con fallback a yunco_inv
   let prods=[];
-  try{prods=JSON.parse(localStorage.getItem('yunco_inv')||'[]');}catch{prods=[];}
-  const matches=prods.filter(p=>p.nombre.toLowerCase().includes(q)||p.categoria.toLowerCase().includes(q)).slice(0,10);
-  if(!matches.length){res.innerHTML='<div style="padding:10px 14px;font-size:13px;color:#8bbadd">Sin resultados</div>';res.style.display='block';return;}
-  res.innerHTML=matches.map(p=>{
-    const cls=p.stock===0?'color:#e74c3c':p.stock<=p.min?'color:#f39c12':'color:#2ecc71';
-    const est=p.stock===0?'🚨 SIN STOCK':p.stock<=p.min?'⚠️ '+p.stock+' '+p.unidad:'✅ '+p.stock.toLocaleString('es-AR')+' '+p.unidad;
-    return`<div onclick="selProdItem('${id}',${p.id},'${calcFn}')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);display:flex;justify-content:space-between;align-items:center;background:#162b44">
-<div><div style="font-size:13px;font-weight:600;color:#e8eef5">${p.nombre}</div><div style="font-size:11px;color:#8ba5be">${p.categoria}</div></div>
-<div style="text-align:right"><div style="font-size:12px;font-weight:700;${cls}">${est}</div>${p.venta?'<div style="font-size:11px;color:#5ddf8a">$'+parseFloat(p.venta).toLocaleString('es-AR')+'</div>':''}</div>
-</div>`;}).join('');
-  // Position dropdown using getBoundingClientRect
+  try{
+    const nuevos = JSON.parse(localStorage.getItem('yunco_productos')||'null');
+    if(nuevos && nuevos.length > 0 && nuevos[0].formas !== undefined){
+      prods = nuevos.filter(p => p.activo !== false);
+    } else {
+      prods = JSON.parse(localStorage.getItem('yunco_inv')||'[]');
+    }
+  }catch{prods=[];}
+
+  const isNuevo = prods.length > 0 && prods[0].formas !== undefined;
+
+  const matches = prods.filter(p =>
+    (p.nombre||'').toLowerCase().includes(q) ||
+    (p.categoria||'').toLowerCase().includes(q) ||
+    (p.codigo||'').toLowerCase().includes(q)
+  ).slice(0,12);
+
+  if(!matches.length){
+    res.innerHTML='<div style="padding:10px 14px;font-size:13px;color:#8bbadd">Sin resultados</div>';
+    res.style.display='block';
+    return;
+  }
+
+  res.innerHTML = matches.map(p => {
+    if(isNuevo){
+      // Nueva arquitectura — mostrar formas de comercialización
+      const s = parseFloat(p.stock||0), m = parseFloat(p.stockMinimo||0);
+      const cls = s<=0?'color:#e74c3c':s<=m?'color:#f39c12':'color:#2ecc71';
+      const est = s<=0?'🚨 SIN STOCK':s<=m?'⚠️ '+s+' '+p.unidadStock:'✅ '+s+' '+p.unidadStock;
+      const formasHTML = (p.formas||[]).map(f => {
+        const dolar = parseFloat((JSON.parse(localStorage.getItem('yunco_config')||'{}')).dolarHoy||0);
+        const precio = p.dolarizado
+          ? (parseFloat(p.precioBase||0)*dolar*parseFloat(f.factorStock||1)+parseFloat(f.precioExtra||0))
+          : (parseFloat(p.precioBase||0)*parseFloat(f.factorStock||1)+parseFloat(f.precioExtra||0));
+        return '<div onclick="selProdItemNuevo(\'' + id + '\',\'' + p.id + '\',\'' + f.id + '\',\'' + calcFn + '\')" ' +
+          'style="padding:8px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04);display:flex;justify-content:space-between;background:#1a3350;padding-left:28px">' +
+          '<span style="font-size:12px;color:#a0bdd4">↳ '+f.nombre+'</span>' +
+          '<span style="font-size:12px;font-weight:700;color:#5ddf8a">$'+precio.toLocaleString('es-AR',{minimumFractionDigits:2})+'</span>' +
+          '</div>';
+      }).join('');
+      return '<div style="padding:10px 14px;background:#162b44;border-bottom:1px solid rgba(255,255,255,.06)">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center">' +
+        '<div><div style="font-size:13px;font-weight:600;color:#e8eef5">'+p.nombre+'</div>' +
+        '<div style="font-size:11px;color:#8ba5be">'+p.categoria+(p.codigo?' · '+p.codigo:'')+'</div></div>' +
+        '<div style="font-size:12px;font-weight:700;'+cls+'">'+est+'</div></div>' +
+        (formasHTML||'<div style="padding:8px 14px;font-size:12px;color:#8ba5be;padding-left:28px">Sin formas de venta</div>') +
+        '</div>';
+    } else {
+      // Formato viejo
+      const cls=p.stock===0?'color:#e74c3c':p.stock<=p.min?'color:#f39c12':'color:#2ecc71';
+      const est=p.stock===0?'🚨 SIN STOCK':p.stock<=p.min?'⚠️ '+p.stock+' '+p.unidad:'✅ '+p.stock+' '+p.unidad;
+      return '<div onclick="selProdItem(\'' + id + '\',' + p.id + ',\'' + calcFn + '\')" ' +
+        'style="padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);display:flex;justify-content:space-between;align-items:center;background:#162b44">' +
+        '<div><div style="font-size:13px;font-weight:600;color:#e8eef5">'+p.nombre+'</div>' +
+        '<div style="font-size:11px;color:#8ba5be">'+p.categoria+'</div></div>' +
+        '<div style="text-align:right"><div style="font-size:12px;font-weight:700;'+cls+'">'+est+'</div>' +
+        (p.venta?'<div style="font-size:11px;color:#5ddf8a">$'+parseFloat(p.venta).toLocaleString('es-AR')+'</div>':'') +
+        '</div></div>';
+    }
+  }).join('');
+
+  // Position dropdown
   const rect = input.getBoundingClientRect();
   const spaceBelow = window.innerHeight - rect.bottom;
   const spaceAbove = rect.top;
@@ -1775,6 +1828,46 @@ function buscarProdItem(id, calcFn){
   res.style.left = Math.max(4, rect.left) + 'px';
   res.style.width = Math.max(rect.width, 340) + 'px';
   res.style.display = 'block';
+}
+
+
+function selProdItemNuevo(rowId, prodId, formaId, calcFn){
+  const prods = JSON.parse(localStorage.getItem('yunco_productos')||'[]');
+  const p = prods.find(x => x.id === prodId);
+  if(!p) return;
+  const forma = (p.formas||[]).find(f => f.id === formaId) || p.formas[0];
+  if(!forma) return;
+
+  const descInput = document.getElementById(rowId+'_desc');
+  const codInput = document.getElementById(rowId+'_cod');
+  const res = document.getElementById(rowId+'_res');
+  const tr = document.getElementById(rowId);
+
+  if(descInput) descInput.value = p.nombre + (forma.nombre !== 'Por unidad' ? ' — ' + forma.nombre : '');
+  if(codInput) codInput.value = p.id;
+  if(res) res.style.display = 'none';
+
+  // Store prodId and formaId for stock discount later
+  tr.dataset.prodId = p.id;
+  tr.dataset.formaId = forma.id;
+  tr.dataset.factorStock = forma.factorStock;
+
+  // inp[0]=cod, inp[1]=desc, inp[2]=cant, inp[3]=unidad, inp[4]=precio, inp[5]=subtotal
+  const allInputs = tr.querySelectorAll('input');
+  if(allInputs[3]) allInputs[3].value = forma.unidad;
+
+  // Calculate price
+  const config = JSON.parse(localStorage.getItem('yunco_config')||'{}');
+  const dolarHoy = parseFloat(config.dolarHoy||0);
+  const precio = p.dolarizado
+    ? (parseFloat(p.precioBase||0) * dolarHoy * parseFloat(forma.factorStock||1)) + parseFloat(forma.precioExtra||0)
+    : (parseFloat(p.precioBase||0) * parseFloat(forma.factorStock||1)) + parseFloat(forma.precioExtra||0);
+
+  if(allInputs[4]){
+    allInputs[4].value = precio.toFixed(2);
+    allInputs[4].dispatchEvent(new Event('input'));
+  }
+  calcFn === 'recalc' ? recalc() : recalcPres();
 }
 
 function selProdItem(id, prodId, calcFn){
