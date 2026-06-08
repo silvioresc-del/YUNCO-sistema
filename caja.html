@@ -234,6 +234,7 @@ tr:hover td { background:rgba(74,159,212,.05)!important; }
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
       <div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px">📅 <span id="fechaCaja"></span></div>
+  <div id="dolarActualDisplay" style="margin:10px 0;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:8px;font-size:13px"></div>
         <div style="color:var(--muted);font-size:13px">Caja abierta · <span id="horaApertura"></span></div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap" id="botonesGerente">
@@ -524,6 +525,7 @@ function mostrarCajaAbierta(caja,fecha){
   document.getElementById('horaApertura').textContent='Apertura: '+new Date(caja.apertura).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
   actualizarStats();
   renderVentas();
+  mostrarDolarActual();
 }
 
 // OBTENER VENTAS DEL DIA
