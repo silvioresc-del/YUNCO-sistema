@@ -200,7 +200,36 @@ tr:hover td { background:rgba(74,159,212,.05)!important; }
   </div>
 
   <!-- CAJA ABIERTA -->
-  <div id="viewAbierta" style="display:none">
+  
+<!-- OVERLAY DÓLAR DEL DÍA -->
+<div class="overlay" id="overlayDolar">
+  <div class="modal" style="max-width:400px">
+    <div style="font-size:40px;text-align:center;margin-bottom:12px">💵</div>
+    <h2 id="dolarTitulo" style="text-align:center;margin-bottom:6px">Dólar del Día</h2>
+    <p style="color:var(--text-secondary);font-size:13px;text-align:center;margin-bottom:16px">
+      El valor queda fijo para toda la jornada.
+    </p>
+    <div id="dolarUltimo" style="display:none;background:rgba(74,159,212,.1);border:1px solid rgba(74,159,212,.2);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--accent-light);margin-bottom:12px;text-align:center"></div>
+    <input type="hidden" id="dolarModo" value="apertura">
+    <div class="form-group">
+      <label>Valor del dólar ($)</label>
+      <input type="number" id="dolarValorInput" placeholder="ej: 1200" min="1" step="0.01"
+        onkeydown="if(event.key==='Enter')confirmarDolar()"
+        style="font-size:20px;text-align:center;font-weight:700">
+    </div>
+    <div class="form-group" id="dolarMotivoWrap" style="display:none">
+      <label>Motivo de la modificación</label>
+      <input type="text" id="dolarMotivo" placeholder="Motivo obligatorio para modificaciones">
+    </div>
+    <div id="dolarErr" style="display:none;color:var(--danger);font-size:12px;background:rgba(239,68,68,.1);padding:8px 12px;border-radius:6px;margin-bottom:10px"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="cerrarPanelDolar()">Cancelar</button>
+      <button class="btn btn-primario" onclick="confirmarDolar()">✅ Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div id="viewAbierta" style="display:none">
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
       <div>
@@ -461,6 +490,7 @@ function initCaja(){
   if(estado.estado === 'abierta'){
     const cajaDatos = S.g('yunco_caja_' + hoy, null);
     mostrarCajaAbierta(cajaDatos, hoy);
+  mostrarDolarActual();
     return;
   }
 
@@ -471,24 +501,19 @@ function initCaja(){
 
 function abrirCaja(){
   const estado = getCajaEstado();
-  
-  // No permitir abrir si hay caja pendiente de días anteriores
+
   if(estado.estado === 'pendiente'){
     alert('⚠️ Existe una caja del ' + formatFecha(estado.fechaPendiente) + ' pendiente de cierre.\n\nDebe cerrar esa caja antes de abrir una nueva.');
     return;
   }
-  
-  // No permitir abrir si ya hay una caja abierta hoy
+
   if(estado.estado === 'abierta'){
     alert('Ya existe una caja abierta para el día de hoy.');
     return;
   }
-  
-  const hoy = getFechaHoy();
-  const cajaDatos = {abierta:true, fecha:hoy, apertura:new Date().toISOString(), gastos:[], cobros_cte:[], usuario:vAct, nombreUsuario:vNombre};
-  S.s('yunco_caja_' + hoy, cajaDatos);
-  auditCajaOp('CAJA_APERTURA', 'Caja abierta para el día ' + hoy);
-  mostrarCajaAbierta(cajaDatos, hoy);
+
+  // Requerir dólar del día antes de abrir
+  abrirPanelDolar('apertura');
 }
 
 function mostrarCajaAbierta(caja,fecha){
@@ -706,8 +731,13 @@ function cerrarCaja(){
   const verificacion = S.g('yunco_caja_' + fechaCierre, null);
   if(verificacion && verificacion.abierta === false){
     auditCajaOp('CAJA_CIERRE', 'Caja del ' + fechaCierre + ' cerrada correctamente');
-    alert('Caja del ' + fechaCierre + ' cerrada correctamente.');
-    // Recargar estado — ahora debe mostrar sin caja pendiente
+    // Generar backup automático
+    try{
+      const nombreArchivo = generarBackup();
+      alert('✅ Caja del ' + fechaCierre + ' cerrada correctamente.\n\n📦 Backup generado automáticamente.\nGuardá el archivo ' + nombreArchivo + ' en un lugar seguro.');
+    } catch(e){
+      alert('✅ Caja del ' + fechaCierre + ' cerrada correctamente.\n\n⚠️ No se pudo generar el backup automáticamente.');
+    }
     initCaja();
   } else {
     alert('Error al cerrar la caja. Intentá nuevamente.');
@@ -855,6 +885,201 @@ function auditCajaOp(accion, detalle){
     if(sys.length>2000) sys.splice(2000);
     localStorage.setItem('yunco_audit_sys', JSON.stringify(sys));
   } catch(e){}
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// BACKUP AUTOMÁTICO AL CIERRE DE CAJA
+// ══════════════════════════════════════════════════════════════
+
+function generarBackup(){
+  const fecha = new Date().toISOString();
+  const fechaTag = fecha.split('T')[0];
+
+  // Recolectar todas las claves de caja del historial
+  const histCajas = S.g('yunco_hist_cajas',[]);
+  const cajaKeys = {};
+  histCajas.forEach(h => {
+    const key = 'yunco_caja_' + h.fecha;
+    const data = S.g(key, null);
+    if(data) cajaKeys[key] = data;
+  });
+  // También agregar caja de hoy
+  const hoy = new Date().toISOString().split('T')[0];
+  const cajaHoy = S.g('yunco_caja_' + hoy, null);
+  if(cajaHoy) cajaKeys['yunco_caja_' + hoy] = cajaHoy;
+
+  const backup = {
+    version: '2.0',
+    fecha: fecha,
+    generadoEn: 'cierre_caja',
+    usuario: vAct,
+    usuarioNom: vNombre,
+    datos: {
+      yunco_productos: S.g('yunco_productos', []),
+      yunco_inv: S.g('yunco_inv', []),
+      yunco_comp: S.g('yunco_comp', []),
+      yunco_clis: S.g('yunco_clis', []),
+      yunco_ctacte: S.g('yunco_ctacte', {}),
+      yunco_hist_cajas: histCajas,
+      yunco_audit_op: S.g('yunco_audit_op', []),
+      yunco_audit_sys: S.g('yunco_audit_sys', []),
+      yunco_config: S.g('yunco_config', {}),
+      yunco_vend: S.g('yunco_vend', {}),
+      yunco_autorizaciones: S.g('yunco_autorizaciones', []),
+      cajas: cajaKeys
+    }
+  };
+
+  // Descargar como JSON
+  const json = JSON.stringify(backup, null, 2);
+  const blob = new Blob([json], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'YUNCO_Backup_' + fechaTag + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+
+  console.log('Backup generado: ' + a.download);
+  return a.download;
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// DÓLAR DEL DÍA
+// ══════════════════════════════════════════════════════════════
+
+function getDolarConfig(){
+  return S.g('yunco_config', {dolarHoy:0, dolarFecha:'', dolarHistorial:[], puntoVenta:'0006', ultimosNros:{A:0,B:0,NC:0,ND:0,PRES:0}});
+}
+
+function getDolarHoy(){
+  const cfg = getDolarConfig();
+  const hoy = getFechaHoy();
+  if(cfg.dolarFecha === hoy && parseFloat(cfg.dolarHoy) > 0) return parseFloat(cfg.dolarHoy);
+  return 0;
+}
+
+function abrirPanelDolar(modo){
+  // modo: 'apertura' (obligatorio) o 'modificacion' (excepcional)
+  document.getElementById('dolarModo').value = modo;
+  const actual = getDolarHoy();
+  document.getElementById('dolarValorInput').value = actual > 0 ? actual : '';
+  document.getElementById('dolarMotivoWrap').style.display = modo === 'modificacion' ? 'block' : 'none';
+  document.getElementById('dolarMotivo').value = '';
+  document.getElementById('dolarErr').style.display = 'none';
+  const titulo = modo === 'apertura' ? 'Carga del Dólar del Día' : 'Modificar Dólar del Día';
+  document.getElementById('dolarTitulo').textContent = titulo;
+  if(actual > 0 && modo === 'apertura'){
+    document.getElementById('dolarUltimo').textContent = 'Último valor registrado: $' + actual.toLocaleString('es-AR');
+    document.getElementById('dolarUltimo').style.display = 'block';
+  } else {
+    document.getElementById('dolarUltimo').style.display = 'none';
+  }
+  document.getElementById('overlayDolar').classList.add('abierto');
+  setTimeout(() => document.getElementById('dolarValorInput').focus(), 100);
+}
+
+function cerrarPanelDolar(){
+  document.getElementById('overlayDolar').classList.remove('abierto');
+}
+
+function confirmarDolar(){
+  const modo = document.getElementById('dolarModo').value;
+  const valor = parseFloat(document.getElementById('dolarValorInput').value);
+  const motivo = document.getElementById('dolarMotivo').value.trim();
+  const err = document.getElementById('dolarErr');
+
+  if(!valor || valor <= 0){
+    err.textContent = 'Ingresá un valor válido para el dólar.';
+    err.style.display = 'block';
+    return;
+  }
+
+  if(modo === 'modificacion' && !motivo){
+    err.textContent = 'Ingresá el motivo de la modificación.';
+    err.style.display = 'block';
+    return;
+  }
+
+  const cfg = getDolarConfig();
+  const hoy = getFechaHoy();
+  const anterior = parseFloat(cfg.dolarHoy) || 0;
+
+  // Register in history
+  if(!cfg.dolarHistorial) cfg.dolarHistorial = [];
+  cfg.dolarHistorial.unshift({
+    fecha: new Date().toISOString(),
+    fechaDia: hoy,
+    valorAnterior: anterior,
+    valorNuevo: valor,
+    usuario: vAct,
+    usuarioNom: vNombre,
+    motivo: modo === 'apertura' ? 'Apertura de caja' : motivo
+  });
+
+  cfg.dolarHoy = valor;
+  cfg.dolarFecha = hoy;
+  S.s('yunco_config', cfg);
+
+  // Audit
+  auditCajaOp('DOLAR_' + modo.toUpperCase(),
+    'Dólar ' + (modo === 'apertura' ? 'cargado' : 'modificado') +
+    ': $' + anterior + ' → $' + valor +
+    (motivo ? ' — ' + motivo : '')
+  );
+
+  cerrarPanelDolar();
+
+  if(modo === 'apertura'){
+    // Proceed with opening caja
+    ejecutarAperturaCaja();
+  } else {
+    alert('✅ Dólar actualizado: $' + valor.toLocaleString('es-AR') + '\nSolo afecta operaciones nuevas.');
+    mostrarDolarActual();
+  }
+}
+
+function ejecutarAperturaCaja(){
+  const hoy = getFechaHoy();
+  const cajaDatos = {
+    abierta: true,
+    fecha: hoy,
+    apertura: new Date().toISOString(),
+    gastos: [],
+    cobros_cte: [],
+    usuario: vAct,
+    nombreUsuario: vNombre,
+    dolarApertura: getDolarHoy()
+  };
+  S.s('yunco_caja_' + hoy, cajaDatos);
+  auditCajaOp('CAJA_APERTURA', 'Caja abierta para el día ' + hoy + ' — Dólar: $' + cajaDatos.dolarApertura);
+  mostrarCajaAbierta(cajaDatos, hoy);
+  mostrarDolarActual();
+}
+
+function mostrarDolarActual(){
+  const dolar = getDolarHoy();
+  const el = document.getElementById('dolarActualDisplay');
+  if(!el) return;
+  const puedeModificar = (vRol === 'gerente' || vRol === 'dueno');
+  if(dolar > 0){
+    el.innerHTML = '<span style="color:var(--success);font-weight:700">💵 Dólar hoy: $' +
+      dolar.toLocaleString('es-AR') + '</span>';
+    if(puedeModificar){
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-outline btn-sm';
+      btn.textContent = 'Modificar';
+      btn.style.marginLeft = '10px';
+      btn.onclick = function(){ abrirPanelDolar('modificacion'); };
+      el.appendChild(btn);
+    }
+    el.style.display = 'block';
+  } else {
+    el.innerHTML = '<span style="color:var(--warning)">⚠️ Dólar del día no cargado</span>';
+    el.style.display = 'block';
+  }
 }
 
 </script>
