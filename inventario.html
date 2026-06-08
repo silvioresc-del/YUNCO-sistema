@@ -419,6 +419,109 @@ function renderConsulta(q){
     '</tbody></table></div>';
 }
 
+
+// ══════════════════════════════════════════════════════════════
+// MIGRACIÓN Y ESTRUCTURA DE PRODUCTOS v2.0
+// ══════════════════════════════════════════════════════════════
+
+function migrarProductos(){
+  // Si ya existe yunco_productos con la nueva estructura, no migrar
+  const existing = S.g('yunco_productos', null);
+  if(existing && existing.length > 0 && existing[0].formas !== undefined) return;
+
+  // Leer productos existentes (formato viejo yunco_inv o PROD_DEFAULT)
+  const viejos = S.g('yunco_inv', PROD_DEFAULT);
+
+  // Convertir al nuevo formato
+  const nuevos = viejos.map(p => {
+    // Determinar unidad base de stock
+    const unidadBase = p.pm ? 'metro' : p.unidad || 'unidad';
+
+    // Forma de comercialización default
+    const formaDefault = {
+      id: 'F001',
+      nombre: p.pm ? 'Por metro' : 'Por ' + (p.unidad || 'unidad'),
+      unidad: p.unidad || 'unidad',
+      factorStock: 1,
+      precioExtra: 0
+    };
+
+    return {
+      id: 'PROD-' + String(p.id).padStart(4,'0'),
+      idLegacy: p.id,
+      codigo: 'COD-' + String(p.id).padStart(4,'0'),
+      nombre: p.nombre,
+      descripcion: '',
+      categoria: p.categoria || 'Sin categoría',
+      marca: '',
+      proveedor: '',
+      observaciones: '',
+      especificaciones: '',
+      dolarizado: false,
+      precioBase: parseFloat(p.venta || 0),
+      unidadStock: unidadBase,
+      stock: parseFloat(p.stock || 0),
+      stockMinimo: parseFloat(p.min || 0),
+      activo: true,
+      formas: [formaDefault],
+      historial: []
+    };
+  });
+
+  S.s('yunco_productos', nuevos);
+  console.log('Migración completada: ' + nuevos.length + ' productos');
+}
+
+// ── Funciones de acceso a productos ──────────────────────────
+function getProductos(){ return S.g('yunco_productos', []); }
+function saveProductos(prods){ S.s('yunco_productos', prods); }
+
+function getProdById(id){
+  return getProductos().find(p => p.id === id || p.idLegacy === id);
+}
+
+function getProdByLegacyId(legacyId){
+  return getProductos().find(p => p.idLegacy == legacyId || p.id === 'PROD-' + String(legacyId).padStart(4,'0'));
+}
+
+// ── Descuento de stock al vender ──────────────────────────────
+function descontarStockVenta(items){
+  const prods = getProductos();
+  let modificados = false;
+  items.forEach(item => {
+    const p = prods.find(x => x.id === item.prodId || x.idLegacy == item.prodId);
+    if(!p) return;
+    const cant = parseFloat(item.cant||0);
+    const factorStock = parseFloat(item.factorStock||1);
+    const descuento = cant * factorStock;
+    const anterior = p.stock;
+    p.stock = Math.max(0, p.stock - descuento);
+    p.historial.unshift({
+      fecha: new Date().toISOString(),
+      usuario: vAct,
+      usuarioNom: vNombre,
+      tipo: 'venta',
+      anterior: anterior,
+      nuevo: p.stock,
+      motivo: 'Venta: ' + (item.nroComp||'')
+    });
+    modificados = true;
+  });
+  if(modificados) saveProductos(prods);
+}
+
+// ── Precio final calculado ─────────────────────────────────────
+function calcPrecioFinal(prod, forma, dolarHoy){
+  const precioBase = parseFloat(prod.precioBase||0);
+  const factorStock = parseFloat(forma?.factorStock||1);
+  const precioExtra = parseFloat(forma?.precioExtra||0);
+  if(prod.dolarizado){
+    const dolar = parseFloat(dolarHoy || S.g('yunco_config',{}).dolarHoy || 0);
+    return (precioBase * dolar * factorStock) + precioExtra;
+  }
+  return (precioBase * factorStock) + precioExtra;
+}
+
 function goTab(t){
   document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('activo',['stock','entrada','salida','historial','alertas'][i]===t));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('activo'));
@@ -451,28 +554,266 @@ function fillCatFilter(){
 }
 
 // STOCK TABLE
+
+// ══════════════════════════════════════════════════════════════
+// GESTIÓN DE PRODUCTOS
+// ══════════════════════════════════════════════════════════════
+
+function editarProducto(id){
+  const prods = getProductos();
+  const p = prods.find(x => x.id === id);
+  if(!p){ alert('Producto no encontrado.'); return; }
+
+  // Build modal HTML
+  const formasHTML = (p.formas||[]).map((f,i) => `
+    <div class="forma-item" data-idx="${i}" style="background:rgba(255,255,255,.03);border:1px solid var(--border-subtle);border-radius:8px;padding:12px;margin-bottom:8px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:8px;align-items:end">
+        <div class="form-group" style="margin:0">
+          <label>Nombre forma</label>
+          <input type="text" class="f-nombre" value="${f.nombre}" placeholder="ej: Por metro">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label>Unidad</label>
+          <input type="text" class="f-unidad" value="${f.unidad}" placeholder="metro, kg, rollo...">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label>Factor Stock</label>
+          <input type="number" class="f-factor" value="${f.factorStock}" min="0.001" step="0.001">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label>Precio Extra ($)</label>
+          <input type="number" class="f-extra" value="${f.precioExtra||0}" step="0.01">
+        </div>
+        <button onclick="this.closest('.forma-item').remove()" style="background:var(--danger-bg);border:1px solid rgba(239,68,68,.3);color:var(--danger);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:14px">✕</button>
+      </div>
+    </div>`).join('');
+
+  const modal = document.getElementById('modalProducto');
+  document.getElementById('modalProdTitulo').textContent = 'Editar: ' + p.nombre;
+  document.getElementById('modalProdId').value = p.id;
+  document.getElementById('mpCodigo').value = p.codigo||'';
+  document.getElementById('mpNombre').value = p.nombre||'';
+  document.getElementById('mpDescripcion').value = p.descripcion||'';
+  document.getElementById('mpCategoria').value = p.categoria||'';
+  document.getElementById('mpMarca').value = p.marca||'';
+  document.getElementById('mpProveedor').value = p.proveedor||'';
+  document.getElementById('mpObservaciones').value = p.observaciones||'';
+  document.getElementById('mpEspecificaciones').value = p.especificaciones||'';
+  document.getElementById('mpUnidadStock').value = p.unidadStock||'unidad';
+  document.getElementById('mpStockMinimo').value = p.stockMinimo||0;
+  document.getElementById('mpPrecioBase').value = p.precioBase||0;
+  document.getElementById('mpDolarizado').checked = p.dolarizado||false;
+  document.getElementById('listaFormas').innerHTML = formasHTML;
+  modal.classList.add('abierto');
+}
+
+function verProducto(id){
+  editarProducto(id); // Same view but buttons disabled by role
+}
+
+function cerrarModalProducto(){
+  document.getElementById('modalProducto').classList.remove('abierto');
+}
+
+function agregarForma(){
+  const lista = document.getElementById('listaFormas');
+  const idx = lista.children.length;
+  const div = document.createElement('div');
+  div.className = 'forma-item';
+  div.dataset.idx = idx;
+  div.style.cssText = 'background:rgba(255,255,255,.03);border:1px solid var(--border-subtle);border-radius:8px;padding:12px;margin-bottom:8px';
+  div.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:8px;align-items:end">
+    <div class="form-group" style="margin:0"><label>Nombre forma</label><input type="text" class="f-nombre" placeholder="ej: Por metro"></div>
+    <div class="form-group" style="margin:0"><label>Unidad</label><input type="text" class="f-unidad" placeholder="metro, kg, rollo..."></div>
+    <div class="form-group" style="margin:0"><label>Factor Stock</label><input type="number" class="f-factor" value="1" min="0.001" step="0.001"></div>
+    <div class="form-group" style="margin:0"><label>Precio Extra ($)</label><input type="number" class="f-extra" value="0" step="0.01"></div>
+    <button onclick="this.closest('.forma-item').remove()" style="background:var(--danger-bg);border:1px solid rgba(239,68,68,.3);color:var(--danger);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:14px">✕</button>
+  </div>`;
+  lista.appendChild(div);
+}
+
+function guardarProducto(){
+  const id = document.getElementById('modalProdId').value;
+  const prods = getProductos();
+  const idx = prods.findIndex(x => x.id === id);
+  if(idx < 0){ alert('Producto no encontrado.'); return; }
+
+  const p = prods[idx];
+  const anterior = JSON.parse(JSON.stringify(p));
+
+  // Update fields
+  p.codigo = document.getElementById('mpCodigo').value.trim();
+  p.nombre = document.getElementById('mpNombre').value.trim();
+  p.descripcion = document.getElementById('mpDescripcion').value.trim();
+  p.categoria = document.getElementById('mpCategoria').value.trim();
+  p.marca = document.getElementById('mpMarca').value.trim();
+  p.proveedor = document.getElementById('mpProveedor').value.trim();
+  p.observaciones = document.getElementById('mpObservaciones').value.trim();
+  p.especificaciones = document.getElementById('mpEspecificaciones').value.trim();
+  p.unidadStock = document.getElementById('mpUnidadStock').value.trim();
+  p.stockMinimo = parseFloat(document.getElementById('mpStockMinimo').value)||0;
+  const nuevoPrecio = parseFloat(document.getElementById('mpPrecioBase').value)||0;
+  p.dolarizado = document.getElementById('mpDolarizado').checked;
+
+  // Record price change in history
+  if(nuevoPrecio !== p.precioBase){
+    p.historial.unshift({
+      fecha: new Date().toISOString(),
+      usuario: vAct, usuarioNom: vNombre,
+      tipo: 'precio',
+      anterior: p.precioBase,
+      nuevo: nuevoPrecio,
+      motivo: 'Actualización de precio'
+    });
+    p.precioBase = nuevoPrecio;
+  }
+
+  // Update formas
+  const formaEls = document.getElementById('listaFormas').querySelectorAll('.forma-item');
+  p.formas = Array.from(formaEls).map((el, i) => ({
+    id: 'F' + String(i+1).padStart(3,'0'),
+    nombre: el.querySelector('.f-nombre').value.trim(),
+    unidad: el.querySelector('.f-unidad').value.trim(),
+    factorStock: parseFloat(el.querySelector('.f-factor').value)||1,
+    precioExtra: parseFloat(el.querySelector('.f-extra').value)||0
+  })).filter(f => f.nombre && f.unidad);
+
+  prods[idx] = p;
+  saveProductos(prods);
+
+  // Audit
+  if(typeof auditOp === 'function'){
+    auditOp('PRODUCTO_MODIFICADO', p.nombre, {prodId: p.id, anterior: anterior.precioBase, nuevo: p.precioBase});
+  }
+
+  cerrarModalProducto();
+  renderStock();
+  alert('✅ Producto guardado correctamente.');
+}
+
+// ── Ajuste de Stock ──────────────────────────────────────────
+function ajustarStock(id){
+  const p = getProdById(id);
+  if(!p){ alert('Producto no encontrado.'); return; }
+  document.getElementById('ajusteId').value = id;
+  document.getElementById('ajusteNombre').textContent = p.nombre + ' — Stock actual: ' + p.stock + ' ' + p.unidadStock;
+  document.getElementById('ajusteCantidad').value = '';
+  document.getElementById('ajusteTipo').value = 'ingreso';
+  document.getElementById('ajusteMotivo').value = '';
+  document.getElementById('modalAjuste').classList.add('abierto');
+}
+
+function cerrarModalAjuste(){
+  document.getElementById('modalAjuste').classList.remove('abierto');
+}
+
+function confirmarAjuste(){
+  const id = document.getElementById('ajusteId').value;
+  const tipo = document.getElementById('ajusteTipo').value;
+  const cantidad = parseFloat(document.getElementById('ajusteCantidad').value)||0;
+  const motivo = document.getElementById('ajusteMotivo').value.trim();
+
+  if(!cantidad || cantidad <= 0){ alert('Ingresá una cantidad válida.'); return; }
+  if(!motivo){ alert('Ingresá el motivo del ajuste.'); return; }
+
+  const prods = getProductos();
+  const idx = prods.findIndex(x => x.id === id);
+  if(idx < 0){ alert('Producto no encontrado.'); return; }
+
+  const p = prods[idx];
+  const anterior = p.stock;
+  if(tipo === 'ingreso') p.stock += cantidad;
+  else if(tipo === 'egreso') p.stock = Math.max(0, p.stock - cantidad);
+  else p.stock = cantidad; // ajuste directo
+
+  p.historial.unshift({
+    fecha: new Date().toISOString(),
+    usuario: vAct, usuarioNom: vNombre,
+    tipo: 'stock_' + tipo,
+    anterior: anterior,
+    nuevo: p.stock,
+    motivo: motivo
+  });
+
+  prods[idx] = p;
+  saveProductos(prods);
+
+  if(typeof auditOp === 'function'){
+    auditOp('AJUSTE_STOCK', p.nombre + ': ' + anterior + ' → ' + p.stock + ' (' + tipo + ')', {prodId: p.id, motivo});
+  }
+
+  cerrarModalAjuste();
+  renderStock();
+  alert('✅ Stock actualizado. ' + p.nombre + ': ' + p.stock + ' ' + p.unidadStock);
+}
+
+// ── Nuevo Producto ───────────────────────────────────────────
+function nuevoProducto(){
+  const prods = getProductos();
+  const nuevoId = 'PROD-' + String(prods.length + 1).padStart(4,'0');
+  const template = {
+    id: nuevoId, idLegacy: null,
+    codigo: '', nombre: 'Nuevo producto',
+    descripcion: '', categoria: '',
+    marca: '', proveedor: '',
+    observaciones: '', especificaciones: '',
+    dolarizado: false, precioBase: 0,
+    unidadStock: 'unidad', stock: 0, stockMinimo: 0,
+    activo: true, formas: [{id:'F001',nombre:'Por unidad',unidad:'unidad',factorStock:1,precioExtra:0}],
+    historial: []
+  };
+  prods.push(template);
+  saveProductos(prods);
+  editarProducto(nuevoId);
+}
+
 function renderStock(){
-  const q=(document.getElementById('busqStock').value||'').toLowerCase();
-  const cat=document.getElementById('filtCat').value;
-  let prods=getCatalogos();
-  if(q)prods=prods.filter(p=>p.nombre.toLowerCase().includes(q)||p.categoria.toLowerCase().includes(q));
-  if(cat)prods=prods.filter(p=>p.categoria===cat);
-  const tbody=document.getElementById('tablaStock');
-  if(!prods.length){tbody.innerHTML='<tr><td colspan="7"><div class="vacio">No hay productos que coincidan.</div></td></tr>';return;}
-  tbody.innerHTML=prods.map(p=>{
-    const cls=p.stock===0?'stock-cero':p.stock<=p.min?'stock-bajo':'stock-ok';
-    return`<tr>
-<td><strong>${p.nombre}</strong>${p.pm?'<br><span class="pm-tag">por metros</span>':''}</td>
-<td><span class="cat-tag">${p.categoria}</span></td>
-<td style="color:var(--muted)">${p.unidad}</td>
-<td><span class="${cls}">${p.stock.toLocaleString('es-AR')}</span></td>
-<td style="color:var(--muted)">${p.min}</td>
-<td style="color:var(--verde3)">${p.venta?fmt(p.venta):'-'}</td>
-<td><div style="display:flex;gap:5px">
-  <button class="btn btn-outline btn-sm" onclick="solAuth('Editar producto',()=>abrirEditar(${p.id}))">✏️</button>
-  <button class="btn btn-rojo btn-sm" onclick="solAuth('Eliminar producto',()=>eliminarProd(${p.id}))">🗑</button>
-</div></td>
-</tr>`;}).join('');
+  const prods = getProductos();
+  const q = (document.getElementById('stockBusq')?.value||'').toLowerCase();
+  const cat = document.getElementById('stockCat')?.value||'';
+  let filtrados = prods.filter(p => p.activo !== false);
+  if(q) filtrados = filtrados.filter(p =>
+    (p.nombre||'').toLowerCase().includes(q) ||
+    (p.categoria||'').toLowerCase().includes(q) ||
+    (p.codigo||'').toLowerCase().includes(q)
+  );
+  if(cat) filtrados = filtrados.filter(p => p.categoria === cat);
+  const el = document.getElementById('stockTabla');
+  if(!el) return;
+  const perm = ROLES_INV[vRol]||ROLES_INV['vendedor'];
+  const fmt = n => '$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2});
+  const fmtS = p => {
+    const s=parseFloat(p.stock||0), m=parseFloat(p.stockMinimo||0);
+    const color=s<=0?'var(--danger)':s<=m?'var(--warning)':'var(--success)';
+    return '<span style="color:'+color+';font-weight:800">'+s+' '+p.unidadStock+'</span>';
+  };
+  const precioCols = perm.verPrecioVenta ?
+    '<th>Precio Base</th><th>Dolar.</th>' : '';
+  const precioRows = p => perm.verPrecioVenta ?
+    '<td>'+(parseFloat(p.precioBase||0)>0?fmt(p.precioBase):'<span style="color:var(--text-muted)">Sin precio</span>')+'</td>'+
+    '<td style="text-align:center">'+(p.dolarizado?'💵':'—')+'</td>' : '';
+  if(!filtrados.length){
+    el.innerHTML='<div class="vacio">No hay productos.</div>';return;
+  }
+  el.innerHTML='<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">'+filtrados.length+' productos</div>'+
+    '<div class="tabla-wrap"><table><thead><tr>'+
+    '<th>Código</th><th>Producto</th><th>Categoría</th><th>Stock</th><th>Mín.</th><th>Formas</th>'+
+    precioCols+'<th>Acciones</th></tr></thead><tbody>'+
+    filtrados.map(p =>
+      '<tr>'+
+      '<td style="font-family:monospace;font-size:11px">'+p.codigo+'</td>'+
+      '<td><strong>'+p.nombre+'</strong>'+(p.marca?'<br><span style="font-size:11px;color:var(--text-muted)">'+p.marca+'</span>':'')+'</td>'+
+      '<td><span class="cat-tag">'+p.categoria+'</span></td>'+
+      '<td>'+fmtS(p)+'</td>'+
+      '<td style="color:var(--text-muted)">'+parseFloat(p.stockMinimo||0)+' '+p.unidadStock+'</td>'+
+      '<td style="font-size:11px;color:var(--text-secondary)">'+(p.formas||[]).map(f=>f.nombre).join(', ')+'</td>'+
+      precioRows(p)+
+      '<td style="white-space:nowrap">'+(perm.modificar?
+        '<button class="btn btn-outline btn-sm" style="margin-right:4px" onclick="editarProducto(\'' + p.id + '\')">✏️</button>' +
+        '<button class="btn btn-outline btn-sm" onclick="ajustarStock(\'' + p.id + '\')">📦</button>':
+        '<button class="btn btn-outline btn-sm" onclick="verProducto(\'' + p.id + '\')">👁</button>')+
+      '</td></tr>'    ).join('')+
+    '</tbody></table></div>';
 }
 
 // BUSCAR PROD MOV
@@ -714,6 +1055,7 @@ let vAct = null, vRol = null, vNombre = null;
     document.querySelectorAll('.tab').forEach((el,i) => {
       if(allTabs[i]) el.style.display = perm.tabs.includes(allTabs[i]) ? '' : 'none';
     });
+    migrarProductos();
     const primerTab = perm.tabs[0] || 'consulta';
     goTab(vRol === 'vendedor' ? 'consulta' : primerTab);
     setTimeout(function(){ renderConsulta(''); }, 200);
@@ -731,5 +1073,79 @@ if(!localStorage.getItem('yunco_inv')){
 }
 fillCatFilter();actualizarStats();renderStock();
 </script>
+
+<!-- MODAL EDITAR PRODUCTO -->
+<div class="overlay" id="modalProducto">
+  <div class="modal" style="max-width:700px;max-height:90vh;overflow-y:auto">
+    <h2 id="modalProdTitulo">Editar Producto</h2>
+    <input type="hidden" id="modalProdId">
+    <div class="form-row">
+      <div class="form-group"><label>Código</label><input type="text" id="mpCodigo" placeholder="COD-001"></div>
+      <div class="form-group"><label>Nombre</label><input type="text" id="mpNombre" placeholder="Nombre del producto"></div>
+    </div>
+    <div class="form-group"><label>Descripción</label><input type="text" id="mpDescripcion" placeholder="Descripción breve"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Categoría</label><input type="text" id="mpCategoria" placeholder="Categoría"></div>
+      <div class="form-group"><label>Marca</label><input type="text" id="mpMarca" placeholder="Marca"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Proveedor</label><input type="text" id="mpProveedor" placeholder="Proveedor habitual"></div>
+      <div class="form-group"><label>Unidad base de stock</label>
+        <select id="mpUnidadStock"><option value="unidad">Unidad</option><option value="metro">Metro</option><option value="kg">Kilogramo</option><option value="litro">Litro</option><option value="rollo">Rollo</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Stock mínimo</label><input type="number" id="mpStockMinimo" min="0" step="0.01"></div>
+      <div class="form-group"><label>Precio base</label><input type="number" id="mpPrecioBase" min="0" step="0.01" placeholder="0.00"></div>
+    </div>
+    <div class="form-group" style="display:flex;align-items:center;gap:10px">
+      <input type="checkbox" id="mpDolarizado" style="width:auto">
+      <label for="mpDolarizado" style="text-transform:none;letter-spacing:0;font-size:13px;color:var(--text-primary)">Producto dolarizado (precio base en USD)</label>
+    </div>
+    <div class="form-group"><label>Observaciones internas</label><textarea id="mpObservaciones" rows="2" placeholder="Notas internas, no aparecen en facturas"></textarea></div>
+    <div class="form-group"><label>Especificaciones técnicas</label><textarea id="mpEspecificaciones" rows="2" placeholder="Medidas, densidad, características..."></textarea></div>
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <label style="font-size:11px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px">Formas de comercialización</label>
+        <button class="btn btn-outline btn-sm" onclick="agregarForma()">+ Agregar forma</button>
+      </div>
+      <div id="listaFormas"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="cerrarModalProducto()">Cancelar</button>
+      <button class="btn btn-primario" onclick="guardarProducto()">💾 Guardar producto</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AJUSTE DE STOCK -->
+<div class="overlay" id="modalAjuste">
+  <div class="modal" style="max-width:420px">
+    <h2>📦 Ajuste de Stock</h2>
+    <input type="hidden" id="ajusteId">
+    <p id="ajusteNombre" style="color:var(--text-secondary);font-size:13px;margin-bottom:16px"></p>
+    <div class="form-group">
+      <label>Tipo de ajuste</label>
+      <select id="ajusteTipo">
+        <option value="ingreso">Ingreso de mercadería (+)</option>
+        <option value="egreso">Egreso / Pérdida (-)</option>
+        <option value="directo">Ajuste directo (= valor exacto)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Cantidad</label>
+      <input type="number" id="ajusteCantidad" min="0" step="0.01" placeholder="0">
+    </div>
+    <div class="form-group">
+      <label>Motivo (obligatorio)</label>
+      <input type="text" id="ajusteMotivo" placeholder="ej: Ingreso factura X, rotura, inventario...">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="cerrarModalAjuste()">Cancelar</button>
+      <button class="btn btn-primario" onclick="confirmarAjuste()">✅ Confirmar ajuste</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
