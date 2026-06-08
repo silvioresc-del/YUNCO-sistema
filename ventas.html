@@ -2483,19 +2483,22 @@ function verificarEstadoCajaAlCargar(){
   if(!pantalla) return;
 
   if(!check.ok){
-    // Show blocking screen
+    // Mostrar pantalla de bloqueo
     pantalla.style.display = 'flex';
     document.getElementById('cajaBloqueMsg').textContent = check.mensaje;
-
-    // If gerente/dueno show link to caja module
     const accion = document.getElementById('cajaBloqueAccion');
-    if(vRol === 'gerente' || vRol === 'dueno'){
-      accion.innerHTML = '<a href="caja.html" style="display:inline-block;background:#f59e0b;color:#000;padding:12px 24px;border-radius:10px;font-weight:700;font-size:14px;text-decoration:none">Ir a Caja →</a>';
+
+    if(vRol === 'vendedor'){
+      // Mostrar mensaje y cerrar sesión después de 3 segundos
+      accion.innerHTML = '<div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:14px;font-size:13px;color:#f59e0b">Esperá a que el Gerente o Dueño abra la caja para comenzar a operar.<br><br>Tu sesión se cerrará en unos segundos...</div>';
+      setTimeout(function(){
+        localStorage.removeItem('yunco_session');
+        window.location.href = 'index.html';
+      }, 3000);
     } else {
-      accion.innerHTML = '<div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:14px;font-size:13px;color:#f59e0b">Esperá a que el Gerente o Dueño abra la caja para comenzar a operar.</div>';
+      accion.innerHTML = '<a href="caja.html" style="display:inline-block;background:#f59e0b;color:#000;padding:12px 24px;border-radius:10px;font-weight:700;font-size:14px;text-decoration:none">Ir a Caja →</a>';
     }
   } else {
-    // Hide blocking screen — caja is valid
     pantalla.style.display = 'none';
   }
 }
