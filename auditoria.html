@@ -111,9 +111,9 @@ tr:hover td{background:rgba(74,159,212,.05)!important;}
         </select>
         <input type="date" id="opDesde" onchange="renderOp()">
         <input type="date" id="opHasta" onchange="renderOp()">
-        <button class="btn btn-verde btn-sm" onclick="exportarOp()">📥 Excel</button>
-        <button class="btn btn-outline btn-sm" onclick="imprimirOp()">🖨 Imprimir</button>
-        <button class="btn btn-rojo btn-sm" id="btnLimpiarOp" onclick="limpiarAuditoria('op')">🗑 Limpiar</button>
+        <button class="btn btn-verde btn-sm" onclick="exportarOp()" title="Exportar auditoría a Excel">📥 Excel</button>
+        <button class="btn btn-outline btn-sm" onclick="imprimirOp()" title="Imprimir auditoría">🖨 Imprimir</button>
+        <button class="btn btn-rojo btn-sm" id="btnLimpiarOp" onclick="limpiarAuditoria('op')" title="Limpiar registros de auditoría">🗑 Limpiar</button>
       </div>
       <div id="tablaOp"></div>
     </div>
@@ -142,9 +142,9 @@ tr:hover td{background:rgba(74,159,212,.05)!important;}
         </select>
         <input type="date" id="sysDesde" onchange="renderSys()">
         <input type="date" id="sysHasta" onchange="renderSys()">
-        <button class="btn btn-verde btn-sm" onclick="exportarSys()">📥 Excel</button>
-        <button class="btn btn-outline btn-sm" onclick="imprimirSys()">🖨 Imprimir</button>
-        <button class="btn btn-rojo btn-sm" onclick="limpiarAuditoria('sys')">🗑 Limpiar</button>
+        <button class="btn btn-verde btn-sm" onclick="exportarSys()" title="Exportar auditoría a Excel">📥 Excel</button>
+        <button class="btn btn-outline btn-sm" onclick="imprimirSys()" title="Imprimir auditoría">🖨 Imprimir</button>
+        <button class="btn btn-rojo btn-sm" onclick="limpiarAuditoria('sys')" title="Limpiar registros de auditoría">🗑 Limpiar</button>
       </div>
       <div id="tablaSys"></div>
     </div>
