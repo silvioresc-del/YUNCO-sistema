@@ -149,6 +149,68 @@ tr:hover td { background:rgba(74,159,212,.05)!important; }
 .medio-card { background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:14px; text-align:center; }
 .medios-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-bottom:20px; }
 @media(max-width:600px) { .form-row{grid-template-columns:1fr;} .contenido{padding:16px;} .tabs{gap:4px;} .tab{padding:8px 12px;font-size:11px;} }
+
+/* ── RESPONSIVE GLOBAL ─────────────────────────────────────── */
+.tabla-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
+table { min-width: 500px; }
+.tabla-wrap table { width: 100%; }
+
+/* Toolbar adapts to available space */
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+.toolbar input, .toolbar select { min-width: 120px; flex: 1 1 160px; }
+.toolbar .btn { flex-shrink: 0; }
+
+/* Tabs wrap on small screens */
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+
+/* Stats grids adapt */
+.stats-grid, .stat-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+
+/* Form rows adapt */
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* Modal adapts */
+.modal { width: 100%; box-sizing: border-box; }
+.overlay { padding: 12px; }
+
+/* Buttons always visible */
+.btn { white-space: nowrap; }
+.btn-sm { padding: 5px 10px; font-size: 11px; }
+
+/* Table action columns */
+td[style*="white-space:nowrap"], td[style*="white-space: nowrap"] { min-width: 100px; }
+
+/* Panels fill width */
+.panel { width: 100%; box-sizing: border-box; }
+
+/* Cards */
+.form-card { box-sizing: border-box; width: 100%; }
+
+@media (max-width: 900px) {
+  .form-row { grid-template-columns: 1fr 1fr; }
+  .stats-grid, .stat-strip { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+}
+
+@media (max-width: 600px) {
+  .form-row { grid-template-columns: 1fr; }
+  .tabs .tab { font-size: 11px; padding: 7px 10px; }
+  .stats-grid, .stat-strip { grid-template-columns: 1fr 1fr; }
+  .toolbar { flex-direction: column; align-items: stretch; }
+  .toolbar input, .toolbar select, .toolbar .btn { width: 100%; }
+  .modal { padding: 16px !important; }
+  .topbar-title { font-size: 15px; }
+  h1, .topbar-title { word-break: break-word; }
+}
+
+@media (max-width: 400px) {
+  .stats-grid, .stat-strip { grid-template-columns: 1fr; }
+  .tabs .tab { font-size: 10px; padding: 6px 8px; }
+}
+
+/* Tooltip via title - enhance with CSS */
+[title] { cursor: help; }
+button[title] { cursor: pointer; }
+
 </style>
 </head>
 <body>
@@ -238,7 +300,7 @@ tr:hover td { background:rgba(74,159,212,.05)!important; }
         <div style="color:var(--muted);font-size:13px">Caja abierta · <span id="horaApertura"></span></div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap" id="botonesGerente">
-        <button class="btn btn-amarillo" onclick="solAuth('Cerrar caja del día',cerrarCaja)">🔒 Cerrar Caja</button>
+        <button class="btn btn-amarillo" onclick="solAuth('Cerrar caja del día',cerrarCaja)" title="Cerrar la caja del día">🔒 Cerrar Caja</button>
         <button class="btn btn-primario" onclick="previsualizarCierre()">👁 Vista Previa</button>
       </div>
     </div>
