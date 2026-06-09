@@ -110,7 +110,7 @@ tr:hover td{background:rgba(74,159,212,.05)!important;}
   <!-- FACTURACIÓN -->
   <div class="panel activo" id="panel-facturacion">
     <div class="form-card">
-      <h3>📋 Historial de Comprobantes <span style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text-muted);font-family:'Barlow',sans-serif;font-weight:500">Solo lectura</span><button onclick="exportarExcel('facturacion')" style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--success);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">📥 Excel</button><button onclick="imprimirSeccion('facturacion')" style="background:rgba(45,127,186,.1);border:1px solid rgba(45,127,186,.3);color:var(--accent-light);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">🖨 Imprimir</button></span></h3>
+      <h3>📋 Historial de Comprobantes <span style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text-muted);font-family:'Barlow',sans-serif;font-weight:500">Solo lectura</span><button onclick="exportarExcel('facturacion')" style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--success);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer" title="Exportar a Excel">📥 Excel</button><button onclick="imprimirSeccion('facturacion')" style="background:rgba(45,127,186,.1);border:1px solid rgba(45,127,186,.3);color:var(--accent-light);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer" title="Imprimir sección">🖨 Imprimir</button></span></h3>
       <div class="toolbar">
         <input type="text" id="factBusq" placeholder="Buscar por cliente, N° o vendedor..." oninput="renderFacturacion()" style="flex:1;min-width:200px">
         <select id="factTipo" onchange="renderFacturacion()">
@@ -134,7 +134,7 @@ tr:hover td{background:rgba(74,159,212,.05)!important;}
   <!-- STOCK -->
   <div class="panel" id="panel-stock">
     <div class="form-card">
-      <h3>📦 Stock Completo <span style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text-muted);font-family:'Barlow',sans-serif;font-weight:500">Solo lectura</span><button onclick="exportarExcel('stock')" style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--success);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">📥 Excel</button><button onclick="imprimirSeccion('stock')" style="background:rgba(45,127,186,.1);border:1px solid rgba(45,127,186,.3);color:var(--accent-light);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">🖨 Imprimir</button></span></h3>
+      <h3>📦 Stock Completo <span style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text-muted);font-family:'Barlow',sans-serif;font-weight:500">Solo lectura</span><button onclick="exportarExcel('stock')" style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--success);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer" title="Exportar a Excel">📥 Excel</button><button onclick="imprimirSeccion('stock')" style="background:rgba(45,127,186,.1);border:1px solid rgba(45,127,186,.3);color:var(--accent-light);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer" title="Imprimir sección">🖨 Imprimir</button></span></h3>
       <div class="toolbar">
         <input type="text" id="stockBusq" placeholder="Buscar producto o categoría..." oninput="renderStock()" style="flex:1;min-width:200px">
         <select id="stockCat" onchange="renderStock()">
@@ -154,7 +154,7 @@ tr:hover td{background:rgba(74,159,212,.05)!important;}
   <!-- CLIENTES / CC -->
   <div class="panel" id="panel-clientes">
     <div class="form-card">
-      <h3>👥 Clientes y Cuenta Corriente <span style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text-muted);font-family:'Barlow',sans-serif;font-weight:500">Solo lectura</span><button onclick="exportarExcel('clientes')" style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--success);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">📥 Excel</button><button onclick="imprimirSeccion('clientes')" style="background:rgba(45,127,186,.1);border:1px solid rgba(45,127,186,.3);color:var(--accent-light);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">🖨 Imprimir</button></span></h3>
+      <h3>👥 Clientes y Cuenta Corriente <span style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text-muted);font-family:'Barlow',sans-serif;font-weight:500">Solo lectura</span><button onclick="exportarExcel('clientes')" style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--success);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer" title="Exportar a Excel">📥 Excel</button><button onclick="imprimirSeccion('clientes')" style="background:rgba(45,127,186,.1);border:1px solid rgba(45,127,186,.3);color:var(--accent-light);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer" title="Imprimir sección">🖨 Imprimir</button></span></h3>
       <div class="toolbar">
         <input type="text" id="cliBusq" placeholder="Buscar cliente..." oninput="renderClientes()" style="flex:1;min-width:200px">
         <select id="cliFiltro" onchange="renderClientes()">
@@ -170,7 +170,7 @@ tr:hover td{background:rgba(74,159,212,.05)!important;}
   <!-- CAJA -->
   <div class="panel" id="panel-caja">
     <div class="form-card">
-      <h3>🧾 Estado de Caja <span style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text-muted);font-family:'Barlow',sans-serif;font-weight:500">Solo lectura</span><button onclick="exportarExcel('caja')" style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--success);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">📥 Excel</button><button onclick="imprimirSeccion('caja')" style="background:rgba(45,127,186,.1);border:1px solid rgba(45,127,186,.3);color:var(--accent-light);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">🖨 Imprimir</button></span></h3>
+      <h3>🧾 Estado de Caja <span style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text-muted);font-family:'Barlow',sans-serif;font-weight:500">Solo lectura</span><button onclick="exportarExcel('caja')" style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--success);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer" title="Exportar a Excel">📥 Excel</button><button onclick="imprimirSeccion('caja')" style="background:rgba(45,127,186,.1);border:1px solid rgba(45,127,186,.3);color:var(--accent-light);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer" title="Imprimir sección">🖨 Imprimir</button></span></h3>
       <div id="cajaDashboard"></div>
     </div>
     <div class="form-card">
@@ -182,7 +182,7 @@ tr:hover td{background:rgba(74,159,212,.05)!important;}
   <!-- REPORTES -->
   <div class="panel" id="panel-reportes">
     <div class="form-card">
-      <h3>📊 Resumen General del Sistema <span style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text-muted);font-family:'Barlow',sans-serif;font-weight:500">Solo lectura</span><button onclick="exportarExcel('reportes')" style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--success);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">📥 Excel</button><button onclick="imprimirSeccion('reportes')" style="background:rgba(45,127,186,.1);border:1px solid rgba(45,127,186,.3);color:var(--accent-light);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">🖨 Imprimir</button></span></h3>
+      <h3>📊 Resumen General del Sistema <span style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;color:var(--text-muted);font-family:'Barlow',sans-serif;font-weight:500">Solo lectura</span><button onclick="exportarExcel('reportes')" style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--success);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer" title="Exportar a Excel">📥 Excel</button><button onclick="imprimirSeccion('reportes')" style="background:rgba(45,127,186,.1);border:1px solid rgba(45,127,186,.3);color:var(--accent-light);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer" title="Imprimir sección">🖨 Imprimir</button></span></h3>
       <div class="toolbar">
         <select id="repPeriodo" onchange="renderReportes()">
           <option value="hoy">Hoy</option>
@@ -579,6 +579,68 @@ function imprimirSeccion(seccion){
   tr:nth-child(even) td{background:#f5f5f5;}
   .footer{margin-top:16px;font-size:10px;color:#777;text-align:center;border-top:1px solid #ccc;padding-top:8px;}
   @media print{@page{size:A4;margin:10mm;}}
+
+/* ── RESPONSIVE GLOBAL ─────────────────────────────────────── */
+.tabla-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
+table { min-width: 500px; }
+.tabla-wrap table { width: 100%; }
+
+/* Toolbar adapts to available space */
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+.toolbar input, .toolbar select { min-width: 120px; flex: 1 1 160px; }
+.toolbar .btn { flex-shrink: 0; }
+
+/* Tabs wrap on small screens */
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+
+/* Stats grids adapt */
+.stats-grid, .stat-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+
+/* Form rows adapt */
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* Modal adapts */
+.modal { width: 100%; box-sizing: border-box; }
+.overlay { padding: 12px; }
+
+/* Buttons always visible */
+.btn { white-space: nowrap; }
+.btn-sm { padding: 5px 10px; font-size: 11px; }
+
+/* Table action columns */
+td[style*="white-space:nowrap"], td[style*="white-space: nowrap"] { min-width: 100px; }
+
+/* Panels fill width */
+.panel { width: 100%; box-sizing: border-box; }
+
+/* Cards */
+.form-card { box-sizing: border-box; width: 100%; }
+
+@media (max-width: 900px) {
+  .form-row { grid-template-columns: 1fr 1fr; }
+  .stats-grid, .stat-strip { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+}
+
+@media (max-width: 600px) {
+  .form-row { grid-template-columns: 1fr; }
+  .tabs .tab { font-size: 11px; padding: 7px 10px; }
+  .stats-grid, .stat-strip { grid-template-columns: 1fr 1fr; }
+  .toolbar { flex-direction: column; align-items: stretch; }
+  .toolbar input, .toolbar select, .toolbar .btn { width: 100%; }
+  .modal { padding: 16px !important; }
+  .topbar-title { font-size: 15px; }
+  h1, .topbar-title { word-break: break-word; }
+}
+
+@media (max-width: 400px) {
+  .stats-grid, .stat-strip { grid-template-columns: 1fr; }
+  .tabs .tab { font-size: 10px; padding: 6px 8px; }
+}
+
+/* Tooltip via title - enhance with CSS */
+[title] { cursor: help; }
+button[title] { cursor: pointer; }
+
 </style>
 </head><body>
 <div class="header">
