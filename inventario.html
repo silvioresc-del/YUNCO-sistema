@@ -919,6 +919,8 @@ function renderStock(){
       b.className = 'btn btn-outline btn-sm';
       b.style.margin = '2px';
       b.textContent = icon;
+      const tooltips = {editar:'Editar producto',ingreso:'Ingresar mercadería',ajuste:'Ajustar stock',historial:'Ver historial',toggle:'Activar / Desactivar'};
+      if(tooltips[accion]) b.title = tooltips[accion];
       b.onclick = () => {
         if(accion==='editar') editarProducto(p.id);
         else if(accion==='ingreso') ingresarMercaderia(p.id);
