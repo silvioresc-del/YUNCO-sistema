@@ -198,8 +198,9 @@ tr:hover td { background:rgba(74,159,212,.05)!important; }
     <div class="toolbar">
       <input type="text" id="busqStock" placeholder="🔍 Buscar producto..." oninput="renderStock()">
       <select id="filtCat" onchange="renderStock()"><option value="">Todas las categorías</option></select>
-      <button class="btn btn-primario" onclick="solAuth('Agregar producto',abrirModalProd)">+ Nuevo producto</button>
+      <button class="btn btn-primario" onclick="nuevoProducto()">+ Nuevo producto</button>
     </div>
+    <div id="stockCount" style="font-size:12px;color:var(--text-muted);margin-bottom:8px"></div>
     <div class="tabla-wrap">
       <table>
         <thead id="stockThead"><tr>
@@ -526,6 +527,9 @@ function goTab(t){
   document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('activo',['stock','entrada','salida','historial','alertas'][i]===t));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('activo'));
   document.getElementById('panel-'+t).classList.add('activo');
+  if(t==='stock') renderStock();
+  if(t==='historial') renderHistorial();
+  if(t==='alertas') renderAlertas();
   if(t==='historial')renderHist();
   if(t==='alertas')renderAlertas();
   if(t==='consulta'){document.getElementById('consultaBusq').value='';document.getElementById('consultaResultados').innerHTML='<div class="vacio">Escribí para buscar productos.</div>';}
@@ -769,8 +773,8 @@ function nuevoProducto(){
 
 function renderStock(){
   const prods = getProductos();
-  const q = (document.getElementById('stockBusq')?.value||'').toLowerCase();
-  const cat = document.getElementById('stockCat')?.value||'';
+  const q = (document.getElementById('busqStock')?.value||'').toLowerCase();
+  const cat = document.getElementById('filtCat')?.value||'';
   let filtrados = prods.filter(p => p.activo !== false);
   if(q) filtrados = filtrados.filter(p =>
     (p.nombre||'').toLowerCase().includes(q) ||
@@ -778,7 +782,7 @@ function renderStock(){
     (p.codigo||'').toLowerCase().includes(q)
   );
   if(cat) filtrados = filtrados.filter(p => p.categoria === cat);
-  const el = document.getElementById('stockTabla');
+  const el = document.getElementById('tablaStock');
   if(!el) return;
   const perm = ROLES_INV[vRol]||ROLES_INV['vendedor'];
   const fmt = n => '$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2});
@@ -795,10 +799,10 @@ function renderStock(){
   if(!filtrados.length){
     el.innerHTML='<div class="vacio">No hay productos.</div>';return;
   }
-  el.innerHTML='<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">'+filtrados.length+' productos</div>'+
-    '<div class="tabla-wrap"><table><thead><tr>'+
-    '<th>Código</th><th>Producto</th><th>Categoría</th><th>Stock</th><th>Mín.</th><th>Formas</th>'+
-    precioCols+'<th>Acciones</th></tr></thead><tbody>'+
+  // Update count display
+  const countEl = document.getElementById('stockCount');
+  if(countEl) countEl.textContent = filtrados.length + ' productos';
+  el.innerHTML =
     filtrados.map(p =>
       '<tr>'+
       '<td style="font-family:monospace;font-size:11px">'+p.codigo+'</td>'+
@@ -812,8 +816,7 @@ function renderStock(){
         '<button class="btn btn-outline btn-sm" style="margin-right:4px" onclick="editarProducto(\'' + p.id + '\')">✏️</button>' +
         '<button class="btn btn-outline btn-sm" onclick="ajustarStock(\'' + p.id + '\')">📦</button>':
         '<button class="btn btn-outline btn-sm" onclick="verProducto(\'' + p.id + '\')">👁</button>')+
-      '</td></tr>'    ).join('')+
-    '</tbody></table></div>';
+      '</td></tr>'    ).join('');
 }
 
 // BUSCAR PROD MOV
@@ -1056,9 +1059,9 @@ let vAct = null, vRol = null, vNombre = null;
       if(allTabs[i]) el.style.display = perm.tabs.includes(allTabs[i]) ? '' : 'none';
     });
     migrarProductos();
-    const primerTab = perm.tabs[0] || 'consulta';
-    goTab(vRol === 'vendedor' ? 'consulta' : primerTab);
-    setTimeout(function(){ renderConsulta(''); }, 200);
+    const primerTab = perm.tabs[0] || 'stock';
+    goTab(primerTab);
+    setTimeout(function(){ renderStock(); }, 300);
   } catch(e) { window.location.href='index.html'; }
 })();
 
