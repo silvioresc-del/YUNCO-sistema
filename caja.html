@@ -539,9 +539,10 @@ function getVentasHoy(fecha){
 
 // STATS
 function actualizarStats(){
-  const ventas=getVentasHoy(fecha);
-  const hoy=getFechaHoy();
-  const caja=S.g('yunco_caja_'+hoy,{gastos:[],cobros_cte:[]});
+  const hoyStats=getFechaHoy();
+  const ventas=getVentasHoy(hoyStats);
+  
+  const caja=S.g('yunco_caja_'+hoyStats,{gastos:[],cobros_cte:[]});
   const gastos=caja.gastos||[];
   const cobros=caja.cobros_cte||[];
 
@@ -583,7 +584,7 @@ function actualizarStats(){
 
 // VENTAS
 function renderVentas(){
-  const ventas=getVentasHoy(fecha);
+  const ventas=getVentasHoy(getFechaHoy());
   const tbody=document.getElementById('tablaVentas');
   if(!ventas.length){tbody.innerHTML='<tr><td colspan="7"><div class="vacio">No hay ventas registradas hoy.</div></td></tr>';return;}
   const pi={efectivo:'💵',transferencia:'🏦',qr:'📱',tarjeta:'💳',cheque:'📄',cuenta_corriente:'📒'};
@@ -733,6 +734,21 @@ function cerrarCaja(){
   const verificacion = S.g('yunco_caja_' + fechaCierre, null);
   if(verificacion && verificacion.abierta === false){
     auditCajaOp('CAJA_CIERRE', 'Caja del ' + fechaCierre + ' cerrada correctamente');
+    // Limpiar cualquier caja huérfana de días anteriores que haya quedado abierta
+    const hoyLimpieza = getFechaHoy();
+    Object.keys(localStorage).forEach(k => {
+      if(!k.startsWith('yunco_caja_')) return;
+      const f = k.replace('yunco_caja_','');
+      if(f === hoyLimpieza) return;
+      try{
+        const c = JSON.parse(localStorage.getItem(k));
+        if(c && c.abierta === true){
+          c.abierta = false;
+          c.cierreAutomatico = true;
+          localStorage.setItem(k, JSON.stringify(c));
+        }
+      }catch{}
+    });
     // Generar backup automático
     try{
       const nombreArchivo = generarBackup();
@@ -747,7 +763,7 @@ function cerrarCaja(){
 }
 
 function generarResumen(fecha){
-  const ventas=getVentasHoy(fecha);
+  const ventas=getVentasHoy(getFechaHoy());
   const hoy = fecha || getFechaHoy();
   const caja=S.g('yunco_caja_' + hoy,{gastos:[],cobros_cte:[]});
   let totVentas=0,ef=0,tr=0,qr=0,ta=0,ch=0,cc=0;
