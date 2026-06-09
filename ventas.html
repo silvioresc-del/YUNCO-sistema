@@ -1914,7 +1914,14 @@ document.addEventListener('click',e=>{
 function renderConsulta(){
   const q = (document.getElementById('consultaBusq')?.value||'').toLowerCase().trim();
   let prods = [];
-  try{ prods = JSON.parse(localStorage.getItem('yunco_inv')||'[]'); }catch{ prods=[]; }
+  try{
+    const nuevos = JSON.parse(localStorage.getItem('yunco_productos')||'null');
+    if(nuevos && nuevos.length > 0 && nuevos[0].formas !== undefined){
+      prods = nuevos.filter(p => p.activo !== false);
+    } else {
+      prods = JSON.parse(localStorage.getItem('yunco_inv')||'[]');
+    }
+  }catch{ prods=[]; }
   const filtrados = q ? prods.filter(p =>
     (p.nombre||'').toLowerCase().includes(q) ||
     (p.categoria||'').toLowerCase().includes(q)
@@ -2265,6 +2272,10 @@ function procesar(modo){
     descontarStockVenta(data.items||[], data.nro);
   }
   // Auditoría operativa
+  // Refrescar consulta de stock si está visible
+  if(data.modo === 'registrar' && typeof renderConsulta === 'function'){
+    setTimeout(function(){ renderConsulta(); }, 200);
+  }
   auditOp(data.modo==='registrar'?'VENTA_REGISTRADA':'VENTA_GRABADA',
     data.tipo + ' ' + data.nro + ' — ' + (data.cli?.nom||'CF') + ' — $' + parseFloat(data.total||0).toLocaleString('es-AR'),
     {compId: data.id, tipo: data.tipo, total: data.total, pago: data.pago}
