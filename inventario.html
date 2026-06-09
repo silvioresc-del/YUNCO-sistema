@@ -199,15 +199,15 @@ tr:hover td { background:rgba(74,159,212,.05)!important; }
     <div class="toolbar">
       <input type="text" id="busqStock" placeholder="🔍 Buscar producto..." oninput="renderStock()">
       <select id="filtCat" onchange="renderStock()"><option value="">Todas las categorías</option></select>
-      <button class="btn btn-primario" onclick="nuevoProducto()">+ Nuevo producto</button>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="chkInactivos" onchange="renderStock()"> Mostrar inactivos</label><button class="btn btn-primario" onclick="nuevoProducto()">+ Nuevo producto</button>
     </div>
     <div id="stockCount" style="font-size:12px;color:var(--text-muted);margin-bottom:8px"></div>
     <div class="tabla-wrap">
       <table>
         <thead id="stockThead"><tr>
-          <th>Producto</th><th>Categoría</th><th>Stock</th>
+          <th>Código</th><th>Producto</th><th>Categoría</th><th>Stock</th>
           <th>Unidad</th><th id="thCosto" style="display:none">Costo</th><th>Precio venta</th><th>Acciones</th>
-        </tr></thead>
+        <th>Stock</th><th>Mínimo</th><th>Formas</th><th>Precio</th><th>Acciones</th></tr></thead>
         <tbody id="tablaStock"></tbody>
       </table>
     </div>
@@ -284,8 +284,8 @@ tr:hover td { background:rgba(74,159,212,.05)!important; }
   <!-- HISTORIAL -->
   <div class="panel" id="panel-historial">
     <div class="toolbar">
-      <input type="text" id="busqHist" placeholder="🔍 Buscar..." oninput="renderHist()">
-      <select id="filtHistTipo" onchange="renderHist()">
+      <input type="text" id="busqHist" placeholder="🔍 Buscar..." oninput="renderHistorial()">
+      <select id="filtHistTipo" onchange="renderHistorial()">
         <option value="">Todos</option>
         <option value="entrada">📥 Entradas</option>
         <option value="salida">📤 Salidas</option>
@@ -549,7 +549,7 @@ function goTab(t){
   document.getElementById('panel-'+t).classList.add('activo');
   if(t==='stock') renderStock();
   if(t==='datos') renderEstadoDatos();
-  if(t==='historial') renderHistorial();
+  if(t==='historial'){ renderHistorial(); }
   if(t==='alertas') renderAlertas();
   if(t==='historial')renderHist();
   if(t==='alertas')renderAlertas();
@@ -796,48 +796,95 @@ function renderStock(){
   const prods = getProductos();
   const q = (document.getElementById('busqStock')?.value||'').toLowerCase();
   const cat = document.getElementById('filtCat')?.value||'';
-  let filtrados = prods.filter(p => p.activo !== false);
+  const mostrarInactivos = document.getElementById('chkInactivos')?.checked||false;
+
+  const cats = [...new Set(prods.map(p=>p.categoria).filter(Boolean))].sort();
+  const selCat = document.getElementById('filtCat');
+  if(selCat && selCat.options.length <= 1){
+    cats.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;selCat.appendChild(o);});
+  }
+
+  let filtrados = prods.filter(p => mostrarInactivos ? true : p.activo !== false);
   if(q) filtrados = filtrados.filter(p =>
     (p.nombre||'').toLowerCase().includes(q) ||
     (p.categoria||'').toLowerCase().includes(q) ||
-    (p.codigo||'').toLowerCase().includes(q)
+    (p.codigo||'').toLowerCase().includes(q) ||
+    (p.descripcion||'').toLowerCase().includes(q)
   );
   if(cat) filtrados = filtrados.filter(p => p.categoria === cat);
+
   const el = document.getElementById('tablaStock');
   if(!el) return;
+
   const perm = ROLES_INV[vRol]||ROLES_INV['vendedor'];
   const fmt = n => '$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2});
-  const fmtS = p => {
-    const s=parseFloat(p.stock||0), m=parseFloat(p.stockMinimo||0);
-    const color=s<=0?'var(--danger)':s<=m?'var(--warning)':'var(--success)';
-    return '<span style="color:'+color+';font-weight:800">'+s+' '+p.unidadStock+'</span>';
-  };
-  const precioCols = perm.verPrecioVenta ?
-    '<th>Precio Base</th><th>Dolar.</th>' : '';
-  const precioRows = p => perm.verPrecioVenta ?
-    '<td>'+(parseFloat(p.precioBase||0)>0?fmt(p.precioBase):'<span style="color:var(--text-muted)">Sin precio</span>')+'</td>'+
-    '<td style="text-align:center">'+(p.dolarizado?'💵':'—')+'</td>' : '';
-  if(!filtrados.length){
-    el.innerHTML='<div class="vacio">No hay productos.</div>';return;
-  }
-  // Update count display
+
   const countEl = document.getElementById('stockCount');
-  if(countEl) countEl.textContent = filtrados.length + ' productos';
-  el.innerHTML =
-    filtrados.map(p =>
-      '<tr>'+
-      '<td style="font-family:monospace;font-size:11px">'+p.codigo+'</td>'+
-      '<td><strong>'+p.nombre+'</strong>'+(p.marca?'<br><span style="font-size:11px;color:var(--text-muted)">'+p.marca+'</span>':'')+'</td>'+
-      '<td><span class="cat-tag">'+p.categoria+'</span></td>'+
-      '<td>'+fmtS(p)+'</td>'+
-      '<td style="color:var(--text-muted)">'+parseFloat(p.stockMinimo||0)+' '+p.unidadStock+'</td>'+
-      '<td style="font-size:11px;color:var(--text-secondary)">'+(p.formas||[]).map(f=>f.nombre).join(', ')+'</td>'+
-      precioRows(p)+
-      '<td style="white-space:nowrap">'+(perm.modificar?
-        '<button class="btn btn-outline btn-sm" style="margin-right:4px" onclick="editarProducto(\'' + p.id + '\')">✏️</button>' +
-        '<button class="btn btn-outline btn-sm" onclick="ajustarStock(\'' + p.id + '\')">📦</button>':
-        '<button class="btn btn-outline btn-sm" onclick="verProducto(\'' + p.id + '\')">👁</button>')+
-      '</td></tr>'    ).join('');
+  if(countEl) countEl.textContent = filtrados.length + ' de ' + prods.filter(p=>p.activo!==false).length + ' productos';
+
+  if(!filtrados.length){
+    el.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--muted)">No hay productos.</td></tr>';
+    return;
+  }
+
+  const rows = [];
+  filtrados.forEach(p => {
+    const s = parseFloat(p.stock||0);
+    const m = parseFloat(p.stockMinimo||0);
+    const sColor = s<=0?'var(--rojo3)':s<=m?'var(--amarillo)':'var(--verde3)';
+    const sLabel = s<=0?' ⚠️SIN STOCK':s<=m?' ⚠️BAJO':'';
+    const inactivo = p.activo === false;
+    const formasStr = (p.formas||[]).map(f=>f.nombre).join(', ') || '—';
+    const precio = perm.verPrecioVenta ? fmt(p.precioBase) + (p.dolarizado?' 💵':'') : '—';
+    const tr = document.createElement('tr');
+    if(inactivo) tr.style.opacity = '0.5';
+    tr.dataset.prodId = p.id;
+    tr.innerHTML =
+      '<td style="font-family:monospace;font-size:11px;color:var(--muted)">' + (p.codigo||'—') + '</td>' +
+      '<td><strong>' + p.nombre + '</strong>' +
+        (p.marca?'<br><span style="font-size:11px;color:var(--muted)">'+p.marca+'</span>':'') +
+        (inactivo?'<br><span style="font-size:10px;color:var(--rojo3);font-weight:800">INACTIVO</span>':'') +
+      '</td>' +
+      '<td><span class="cat-tag">' + p.categoria + '</span></td>' +
+      '<td><span style="color:'+sColor+';font-weight:800">' + s + ' ' + p.unidadStock + sLabel + '</span></td>' +
+      '<td style="color:var(--muted);font-size:12px">' + m + ' ' + p.unidadStock + '</td>' +
+      '<td style="font-size:12px;color:var(--texto-sec)">' + formasStr + '</td>' +
+      '<td>' + precio + '</td>' +
+      '<td style="white-space:nowrap"></td>';
+    const tdAcc = tr.querySelector('td:last-child');
+    const addBtn = (accion, icon) => {
+      const b = document.createElement('button');
+      b.className = 'btn btn-outline btn-sm';
+      b.style.margin = '2px';
+      b.textContent = icon;
+      b.onclick = () => {
+        if(accion==='editar') editarProducto(p.id);
+        else if(accion==='ingreso') ingresarMercaderia(p.id);
+        else if(accion==='ajuste') ajustarStock(p.id);
+        else if(accion==='historial') verHistorialProd(p.id);
+        else if(accion==='toggle') toggleActivo(p.id);
+      };
+      tdAcc.appendChild(b);
+    };
+    if(perm.modificar){
+      addBtn('editar','✏️');
+      addBtn('ingreso','📥');
+      addBtn('ajuste','⚖️');
+      addBtn('historial','📋');
+      const toggleBtn = document.createElement('button');
+      toggleBtn.className = 'btn btn-outline btn-sm';
+      toggleBtn.style.margin = '2px';
+      toggleBtn.style.color = inactivo?'var(--verde3)':'var(--rojo3)';
+      toggleBtn.textContent = inactivo?'✅':'🚫';
+      toggleBtn.onclick = () => toggleActivo(p.id);
+      tdAcc.appendChild(toggleBtn);
+    } else {
+      addBtn('historial','📋');
+    }
+    rows.push(tr);
+  });
+  el.innerHTML = '';
+  rows.forEach(r => el.appendChild(r));
 }
 
 // BUSCAR PROD MOV
@@ -1199,6 +1246,119 @@ function forzarMigracion(){
   renderStock();
 }
 
+
+function ingresarMercaderia(id){
+  const p = getProdById(id);
+  if(!p) return;
+  document.getElementById('ajusteId').value = id;
+  document.getElementById('ajusteNombre').textContent = p.nombre + ' — Stock actual: ' + p.stock + ' ' + p.unidadStock;
+  document.getElementById('ajusteCantidad').value = '';
+  document.getElementById('ajusteTipo').value = 'ingreso';
+  document.getElementById('ajusteMotivo').value = '';
+  // Change modal title
+  document.querySelector('#modalAjuste h2').textContent = '📥 Ingreso de Mercadería';
+  document.getElementById('modalAjuste').classList.add('abierto');
+}
+
+function toggleActivo(id){
+  const prods = getProductos();
+  const idx = prods.findIndex(p => p.id === id);
+  if(idx < 0) return;
+  const p = prods[idx];
+  const nuevoEstado = p.activo === false ? true : false;
+  const accion = nuevoEstado ? 'activar' : 'desactivar';
+  if(!confirm('¿Querés ' + accion + ' el producto "' + p.nombre + '"?')) return;
+  p.activo = nuevoEstado;
+  p.historial.unshift({
+    fecha: new Date().toISOString(),
+    usuario: vAct, usuarioNom: vNombre,
+    tipo: nuevoEstado ? 'activacion' : 'desactivacion',
+    anterior: !nuevoEstado, nuevo: nuevoEstado,
+    motivo: accion.charAt(0).toUpperCase() + accion.slice(1) + ' manual'
+  });
+  prods[idx] = p;
+  saveProductos(prods);
+  if(typeof auditOp === 'function') auditOp('PRODUCTO_' + accion.toUpperCase(), p.nombre);
+  renderStock();
+}
+
+function verHistorialProd(id){
+  const p = getProdById(id);
+  if(!p){ alert('Producto no encontrado.'); return; }
+  const hist = p.historial || [];
+  const fmt = n => '$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2});
+  const tipoLabel = {
+    precio:'💰 Precio', stock:'📦 Stock', venta:'💵 Venta',
+    stock_ingreso:'📥 Ingreso', stock_egreso:'📤 Egreso',
+    stock_directo:'⚖️ Ajuste', activacion:'✅ Activado',
+    desactivacion:'🚫 Desactivado'
+  };
+  const rows = hist.map(h =>
+    '<tr>' +
+    '<td style="white-space:nowrap;font-size:12px">' + new Date(h.fecha).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}) + '</td>' +
+    '<td>' + (tipoLabel[h.tipo]||h.tipo) + '</td>' +
+    '<td>' + (h.usuarioNom||h.usuario||'—') + '</td>' +
+    '<td style="color:var(--muted)">' + h.anterior + ' → ' + h.nuevo + '</td>' +
+    '<td style="font-size:12px;color:var(--muted)">' + (h.motivo||'—') + '</td>' +
+    '</tr>'
+  ).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Sin historial registrado.</td></tr>';
+
+  document.getElementById('histProdTitulo').textContent = '📋 Historial: ' + p.nombre;
+  document.getElementById('histProdTabla').innerHTML = rows;
+  document.getElementById('modalHistProd').classList.add('abierto');
+}
+
+function cerrarHistorialProd(){
+  document.getElementById('modalHistProd').classList.remove('abierto');
+}
+
+function renderHistorial(){
+  // Consolidate historial from all products in yunco_productos
+  const prods = getProductos();
+  const q = (document.getElementById('busqHist')?.value||'').toLowerCase();
+  const tipo = document.getElementById('filtHistTipo')?.value||'';
+  let todos = [];
+  prods.forEach(p => {
+    (p.historial||[]).forEach(h => {
+      todos.push({...h, prodNombre: p.nombre, prodId: p.id, prodCod: p.codigo});
+    });
+  });
+  // Sort by date desc
+  todos.sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+  if(q) todos = todos.filter(x => (x.prodNombre||'').toLowerCase().includes(q) || (x.motivo||'').toLowerCase().includes(q));
+  if(tipo) todos = todos.filter(x => x.tipo === tipo || (tipo==='entrada' && x.tipo==='stock_ingreso') || (tipo==='salida' && x.tipo==='stock_egreso') || (tipo==='venta' && x.tipo==='venta'));
+  const el = document.getElementById('listaHist');
+  if(!el) return;
+  if(!todos.length){ el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">Sin movimientos registrados.</div>'; return; }
+  const tipoLabel = {precio:'💰 Precio',stock:'📦 Stock',venta:'💵 Venta',stock_ingreso:'📥 Ingreso',stock_egreso:'📤 Egreso',stock_directo:'⚖️ Ajuste',activacion:'✅ Activado',desactivacion:'🚫 Desactivado'};
+  el.innerHTML = '<div class="tabla-wrap"><table><thead><tr><th>Fecha</th><th>Producto</th><th>Tipo</th><th>Usuario</th><th>Cambio</th><th>Motivo</th></tr></thead><tbody>' +
+    todos.slice(0,300).map(h =>
+      '<tr><td style="white-space:nowrap;font-size:12px">' + new Date(h.fecha).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}) + '</td>' +
+      '<td><strong>' + (h.prodNombre||'—') + '</strong><br><span style="font-size:11px;color:var(--muted)">' + (h.prodCod||'') + '</span></td>' +
+      '<td>' + (tipoLabel[h.tipo]||h.tipo) + '</td>' +
+      '<td style="font-size:12px">' + (h.usuarioNom||h.usuario||'—') + '</td>' +
+      '<td style="font-size:12px">' + h.anterior + ' → ' + h.nuevo + '</td>' +
+      '<td style="font-size:12px;color:var(--muted)">' + (h.motivo||'—') + '</td>' +
+      '</tr>').join('') +
+    '</tbody></table></div>';
+}
+
+
+// Event delegation for stock table actions
+document.addEventListener('click', function(e){
+  const btn = e.target.closest('[data-accion]');
+  if(!btn) return;
+  const td = btn.closest('[data-id]');
+  if(!td) return;
+  const id = td.dataset.id;
+  const accion = btn.dataset.accion;
+  if(accion === 'editar') editarProducto(id);
+  else if(accion === 'ingreso') ingresarMercaderia(id);
+  else if(accion === 'ajuste') ajustarStock(id);
+  else if(accion === 'historial') verHistorialProd(id);
+  else if(accion === 'toggle') toggleActivo(id);
+});
+
 </script>
 
 <!-- MODAL EDITAR PRODUCTO -->
@@ -1289,6 +1449,23 @@ function forzarMigracion(){
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="cerrarModalAjuste()">Cancelar</button>
       <button class="btn btn-primario" onclick="confirmarAjuste()">✅ Confirmar ajuste</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL HISTORIAL PRODUCTO -->
+<div class="overlay" id="modalHistProd">
+  <div class="modal" style="max-width:800px;max-height:90vh;overflow-y:auto">
+    <h2 id="histProdTitulo">📋 Historial</h2>
+    <div class="tabla-wrap" style="margin-top:14px">
+      <table>
+        <thead><tr><th>Fecha</th><th>Tipo</th><th>Usuario</th><th>Cambio</th><th>Motivo</th></tr></thead>
+        <tbody id="histProdTabla"></tbody>
+      </table>
+    </div>
+    <div class="modal-footer" style="margin-top:16px">
+      <button class="btn btn-outline" onclick="cerrarHistorialProd()">Cerrar</button>
     </div>
   </div>
 </div>
