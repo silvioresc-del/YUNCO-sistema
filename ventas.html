@@ -1510,7 +1510,16 @@ function getItemsFrom(bodyId){
     const inp=tr.querySelectorAll('input'),sel=tr.querySelectorAll('select');
     if(inp.length<5)return;
     const desc=inp[1].value.trim(),cant=parseFloat(inp[2].value)||0,p=parseFloat(inp[4].value)||0;
-    if(desc&&cant>0)items.push({cod:inp[0].value,desc,cant,um:inp[3].value,precio:p,iva:sel[0]?.value||21});
+    if(desc&&cant>0) items.push({
+      cod: inp[0].value,
+      desc, cant,
+      um: inp[3].value,
+      precio: p,
+      iva: sel[0]?.value||21,
+      prodId: tr.dataset.prodId||null,
+      formaId: tr.dataset.formaId||null,
+      factorStock: parseFloat(tr.dataset.factorStock||1)
+    });
   });
   return items;
 }
@@ -2251,6 +2260,10 @@ function procesar(modo){
     data.cajaFecha = cajaActiva.fecha;
   }
   const comp=S.g('yunco_comp',[]);comp.unshift(data);S.s('yunco_comp',comp);
+  // Descontar stock solo al registrar
+  if(data.modo === 'registrar' && data.tipo !== 'NC' && data.tipo !== 'ND'){
+    descontarStockVenta(data.items||[], data.nro);
+  }
   // Auditoría operativa
   auditOp(data.modo==='registrar'?'VENTA_REGISTRADA':'VENTA_GRABADA',
     data.tipo + ' ' + data.nro + ' — ' + (data.cli?.nom||'CF') + ' — $' + parseFloat(data.total||0).toLocaleString('es-AR'),
@@ -2729,6 +2742,34 @@ function cancelarAuthOp(){
     if(sel) sel.value = 'B';
     onTipoChange();
   }
+}
+
+
+function descontarStockVenta(items, nroComp){
+  try{
+    const prods = JSON.parse(localStorage.getItem('yunco_productos')||'[]');
+    if(!prods.length) return;
+    let modificado = false;
+    items.forEach(function(item){
+      if(!item.prodId) return;
+      const idx = prods.findIndex(function(p){ return p.id === item.prodId || String(p.idLegacy) === String(item.prodId); });
+      if(idx < 0) return;
+      const p = prods[idx];
+      const cant = parseFloat(item.cant||1);
+      const factor = parseFloat(item.factorStock||1);
+      const anterior = parseFloat(p.stock||0);
+      p.stock = Math.max(0, anterior - (cant * factor));
+      if(!p.historial) p.historial = [];
+      p.historial.unshift({
+        fecha: new Date().toISOString(),
+        usuario: vAct, usuarioNom: vNombre,
+        tipo: 'venta', anterior: anterior, nuevo: p.stock,
+        motivo: 'Venta: ' + (nroComp||'')
+      });
+      modificado = true;
+    });
+    if(modificado) localStorage.setItem('yunco_productos', JSON.stringify(prods));
+  } catch(e){ console.error('Error stock:', e); }
 }
 
 </script>
