@@ -186,6 +186,7 @@ tr:hover td { background:rgba(74,159,212,.05)!important; }
 
   <div class="tabs">
     <div class="tab activo" onclick="goTab('stock')">📋 Stock</div>
+    <div class="tab" onclick="goTab('datos')">🗄 Estado de Datos</div>
     <div class="tab" onclick="goTab('entrada')">📥 Entrada mercadería</div>
     <div class="tab" onclick="goTab('salida')">📤 Salida / Ajuste</div>
     <div class="tab" onclick="goTab('historial')">🕓 Historial</div>
@@ -310,6 +311,25 @@ tr:hover td { background:rgba(74,159,212,.05)!important; }
       </div>
     </div>
     <div id="consultaResultados" style="margin-top:16px"></div>
+  </div>
+
+
+  <!-- ESTADO DE DATOS -->
+  <div class="panel" id="panel-datos">
+    <div class="form-card" style="max-width:700px">
+      <h3 style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--azul3);margin-bottom:20px">🗄 Estado de la Base de Datos de Productos</h3>
+
+      <div id="estadoDatos" style="margin-bottom:20px"></div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primario" onclick="ejecutarMigracion()">🔄 Migrar productos desde código</button>
+        <button class="btn btn-outline" onclick="renderEstadoDatos()">↻ Actualizar estado</button>
+        <button class="btn btn-rojo" onclick="forzarMigracion()">⚠️ Forzar re-migración</button>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-top:10px">
+        "Migrar" solo actúa si yunco_productos no existe. "Forzar" reemplaza los datos existentes con los del código.
+      </p>
+    </div>
   </div>
 
 </div>
@@ -528,6 +548,7 @@ function goTab(t){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('activo'));
   document.getElementById('panel-'+t).classList.add('activo');
   if(t==='stock') renderStock();
+  if(t==='datos') renderEstadoDatos();
   if(t==='historial') renderHistorial();
   if(t==='alertas') renderAlertas();
   if(t==='historial')renderHist();
@@ -1075,6 +1096,109 @@ if(!localStorage.getItem('yunco_inv')){
   localStorage.setItem('yunco_inv',JSON.stringify(PROD_DEFAULT));
 }
 fillCatFilter();actualizarStats();renderStock();
+
+// ══════════════════════════════════════════════════════════════
+// ESTADO DE DATOS
+// ══════════════════════════════════════════════════════════════
+
+function renderEstadoDatos(){
+  const el = document.getElementById('estadoDatos');
+  if(!el) return;
+
+  const yuncoProds = localStorage.getItem('yunco_productos');
+  const yuncoInv = localStorage.getItem('yunco_inv');
+  const parsedProds = yuncoProds ? JSON.parse(yuncoProds) : null;
+  const parsedInv = yuncoInv ? JSON.parse(yuncoInv) : null;
+
+  const tieneNuevo = parsedProds && parsedProds.length > 0 && parsedProds[0].formas !== undefined;
+  const tieneInv = parsedInv && parsedInv.length > 0;
+
+  // Determine origin
+  let origen, estado, cantidad, fechaMig, colorEstado;
+
+  if(tieneNuevo){
+    origen = 'yunco_productos (nueva arquitectura v2.0)';
+    estado = '✅ Migración completada';
+    cantidad = parsedProds.length;
+    colorEstado = 'var(--verde3)';
+    // Try to find migration date from first product historial
+    const conHist = parsedProds.find(p => p.historial && p.historial.length > 0);
+    fechaMig = conHist ? new Date(conHist.historial[conHist.historial.length-1]?.fecha||'').toLocaleString('es-AR') : 'No registrada';
+  } else if(tieneInv){
+    origen = 'yunco_inv (formato legacy)';
+    estado = '⚠️ Migración pendiente';
+    cantidad = parsedInv.length;
+    colorEstado = 'var(--amarillo)';
+    fechaMig = '—';
+  } else if(typeof PROD_DEFAULT !== 'undefined' && PROD_DEFAULT.length > 0){
+    origen = 'PROD_DEFAULT (código fuente)';
+    estado = '🔴 Sin migrar';
+    cantidad = PROD_DEFAULT.length;
+    colorEstado = 'var(--rojo3)';
+    fechaMig = '—';
+  } else {
+    origen = '—';
+    estado = '🔴 Sin datos';
+    cantidad = 0;
+    colorEstado = 'var(--rojo3)';
+    fechaMig = '—';
+  }
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div style="background:var(--bg2);border:1px solid var(--borde);border-radius:10px;padding:14px">
+        <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:var(--muted);margin-bottom:6px">ESTADO</div>
+        <div style="font-size:15px;font-weight:700;color:${colorEstado}">${estado}</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--borde);border-radius:10px;padding:14px">
+        <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:var(--muted);margin-bottom:6px">PRODUCTOS ALMACENADOS</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--texto)">${cantidad}</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--borde);border-radius:10px;padding:14px">
+        <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:var(--muted);margin-bottom:6px">ORIGEN DE DATOS</div>
+        <div style="font-size:13px;color:var(--texto-sec)">${origen}</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--borde);border-radius:10px;padding:14px">
+        <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:var(--muted);margin-bottom:6px">FECHA DE MIGRACIÓN</div>
+        <div style="font-size:13px;color:var(--texto-sec)">${fechaMig}</div>
+      </div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--borde);border-radius:10px;padding:14px">
+      <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:var(--muted);margin-bottom:8px">DETALLE POR FUENTE</div>
+      <div style="font-size:13px;color:var(--texto-sec);line-height:1.8">
+        yunco_productos: ${parsedProds ? parsedProds.length + ' registros' : 'no existe'}<br>
+        yunco_inv: ${parsedInv ? parsedInv.length + ' registros' : 'no existe'}<br>
+        PROD_DEFAULT: ${typeof PROD_DEFAULT !== 'undefined' ? PROD_DEFAULT.length + ' productos en código' : 'no disponible'}
+      </div>
+    </div>`;
+}
+
+function ejecutarMigracion(){
+  const existente = localStorage.getItem('yunco_productos');
+  const parsed = existente ? JSON.parse(existente) : null;
+  const tieneNuevo = parsed && parsed.length > 0 && parsed[0].formas !== undefined;
+
+  if(tieneNuevo){
+    alert('yunco_productos ya existe con ' + parsed.length + ' productos.\nUsá "Forzar re-migración" si querés reemplazar los datos.');
+    return;
+  }
+
+  migrarProductos();
+  const resultado = JSON.parse(localStorage.getItem('yunco_productos')||'[]');
+  alert('✅ Migración completada.\n' + resultado.length + ' productos migrados a yunco_productos.');
+  renderEstadoDatos();
+}
+
+function forzarMigracion(){
+  if(!confirm('⚠️ Esto reemplazará yunco_productos con los productos del código.\n\nSe perderán las modificaciones manuales de stock y precio que hayas hecho desde la interfaz.\n\n¿Continuás?')) return;
+  localStorage.removeItem('yunco_productos');
+  migrarProductos();
+  const resultado = JSON.parse(localStorage.getItem('yunco_productos')||'[]');
+  alert('✅ Re-migración forzada.\n' + resultado.length + ' productos.');
+  renderEstadoDatos();
+  renderStock();
+}
+
 </script>
 
 <!-- MODAL EDITAR PRODUCTO -->
@@ -1119,6 +1243,25 @@ fillCatFilter();actualizarStats();renderStock();
       <button class="btn btn-primario" onclick="guardarProducto()">💾 Guardar producto</button>
     </div>
   </div>
+
+  <!-- ESTADO DE DATOS -->
+  <div class="panel" id="panel-datos">
+    <div class="form-card" style="max-width:700px">
+      <h3 style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--azul3);margin-bottom:20px">🗄 Estado de la Base de Datos de Productos</h3>
+
+      <div id="estadoDatos" style="margin-bottom:20px"></div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primario" onclick="ejecutarMigracion()">🔄 Migrar productos desde código</button>
+        <button class="btn btn-outline" onclick="renderEstadoDatos()">↻ Actualizar estado</button>
+        <button class="btn btn-rojo" onclick="forzarMigracion()">⚠️ Forzar re-migración</button>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-top:10px">
+        "Migrar" solo actúa si yunco_productos no existe. "Forzar" reemplaza los datos existentes con los del código.
+      </p>
+    </div>
+  </div>
+
 </div>
 
 <!-- MODAL AJUSTE DE STOCK -->
