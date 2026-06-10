@@ -211,6 +211,19 @@ td[style*="white-space:nowrap"], td[style*="white-space: nowrap"] { min-width: 1
 [title] { cursor: help; }
 button[title] { cursor: pointer; }
 
+
+/* ── MODALES ─────────────────────────────────────────────── */
+.overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;padding:16px;overflow-y:auto;}
+.overlay.abierto{display:flex;}
+.modal{background:var(--bg-card,#111f33);border:1px solid var(--border-mid,rgba(74,159,212,.2));border-radius:16px;padding:24px;width:100%;box-sizing:border-box;position:relative;max-height:90vh;overflow-y:auto;}
+.modal h2{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--text-secondary,#8baec8);margin-bottom:16px;}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border-subtle,rgba(255,255,255,.06));}
+.form-group{margin-bottom:12px;}
+.form-group label{display:block;font-size:10px;font-weight:800;letter-spacing:1px;color:var(--text-muted,#4d6a82);margin-bottom:5px;text-transform:uppercase;}
+.form-group input,.form-group select,.form-group textarea{width:100%;background:var(--bg-input,#0a1525);border:1px solid var(--border-subtle,rgba(255,255,255,.06));color:var(--text-primary,#eef4fb);padding:10px 13px;border-radius:8px;font-family:'Barlow',sans-serif;font-size:14px;outline:none;box-sizing:border-box;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--border-strong,rgba(74,159,212,.45));}
+.forma-item{background:rgba(255,255,255,.03);border:1px solid var(--border-subtle,rgba(255,255,255,.06));border-radius:8px;padding:12px;margin-bottom:8px;}
+
 </style>
 </head>
 <body>
@@ -263,7 +276,10 @@ button[title] { cursor: pointer; }
       <select id="filtCat" onchange="renderStock()"><option value="">Todas las categorías</option></select>
       <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="chkInactivos" onchange="renderStock()"> Mostrar inactivos</label><button class="btn btn-primario" onclick="nuevoProducto()" title="Crear nuevo producto">+ Nuevo producto</button>
     </div>
-    <div id="stockCount" style="font-size:12px;color:var(--text-muted);margin-bottom:8px"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div id="stockCount" style="font-size:12px;color:var(--muted)"></div>
+      <button class="btn btn-primario btn-sm" onclick="nuevoProducto()" title="Crear nuevo producto">+ Nuevo producto</button>
+    </div>
     <div class="tabla-wrap">
       <table>
         <thead id="stockThead"><tr>
@@ -1327,8 +1343,9 @@ function confirmarIngreso(){
   if(idx < 0){ alert('Producto no encontrado.'); return; }
 
   const p = prods[idx];
-  const anterior = p.stock;
-  p.stock = anterior + cantidad;
+  const anterior = parseFloat(p.stock)||0;
+  const cantNum = parseFloat(cantidad);
+  p.stock = parseFloat((anterior + cantNum).toFixed(4));
 
   p.historial.unshift({
     fecha: new Date().toISOString(),
@@ -1783,7 +1800,7 @@ document.addEventListener('keydown',function(e){
     <input type="hidden" id="ingresoId">
     <div class="form-group">
       <label>Cantidad recibida</label>
-      <input type="number" id="ingresoCantidad" min="0.001" step="any" placeholder="0"
+      <input type="number" id="ingresoCantidad" min="0" step="0.01" placeholder="0"
         onkeydown="if(event.key==='Enter')document.getElementById('ingresoMotivo').focus()"
         style="font-size:20px;text-align:center;font-weight:700">
     </div>
@@ -1815,7 +1832,7 @@ document.addEventListener('keydown',function(e){
     <p id="ingresoNombre" style="text-align:center;color:var(--texto-sec);font-size:13px;margin-bottom:16px"></p>
     <div class="form-group">
       <label>Cantidad recibida</label>
-      <input type="number" id="ingresoCantidad" min="0.001" step="any" placeholder="0"
+      <input type="number" id="ingresoCantidad" min="0" step="0.01" placeholder="0"
         style="font-size:18px;text-align:center;font-weight:700">
     </div>
     <div class="form-group">
