@@ -976,7 +976,6 @@ table { min-width: 500px; }
             <th style="width:80px">Código</th>
             <th style="min-width:180px">Descripción</th>
             <th style="width:60px">Cant.</th>
-            <th style="width:80px">Bonif.</th>
             <th style="width:110px">Precio Unit.</th>
             <th style="width:80px">% IVA</th>
             <th style="width:100px">Subtotal</th>
@@ -1531,7 +1530,7 @@ function addItem(bodyId,calcFn){
 <td style="position:relative"><input type="text" placeholder="🔍 Escribí para buscar producto..." id="${id}_desc" oninput="buscarProdItem('${id}','${calcFn}')" onkeydown="handleItemKey(event,'${id}','${calcFn}')" autocomplete="off">
 <div id="${id}_res" style="display:none;position:fixed;background:#162b44;border:1px solid rgba(45,127,186,.4);border-radius:8px;z-index:99999;max-height:220px;overflow-y:auto;box-shadow:0 12px 32px rgba(0,0,0,.8);min-width:300px"></div></td>
 <td><input type="number" value="1" min="0" step="any" oninput="${calcFn}('${id}')" style="text-align:right"></td>
-<td><input type="text" value="unidad"></td>
+<td><input type="text" value="" placeholder=""></td>
 <td><input type="number" value="0" min="0" step="any" oninput="${calcFn}('${id}')" style="text-align:right"></td>
 <td><select onchange="${calcFn}('${id}')" style="width:100%;min-width:70px"><option value="21">21%</option><option value="10.5">10.5%</option><option value="0">0%</option></select></td>
 <td><input type="text" id="${id}_s" readonly style="text-align:right;opacity:.7" value="$0,00"></td>
@@ -1914,7 +1913,7 @@ function selProdItemNuevo(rowId, prodId, formaId, calcFn){
 
   // inp[0]=cod, inp[1]=desc, inp[2]=cant, inp[3]=unidad, inp[4]=precio, inp[5]=subtotal
   const allInputs = tr.querySelectorAll('input');
-  if(allInputs[3]) allInputs[3].value = forma.unidad;
+  // Bonif field (allInputs[3]) left empty for manual input
 
   // Calculate price
   const config = JSON.parse(localStorage.getItem('yunco_config')||'{}');
@@ -1943,7 +1942,7 @@ function selProdItem(id, prodId, calcFn){
   if(res)res.style.display='none';
   // inp[0]=cod, inp[1]=desc, inp[2]=cant, inp[3]=unidad, inp[4]=precio, inp[5]=subtotal
   const allInputs=tr.querySelectorAll('input');
-  if(allInputs[3])allInputs[3].value=p.pm?'metro':p.unidad;
+  // Bonif field left empty for manual input
   if(allInputs[4]){
     allInputs[4].value=parseFloat(p.venta)||0;
     // Trigger input event to recalc
