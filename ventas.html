@@ -984,11 +984,11 @@ table { min-width: 500px; }
           <tbody id="itemsBody"></tbody>
         </table>
       </div>
-      <button class="btn btn-outline btn-sm" style="margin-top:10px" onclick="addItem('itemsBody','recalc')" title="Agregar producto al detalle">+ Agregar línea</button>
+      
       <div style="display:flex;justify-content:flex-end;margin-top:16px">
         <div class="totales-box">
           <div class="tot-row"><span class="tot-label">Neto Gravado:</span><span id="totNeto">$0,00</span></div>
-          <div class="tot-row"><span class="tot-label">IVA:</span><span id="totIva">$0,00</span></div>
+          <div class="tot-row"><span class="tot-label">IVA (<span id="ivaPorc">21</span>%):</span><span id="totIva">$0,00</span></div>
           <div class="tot-row"><span class="tot-label">Otros Tributos:</span><span>$0,00</span></div>
           <div class="tot-row grande"><span>TOTAL:</span><span id="totTotal">$0,00</span></div>
           <div id="ivaContenidoWrap" style="display:none;margin-top:6px;font-size:12px;color:#8bbadd">IVA Contenido (Ley 27743): <span id="ivaContenido">$0,00</span></div>
@@ -1071,7 +1071,7 @@ table { min-width: 500px; }
           <tbody id="presBody"></tbody>
         </table>
       </div>
-      <button class="btn btn-outline btn-sm" onclick="addItem('presBody','recalcPres')" title="Agregar producto al detalle">+ Agregar línea</button>
+      
       <div style="display:flex;justify-content:flex-end;margin-top:18px">
         <div class="totales-box">
           <div class="tot-row"><span class="tot-label">Neto:</span><span id="presTotNeto">$0,00</span></div>
@@ -1584,6 +1584,10 @@ function recalc(){
   });
   document.getElementById('totNeto').textContent=fmt(neto);
   document.getElementById('totIva').textContent=fmt(ivaT);
+  // Update IVA % label - show first row's %
+  const firstSel = document.querySelector('#itemsBody tr select');
+  const porcEl = document.getElementById('ivaPorc');
+  if(porcEl && firstSel) porcEl.textContent = firstSel.value;
   document.getElementById('totTotal').textContent=fmt(neto+ivaT);
   document.getElementById('ivaContenido').textContent=fmt(ivaT);
   const t=document.getElementById('tipoComp')?.value||'B';
@@ -2834,7 +2838,7 @@ function handleItemRowKey(e, id, calcFn){
     addItem(calcFn==='recalc'?'itemsBody':'presItemsBody', calcFn);
     // Focus desc of new row
     setTimeout(function(){
-      const body = document.getElementById(calcFn==='recalc'?'itemsBody':'presItemsBody');
+      const body = document.getElementById(calcFn==='recalc'?'itemsBody':'presBody');
       if(body){
         const rows = body.querySelectorAll('tr');
         const lastRow = rows[rows.length-1];
