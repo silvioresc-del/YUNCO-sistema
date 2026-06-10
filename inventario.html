@@ -680,7 +680,7 @@ function editarProducto(id){
         </div>
         <div class="form-group" style="margin:0">
           <label>Factor Stock</label>
-          <input type="number" class="f-factor" value="${f.factorStock}" min="0.001" step="0.001">
+          <input type="number" class="f-factor" value="${f.factorStock}" min="0" step="1">
         </div>
         <div class="form-group" style="margin:0">
           <label>Precio Extra ($)</label>
@@ -727,7 +727,7 @@ function agregarForma(){
   div.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:8px;align-items:end">
     <div class="form-group" style="margin:0"><label>Nombre forma</label><input type="text" class="f-nombre" placeholder="ej: Por metro"></div>
     <div class="form-group" style="margin:0"><label>Unidad</label><input type="text" class="f-unidad" placeholder="metro, kg, rollo..."></div>
-    <div class="form-group" style="margin:0"><label>Factor Stock</label><input type="number" class="f-factor" value="1" min="0.001" step="0.001"></div>
+    <div class="form-group" style="margin:0"><label>Factor Stock</label><input type="number" class="f-factor" value="1" min="0" step="1"></div>
     <div class="form-group" style="margin:0"><label>Precio Extra ($)</label><input type="number" class="f-extra" value="0" step="0.01"></div>
     <button onclick="this.closest('.forma-item').remove()" style="background:var(--danger-bg);border:1px solid rgba(239,68,68,.3);color:var(--danger);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:14px">✕</button>
   </div>`;
@@ -1824,32 +1824,7 @@ document.addEventListener('keydown',function(e){
 
 
 <!-- MODAL INGRESO DE MERCADERÍA -->
-<div class="overlay" id="modalIngreso">
-  <div class="modal" style="max-width:460px">
-    <div style="font-size:40px;text-align:center;margin-bottom:10px">📥</div>
-    <h2 style="text-align:center;margin-bottom:4px">Ingreso de Mercadería</h2>
-    <input type="hidden" id="ingresoId">
-    <p id="ingresoNombre" style="text-align:center;color:var(--texto-sec);font-size:13px;margin-bottom:16px"></p>
-    <div class="form-group">
-      <label>Cantidad recibida</label>
-      <input type="number" id="ingresoCantidad" min="0" step="0.01" placeholder="0"
-        style="font-size:18px;text-align:center;font-weight:700">
-    </div>
-    <div class="form-group">
-      <label>Motivo / Referencia (obligatorio)</label>
-      <input type="text" id="ingresoMotivo" placeholder="ej: Factura proveedor N°123, remito...">
-    </div>
-    <div class="form-group">
-      <label>Observación (opcional)</label>
-      <input type="text" id="ingresoObs" placeholder="Notas adicionales...">
-    </div>
-    <div id="ingresoErr" style="display:none;color:var(--rojo3);font-size:12px;background:rgba(239,68,68,.1);padding:8px 12px;border-radius:6px;margin-bottom:10px"></div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="cerrarModalIngreso()">Cancelar</button>
-      <button class="btn btn-primario" onclick="confirmarIngreso()">✅ Confirmar ingreso</button>
-    </div>
-  </div>
-</div>
+
 
 </body>
 </html>
