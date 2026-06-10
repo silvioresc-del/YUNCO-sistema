@@ -978,7 +978,7 @@ table { min-width: 500px; }
             <th style="width:60px">Cant.</th>
             <th style="width:80px">Bonif. %</th>
             <th style="width:110px">Precio Unit.</th>
-            <th style="width:60px">%IVA</th>
+            <th style="width:80px">% IVA</th>
             <th style="width:100px">Subtotal</th>
             <th style="width:36px"></th>
           </tr></thead>
@@ -1533,7 +1533,7 @@ function addItem(bodyId,calcFn){
 <td><input type="number" value="1" min="0" step="any" oninput="${calcFn}('${id}')" style="text-align:right"></td>
 <td><input type="text" value="unidad"></td>
 <td><input type="number" value="0" min="0" step="any" oninput="${calcFn}('${id}')" style="text-align:right"></td>
-<td><select onchange="${calcFn}('${id}')"><option value="21">21%</option><option value="10.5">10.5%</option><option value="0">0%</option></select></td>
+<td><select onchange="${calcFn}('${id}')" style="width:100%;min-width:70px"><option value="21">21%</option><option value="10.5">10.5%</option><option value="0">0%</option></select></td>
 <td><input type="text" id="${id}_s" readonly style="text-align:right;opacity:.7" value="$0,00"></td>
 <td><button class="btn btn-rojo btn-sm" onclick="delItem('${id}','${calcFn}')">✕</button></td>`;
   document.getElementById(bodyId).appendChild(tr);
