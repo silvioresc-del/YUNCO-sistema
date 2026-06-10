@@ -988,7 +988,7 @@ table { min-width: 500px; }
       <div style="display:flex;justify-content:flex-end;margin-top:16px">
         <div class="totales-box">
           <div class="tot-row"><span class="tot-label">Neto Gravado:</span><span id="totNeto">$0,00</span></div>
-          <div class="tot-row"><span class="tot-label">IVA (<span id="ivaPorc">21</span>%):</span><span id="totIva">$0,00</span></div>
+          <div class="tot-row"><span class="tot-label">IVA (<span id="ivaPorc">—</span>%):</span><span id="totIva">$0,00</span></div>
           <div class="tot-row"><span class="tot-label">Otros Tributos:</span><span>$0,00</span></div>
           <div class="tot-row grande"><span>TOTAL:</span><span id="totTotal">$0,00</span></div>
           <div id="ivaContenidoWrap" style="display:none;margin-top:6px;font-size:12px;color:#8bbadd">IVA Contenido (Ley 27743): <span id="ivaContenido">$0,00</span></div>
@@ -1526,15 +1526,37 @@ function addItem(bodyId,calcFn){
   const cnt=bodyId==='itemsBody'?++iCnt:++pCnt;
   const id=(bodyId==='itemsBody'?'it':'pi')+cnt;
   const tr=document.createElement('tr');tr.id=id;
-  tr.innerHTML=`<td style="display:none"><input type="text" placeholder="COD" id="${id}_cod"></td>
-<td style="position:relative"><input type="text" placeholder="🔍 Escribí para buscar producto..." id="${id}_desc" oninput="buscarProdItem('${id}','${calcFn}')" onkeydown="handleItemKey(event,'${id}','${calcFn}')" autocomplete="off">
-<div id="${id}_res" style="display:none;position:fixed;background:#162b44;border:1px solid rgba(45,127,186,.4);border-radius:8px;z-index:99999;max-height:220px;overflow-y:auto;box-shadow:0 12px 32px rgba(0,0,0,.8);min-width:300px"></div></td>
-<td><input type="number" value="1" min="0" step="any" oninput="${calcFn}('${id}')" style="text-align:right"></td>
-<td><input type="text" value="" placeholder=""></td>
-<td><input type="number" value="0" min="0" step="any" oninput="${calcFn}('${id}')" onkeydown="handleItemRowKey(event,'${id}','${calcFn}')" style="text-align:right"></td>
-<td><select onchange="${calcFn}('${id}')" style="width:100%;min-width:70px"><option value="21">21%</option><option value="10.5">10.5%</option><option value="0">0%</option></select></td>
-<td><input type="text" id="${id}_s" readonly style="text-align:right;opacity:.7" value="$0,00"></td>
-<td><button class="btn btn-rojo btn-sm" onclick="delItem('${id}','${calcFn}')">✕</button></td>`;
+  tr.innerHTML=`<td style="display:none"><input type="text" id="${id}_cod" tabindex="-1"></td>
+<td style="position:relative">
+  <input type="text" placeholder="Buscar producto..." id="${id}_desc"
+    oninput="buscarProdItem('${id}','${calcFn}')"
+    onkeydown="handleItemKey(event,'${id}','${calcFn}')"
+    autocomplete="off">
+  <div id="${id}_res" style="display:none;position:fixed;background:#162b44;border:1px solid rgba(45,127,186,.4);border-radius:8px;z-index:99999;max-height:220px;overflow-y:auto;box-shadow:0 12px 32px rgba(0,0,0,.8);min-width:300px"></div>
+</td>
+<td><input type="number" value="1" min="0" step="any"
+  oninput="${calcFn}('${id}')"
+  onkeydown="handleItemEnter(event,'${id}_bonif')"
+  style="text-align:right;width:100%"></td>
+<td><input type="text" value="" placeholder="0"
+  id="${id}_bonif"
+  onkeydown="handleItemEnter(event,'${id}_precio')"
+  style="width:100%"></td>
+<td><input type="number" value="0" min="0" step="any"
+  id="${id}_precio"
+  oninput="${calcFn}('${id}')"
+  onkeydown="handleItemEnter(event,'${id}_iva',true,'${calcFn}')"
+  style="text-align:right;width:100%"></td>
+<td><select id="${id}_iva"
+  onchange="${calcFn}('${id}')"
+  onkeydown="handleItemEnter(event,null,true,'${calcFn}')"
+  style="width:100%;min-width:70px">
+  <option value="21">21%</option>
+  <option value="10.5">10.5%</option>
+  <option value="0">0%</option>
+</select></td>
+<td><input type="text" id="${id}_s" readonly tabindex="-1" style="text-align:right;opacity:.7;width:100%" value="$0,00"></td>
+<td><button class="btn btn-rojo btn-sm" onclick="delItem('${id}','${calcFn}')" tabindex="-1" title="Eliminar línea">✕</button></td>`;
   document.getElementById(bodyId).appendChild(tr);
   updateDelBtns(bodyId);
 }
@@ -2832,26 +2854,41 @@ function handleItemKey(e, id, calcFn){
 }
 
 // Enter on last input of item row adds new row
-function handleItemRowKey(e, id, calcFn){
+
+function handleItemEnter(e, nextId, addRowOnEnter, calcFn){
+  if(e.key === 'Tab'){
+    if(nextId){
+      e.preventDefault();
+      const next = document.getElementById(nextId);
+      if(next){ next.focus(); if(next.select) next.select(); }
+    }
+    return;
+  }
   if(e.key === 'Enter'){
     e.preventDefault();
-    addItem(calcFn==='recalc'?'itemsBody':'presItemsBody', calcFn);
-    // Focus desc of new row
-    setTimeout(function(){
-      const body = document.getElementById(calcFn==='recalc'?'itemsBody':'presBody');
-      if(body){
-        const rows = body.querySelectorAll('tr');
-        const lastRow = rows[rows.length-1];
-        if(lastRow){
-          const desc = lastRow.querySelector('input[type="text"]:nth-child(1)');
-          const inputs = lastRow.querySelectorAll('input');
-          // Focus the description input (second visible input)
-          if(inputs[1]) inputs[1].focus();
+    if(nextId){
+      // Move to next field first
+      const next = document.getElementById(nextId);
+      if(next){ next.focus(); if(next.select) next.select(); }
+    } else if(addRowOnEnter && calcFn){
+      // Last field - add new row
+      const bodyId = calcFn==='recalc' ? 'itemsBody' : 'presBody';
+      addItem(bodyId, calcFn);
+      setTimeout(function(){
+        const body = document.getElementById(bodyId);
+        if(body){
+          const rows = body.querySelectorAll('tr');
+          const lastRow = rows[rows.length-1];
+          if(lastRow){
+            const desc = lastRow.querySelector('input[type="text"]:not([readonly])');
+            if(desc){ desc.focus(); }
+          }
         }
-      }
-    }, 50);
+      }, 50);
+    }
   }
 }
+
 
 function cancelarAuthOp(){
   _authPendiente = null;
