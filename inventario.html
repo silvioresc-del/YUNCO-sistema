@@ -134,8 +134,7 @@ tr:hover td { background:rgba(74,159,212,.05)!important; }
 .modal { background:var(--bg-card); border:1px solid var(--border-mid); border-radius:var(--radius-xl); padding:28px; width:100%; max-width:480px; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow-elevated); }
 .modal h2 { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:1px; margin-bottom:20px; }
 .modal-footer { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
-.overlay { display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.75); backdrop-filter:blur(4px); align-items:center; justify-content:center; padding:20px; }
-.overlay.abierto { display:flex; }
+
 .badge { display:inline-block; font-size:11px; font-weight:800; padding:3px 9px; border-radius:5px; letter-spacing:.3px; }
 .badge-a,.badge-b { background:rgba(45,127,186,.2); color:var(--accent-light); border:1px solid rgba(74,159,212,.25); }
 .badge-nc { background:var(--warning-bg); color:var(--warning); border:1px solid rgba(245,158,11,.25); }
@@ -171,8 +170,6 @@ table { min-width: 500px; }
 
 /* Modal adapts */
 .modal { width: 100%; box-sizing: border-box; }
-.overlay { padding: 12px; }
-
 /* Buttons always visible */
 .btn { white-space: nowrap; }
 .btn-sm { padding: 5px 10px; font-size: 11px; }
@@ -213,18 +210,7 @@ button[title] { cursor: pointer; }
 
 
 /* ── MODALES ─────────────────────────────────────────────── */
-.overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center;padding:16px;overflow-y:auto;}
-.overlay.abierto{display:flex;}
-.modal{background:var(--bg-card,#111f33);border:1px solid var(--border-mid,rgba(74,159,212,.2));border-radius:16px;padding:24px;width:100%;box-sizing:border-box;position:relative;max-height:90vh;overflow-y:auto;}
-.modal h2{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--text-secondary,#8baec8);margin-bottom:16px;}
-.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border-subtle,rgba(255,255,255,.06));}
-.form-group{margin-bottom:12px;}
-.form-group label{display:block;font-size:10px;font-weight:800;letter-spacing:1px;color:var(--text-muted,#4d6a82);margin-bottom:5px;text-transform:uppercase;}
-.form-group input,.form-group select,.form-group textarea{width:100%;background:var(--bg-input,#0a1525);border:1px solid var(--border-subtle,rgba(255,255,255,.06));color:var(--text-primary,#eef4fb);padding:10px 13px;border-radius:8px;font-family:'Barlow',sans-serif;font-size:14px;outline:none;box-sizing:border-box;}
-.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--border-strong,rgba(74,159,212,.45));}
-.forma-item{background:rgba(255,255,255,.03);border:1px solid var(--border-subtle,rgba(255,255,255,.06));border-radius:8px;padding:12px;margin-bottom:8px;}
-
-</style>
+/style>
 </head>
 <body>
 </div>
@@ -274,11 +260,10 @@ button[title] { cursor: pointer; }
     <div class="toolbar">
       <input type="text" id="busqStock" placeholder="🔍 Buscar producto..." oninput="renderStock()">
       <select id="filtCat" onchange="renderStock()"><option value="">Todas las categorías</option></select>
-      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="chkInactivos" onchange="renderStock()"> Mostrar inactivos</label><button class="btn btn-primario" onclick="nuevoProducto()" title="Crear nuevo producto">+ Nuevo producto</button>
-    </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="chkInactivos" onchange="renderStock()"> Mostrar inactivos</label></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div id="stockCount" style="font-size:12px;color:var(--muted)"></div>
-      <button class="btn btn-primario btn-sm" onclick="nuevoProducto()" title="Crear nuevo producto">+ Nuevo producto</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div id="stockCount" style="font-size:12px;color:var(--muted)"></div><button class="btn btn-primario btn-sm" onclick="nuevoProducto()" title="Crear nuevo producto">+ Nuevo producto</button></div></div>
+      
     </div>
     <div class="tabla-wrap">
       <table>
@@ -679,7 +664,7 @@ function editarProducto(id){
           <input type="text" class="f-unidad" value="${f.unidad}" placeholder="metro, kg, rollo...">
         </div>
         <div class="form-group" style="margin:0">
-          <label>Factor Stock</label>
+          <label>Cantidad por forma</label>
           <input type="number" class="f-factor" value="${f.factorStock}" min="0" step="1">
         </div>
         <div class="form-group" style="margin:0">
@@ -727,7 +712,7 @@ function agregarForma(){
   div.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:8px;align-items:end">
     <div class="form-group" style="margin:0"><label>Nombre forma</label><input type="text" class="f-nombre" placeholder="ej: Por metro"></div>
     <div class="form-group" style="margin:0"><label>Unidad</label><input type="text" class="f-unidad" placeholder="metro, kg, rollo..."></div>
-    <div class="form-group" style="margin:0"><label>Factor Stock</label><input type="number" class="f-factor" value="1" min="0" step="1"></div>
+    <div class="form-group" style="margin:0"><label>Cantidad por forma</label><input type="number" class="f-factor" value="1" min="0" step="1"></div>
     <div class="form-group" style="margin:0"><label>Precio Extra ($)</label><input type="number" class="f-extra" value="0" step="0.01"></div>
     <button onclick="this.closest('.forma-item').remove()" style="background:var(--danger-bg);border:1px solid rgba(239,68,68,.3);color:var(--danger);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:14px">✕</button>
   </div>`;
@@ -1827,4 +1812,15 @@ document.addEventListener('keydown',function(e){
 
 
 </body>
-</html>
+</html
+/* MODALES */
+.overlay{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.82);align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+.overlay.abierto{display:flex!important}
+.modal{background:var(--bg-card,#111f33);border:1px solid rgba(74,159,212,.3);border-radius:16px;padding:24px;width:100%;max-width:720px;box-sizing:border-box;margin:0 auto}
+.modal h2{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:#4a9fd4;margin-bottom:16px}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,.06)}
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:10px;font-weight:800;letter-spacing:1px;color:#4d6a82;margin-bottom:5px;text-transform:uppercase}
+.form-group input,.form-group select,.form-group textarea{width:100%;background:#0a1525;border:1px solid rgba(255,255,255,.06);color:#eef4fb;padding:10px 13px;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box}
+.forma-item{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:12px;margin-bottom:8px}
+>
