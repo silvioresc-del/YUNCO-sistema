@@ -939,6 +939,7 @@ function renderStock(){
       toggleBtn.style.margin = '2px';
       toggleBtn.style.color = inactivo?'var(--verde3)':'var(--rojo3)';
       toggleBtn.textContent = inactivo?'✅':'🚫';
+      toggleBtn.title = inactivo?'Activar producto':'Desactivar producto';
       toggleBtn.onclick = () => toggleActivo(p.id);
       tdAcc.appendChild(toggleBtn);
     } else {
