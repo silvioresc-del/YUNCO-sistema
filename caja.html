@@ -818,7 +818,8 @@ function cerrarCaja(){
     } catch(e){
       alert('✅ Caja del ' + fechaCierre + ' cerrada correctamente.\n\n⚠️ No se pudo generar el backup automáticamente.');
     }
-    initCaja();
+    // Small delay then reload to ensure fresh state
+    setTimeout(function(){ window.location.reload(); }, 800);
   } else {
     alert('Error al cerrar la caja. Intentá nuevamente.');
   }
