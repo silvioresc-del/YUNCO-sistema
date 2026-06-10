@@ -971,15 +971,16 @@ table { min-width: 500px; }
     <div class="form-card" style="padding:16px 20px;margin-bottom:12px">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--azul3);margin-bottom:12px">Detalle</div>
       <div style="overflow-x:auto;overflow-y:visible;position:relative">
-        <table class="items-tabla">
+        <table class="items-tabla" style="min-width:600px;table-layout:auto">
           <thead><tr>
             <th style="width:80px">Código</th>
-            <th>Descripción</th>
-            <th style="width:70px">Cant.</th>
-            <th style="width:110px">Pr.Unit.</th>
-            <th style="width:65px">%IVA</th>
-            <th style="width:110px">Subtotal</th>
-            <th style="width:32px"></th>
+            <th style="min-width:180px">Descripción</th>
+            <th style="width:60px">Cant.</th>
+            <th style="width:80px">Unidad</th>
+            <th style="width:110px">Precio Unit.</th>
+            <th style="width:60px">%IVA</th>
+            <th style="width:100px">Subtotal</th>
+            <th style="width:36px"></th>
           </tr></thead>
           <tbody id="itemsBody"></tbody>
         </table>
@@ -1527,7 +1528,7 @@ function addItem(bodyId,calcFn){
   const id=(bodyId==='itemsBody'?'it':'pi')+cnt;
   const tr=document.createElement('tr');tr.id=id;
   tr.innerHTML=`<td><input type="text" placeholder="COD" id="${id}_cod"></td>
-<td style="position:relative"><input type="text" placeholder="🔍 Escribí para buscar producto..." id="${id}_desc" oninput="buscarProdItem('${id}','${calcFn}')" autocomplete="off">
+<td style="position:relative"><input type="text" placeholder="🔍 Escribí para buscar producto..." id="${id}_desc" oninput="buscarProdItem('${id}','${calcFn}')" onkeydown="handleItemKey(event,'${id}','${calcFn}')" autocomplete="off">
 <div id="${id}_res" style="display:none;position:fixed;background:#162b44;border:1px solid rgba(45,127,186,.4);border-radius:8px;z-index:99999;max-height:220px;overflow-y:auto;box-shadow:0 12px 32px rgba(0,0,0,.8);min-width:300px"></div></td>
 <td><input type="number" value="1" min="0" step="any" oninput="${calcFn}('${id}')" style="text-align:right"></td>
 <td><input type="text" value="unidad"></td>
@@ -2794,6 +2795,39 @@ function confirmarAuthOp(){
   const cb = _authPendiente.callback;
   _authPendiente = null;
   if(cb) cb({ autorizante, nomAut });
+}
+
+
+function handleItemKey(e, id, calcFn){
+  const res = document.getElementById(id+'_res');
+  if(!res || res.style.display === 'none') return;
+  // Enter or Tab: select first visible result
+  if(e.key === 'Enter' || e.key === 'Tab'){
+    e.preventDefault();
+    const firstItem = res.querySelector('[onclick], [data-prod-id]');
+    if(firstItem){
+      firstItem.click();
+      // After selecting, move focus to quantity field
+      setTimeout(function(){
+        const tr = document.getElementById(id);
+        if(tr){
+          const inputs = tr.querySelectorAll('input');
+          if(inputs[2]) inputs[2].focus(); // cant field
+        }
+      }, 100);
+    }
+    res.style.display = 'none';
+  }
+  // Arrow down: focus first result
+  if(e.key === 'ArrowDown'){
+    e.preventDefault();
+    const firstItem = res.querySelector('[onclick]');
+    if(firstItem) firstItem.focus();
+  }
+  // Escape: close results
+  if(e.key === 'Escape'){
+    res.style.display = 'none';
+  }
 }
 
 function cancelarAuthOp(){
