@@ -653,14 +653,10 @@ function editarProducto(id){
   // Build modal HTML
   const formasHTML = (p.formas||[]).map((f,i) => `
     <div class="forma-item" data-idx="${i}" style="background:rgba(255,255,255,.03);border:1px solid var(--border-subtle);border-radius:8px;padding:12px;margin-bottom:8px">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:8px;align-items:end">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end">
         <div class="form-group" style="margin:0">
-          <label>Nombre forma</label>
-          <input type="text" class="f-nombre" value="${f.nombre}" placeholder="ej: Por metro">
-        </div>
-        <div class="form-group" style="margin:0">
-          <label>Unidad</label>
-          <input type="text" class="f-unidad" value="${f.unidad}" placeholder="metro, kg, rollo...">
+          <label>Forma de venta</label>
+          <input type="text" class="f-nombre" value="${f.nombre}" placeholder="ej: Por metro, Por rollo...">
         </div>
         <div class="form-group" style="margin:0">
           <label>Cantidad</label>
@@ -670,7 +666,6 @@ function editarProducto(id){
           <label>Precio</label>
           <input type="number" class="f-extra" value="${f.precioExtra||0}" step="0.01">
         </div>
-        <button onclick="this.closest('.forma-item').remove()" style="background:var(--danger-bg);border:1px solid rgba(239,68,68,.3);color:var(--danger);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:14px">✕</button>
       </div>
     </div>`).join('');
 
@@ -708,12 +703,10 @@ function agregarForma(){
   div.className = 'forma-item';
   div.dataset.idx = idx;
   div.style.cssText = 'background:rgba(255,255,255,.03);border:1px solid var(--border-subtle);border-radius:8px;padding:12px;margin-bottom:8px';
-  div.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:8px;align-items:end">
-    <div class="form-group" style="margin:0"><label>Nombre forma</label><input type="text" class="f-nombre" placeholder="ej: Por metro"></div>
-    <div class="form-group" style="margin:0"><label>Unidad</label><input type="text" class="f-unidad" placeholder="metro, kg, rollo..."></div>
+  div.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end">
+    <div class="form-group" style="margin:0"><label>Forma de venta</label><input type="text" class="f-nombre" placeholder="ej: Por metro, Por rollo..."></div>
     <div class="form-group" style="margin:0"><label>Cantidad</label><input type="number" class="f-factor" value="1" min="0.001" step="0.001"></div>
     <div class="form-group" style="margin:0"><label>Precio</label><input type="number" class="f-extra" value="0" step="0.01"></div>
-    <button onclick="this.closest('.forma-item').remove()" style="background:var(--danger-bg);border:1px solid rgba(239,68,68,.3);color:var(--danger);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:14px">✕</button>
   </div>`;
   lista.appendChild(div);
 }
@@ -759,7 +752,7 @@ function guardarProducto(){
   p.formas = Array.from(formaEls).map((el, i) => ({
     id: 'F' + String(i+1).padStart(3,'0'),
     nombre: el.querySelector('.f-nombre').value.trim(),
-    unidad: el.querySelector('.f-unidad').value.trim(),
+    unidad: el.querySelector('.f-unidad')?.value.trim() || '',
     factorStock: parseFloat(el.querySelector('.f-factor').value)||1,
     precioExtra: parseFloat(el.querySelector('.f-extra').value)||0
   })).filter(f => f.nombre && f.unidad);
