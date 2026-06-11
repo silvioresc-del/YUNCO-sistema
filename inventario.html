@@ -663,7 +663,7 @@ function editarProducto(id){
           <input type="text" class="f-unidad" value="${f.unidad}" placeholder="metro, kg, rollo...">
         </div>
         <div class="form-group" style="margin:0">
-          <label>Cantidad por forma</label>
+          <label>Cantidad</label>
           <input type="number" class="f-factor" value="${f.factorStock}" min="0.001" step="0.001">
         </div>
         <div class="form-group" style="margin:0">
@@ -711,7 +711,7 @@ function agregarForma(){
   div.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:8px;align-items:end">
     <div class="form-group" style="margin:0"><label>Nombre forma</label><input type="text" class="f-nombre" placeholder="ej: Por metro"></div>
     <div class="form-group" style="margin:0"><label>Unidad</label><input type="text" class="f-unidad" placeholder="metro, kg, rollo..."></div>
-    <div class="form-group" style="margin:0"><label>Cantidad por forma</label><input type="number" class="f-factor" value="1" min="0.001" step="0.001"></div>
+    <div class="form-group" style="margin:0"><label>Cantidad</label><input type="number" class="f-factor" value="1" min="0.001" step="0.001"></div>
     <div class="form-group" style="margin:0"><label>Precio Extra ($)</label><input type="number" class="f-extra" value="0" step="0.01"></div>
     <button onclick="this.closest('.forma-item').remove()" style="background:var(--danger-bg);border:1px solid rgba(239,68,68,.3);color:var(--danger);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:14px">✕</button>
   </div>`;
@@ -839,7 +839,7 @@ function nuevoProducto(){
   const nuevoId = 'PROD-' + String(prods.length + 1).padStart(4,'0');
   const template = {
     id: nuevoId, idLegacy: null,
-    codigo: '', nombre: 'Nuevo producto',
+    codigo: '', nombre: '',
     descripcion: '', categoria: '',
     marca: '', proveedor: '',
     observaciones: '', especificaciones: '',
@@ -850,7 +850,15 @@ function nuevoProducto(){
   };
   prods.push(template);
   saveProductos(prods);
+  // Open modal with empty form and title "Nuevo producto"
   editarProducto(nuevoId);
+  // Override title after modal opens
+  setTimeout(function(){
+    const titulo = document.getElementById('modalProdTitulo') || document.querySelector('#modalProducto h2');
+    if(titulo) titulo.textContent = '➕ Nuevo Producto';
+    const nombre = document.getElementById('mpNombre') || document.getElementById('prodNombre');
+    if(nombre){ nombre.value = ''; nombre.focus(); }
+  }, 50);
 }
 
 function renderStock(){
@@ -1440,7 +1448,7 @@ function auditOp(tipo, detalle, extra){
 document.addEventListener('keydown',function(e){
   if(e.key!=='Escape')return;
   var modales=[
-    {id:'modalProd',close:cerrarModalProd},
+    {id:'modalProducto',close:cerrarModalProd},
     {id:'modalAjuste',close:function(){document.getElementById('modalAjuste')&&document.getElementById('modalAjuste').classList.remove('abierto')}},
     {id:'modalIngreso',close:function(){document.getElementById('modalIngreso')&&document.getElementById('modalIngreso').classList.remove('abierto')}},
     {id:'modalHist',close:function(){document.getElementById('modalHist')&&document.getElementById('modalHist').classList.remove('abierto')}},
