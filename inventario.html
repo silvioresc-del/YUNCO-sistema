@@ -680,7 +680,7 @@ function editarProducto(id){
   document.getElementById('mpCodigo').value = p.codigo||'';
   document.getElementById('mpNombre').value = p.nombre||'';
   document.getElementById('mpDescripcion').value = p.descripcion||'';
-  document.getElementById('mpCategoria').value = p.categoria||'';
+  poblarSelectCategoria(p.categoria||'');
   document.getElementById('mpMarca').value = p.marca||'';
   document.getElementById('mpProveedor').value = p.proveedor||'';
   document.getElementById('mpObservaciones').value = p.observaciones||'';
@@ -736,7 +736,11 @@ function guardarProducto(){
   p.codigo = document.getElementById('mpCodigo').value.trim();
   p.nombre = document.getElementById('mpNombre').value.trim();
   p.descripcion = document.getElementById('mpDescripcion').value.trim();
-  p.categoria = document.getElementById('mpCategoria').value.trim();
+  const catInput = document.getElementById('mpCategoria');
+  const catSel = document.getElementById('mpCategoriaSelect');
+  p.categoria = (catSel && catSel.value !== '__nueva__' && catSel.value !== '') 
+    ? catSel.value 
+    : (catInput ? catInput.value.trim() : '');
   p.marca = document.getElementById('mpMarca').value.trim();
   p.proveedor = document.getElementById('mpProveedor').value.trim();
   p.observaciones = document.getElementById('mpObservaciones').value.trim();
@@ -1484,6 +1488,89 @@ function actualizarStepForma(sel){
   }
 }
 
+
+function toggleCatNueva(sel){
+  const input = document.getElementById('mpCategoria');
+  if(sel.value === '__nueva__'){
+    input.style.display = 'block';
+    input.value = '';
+    input.focus();
+  } else {
+    input.style.display = 'none';
+    input.value = sel.value;
+  }
+}
+
+function poblarSelectCategoria(valorActual){
+  const sel = document.getElementById('mpCategoriaSelect');
+  if(!sel) return;
+  const prods = getProductos();
+  const cats = [...new Set(prods.map(p=>p.categoria).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">-- Seleccionar --</option>';
+  cats.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c; o.textContent = c;
+    if(c === valorActual) o.selected = true;
+    sel.appendChild(o);
+  });
+  const oNueva = document.createElement('option');
+  oNueva.value = '__nueva__'; oNueva.textContent = '+ Otra categoría...';
+  sel.appendChild(oNueva);
+
+  const input = document.getElementById('mpCategoria');
+  if(valorActual && !cats.includes(valorActual)){
+    // Category not in list - show as custom
+    sel.value = '__nueva__';
+    input.style.display = 'block';
+    input.value = valorActual;
+  } else {
+    input.style.display = 'none';
+    input.value = valorActual || '';
+  }
+}
+
+
+function poblarSelectCategoria(categoriaActual){
+  const sel = document.getElementById('mpCategoriaSelect');
+  if(!sel) return;
+  // Get existing categories from yunco_productos
+  const prods = getProductos();
+  const cats = [...new Set(prods.map(p=>p.categoria).filter(Boolean))].sort();
+  // Rebuild options
+  sel.innerHTML = '<option value="">— Seleccionar —</option>';
+  cats.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c; o.textContent = c;
+    if(c === categoriaActual) o.selected = true;
+    sel.appendChild(o);
+  });
+  const oOtra = document.createElement('option');
+  oOtra.value = '__nueva__'; oOtra.textContent = '+ Otra categoría...';
+  sel.appendChild(oOtra);
+  // If current value not in list, show text input
+  const inputCat = document.getElementById('mpCategoria');
+  if(categoriaActual && !cats.includes(categoriaActual)){
+    sel.value = '__nueva__';
+    inputCat.value = categoriaActual;
+    inputCat.style.display = 'block';
+  } else {
+    inputCat.style.display = 'none';
+    inputCat.value = categoriaActual || '';
+  }
+}
+
+function toggleCatNueva(sel){
+  const input = document.getElementById('mpCategoria');
+  if(sel.value === '__nueva__'){
+    input.style.display = 'block';
+    input.value = '';
+    input.focus();
+  } else {
+    input.style.display = 'none';
+    input.value = sel.value;
+  }
+}
+
 </script>
 
 <!-- MODAL EDITAR PRODUCTO -->
@@ -1497,7 +1584,12 @@ function actualizarStepForma(sel){
     </div>
     <div class="form-group"><label>Descripción</label><input type="text" id="mpDescripcion" placeholder="Descripción breve"></div>
     <div class="form-row">
-      <div class="form-group"><label>Categoría</label><input type="text" id="mpCategoria" placeholder="Categoría"></div>
+      <div class="form-group"><label>Categoría</label>
+        <select id="mpCategoriaSelect" onchange="toggleCatNueva(this)">
+          <option value="">-- Seleccionar --</option>
+        </select>
+        <input type="text" id="mpCategoria" placeholder="Escribí la nueva categoría..." style="display:none;margin-top:6px">
+      </div>
       <div class="form-group"><label>Marca</label><input type="text" id="mpMarca" placeholder="Marca"></div>
     </div>
     <div class="form-row">
