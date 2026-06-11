@@ -1538,8 +1538,9 @@ function addItem(bodyId,calcFn){
   oninput="${calcFn}('${id}')"
   onkeydown="handleItemEnter(event,'${id}_bonif')"
   style="text-align:right;width:100%"></td>
-<td><input type="text" value="" placeholder="0"
+<td><input type="number" value="" placeholder="0" min="0" max="30"
   id="${id}_bonif"
+  oninput="if(parseFloat(this.value)>30)this.value=30;recalc()"
   onkeydown="handleItemEnter(event,'${id}_precio')"
   style="width:100%"></td>
 <td><input type="number" value="0" min="0" step="any"
@@ -1582,11 +1583,13 @@ function getItemsFrom(bodyId){
     const inp=tr.querySelectorAll('input'),sel=tr.querySelectorAll('select');
     if(inp.length<5)return;
     const desc=inp[1].value.trim(),cant=parseFloat(inp[2].value)||0,p=parseFloat(inp[4].value)||0;
+    const bonif=Math.min(parseFloat(inp[3].value)||0,30);
     if(desc&&cant>0) items.push({
       cod: inp[0].value,
       desc, cant,
-      um: inp[3].value,
-      precio: p,
+      bonif: bonif,
+      precioOriginal: p,
+      precio: parseFloat((p*(1-bonif/100)).toFixed(2)),
       iva: sel[0]?.value||21,
       prodId: tr.dataset.prodId||null,
       formaId: tr.dataset.formaId||null,
@@ -1600,9 +1603,16 @@ function recalc(){
   document.querySelectorAll('#itemsBody tr').forEach(tr=>{
     const inp=tr.querySelectorAll('input'),sel=tr.querySelectorAll('select');
     if(inp.length<5)return;
-    const cant=parseFloat(inp[2].value)||0,p=parseFloat(inp[4].value)||0,pct=parseFloat(sel[0]?.value||21),sub=cant*p;
+    const cant=parseFloat(inp[2].value)||0;
+    const bonif=Math.min(parseFloat(inp[3].value)||0,30); // max 30%
+    const p=parseFloat(inp[4].value)||0;
+    const pct=parseFloat(sel[0]?.value||21);
+    const precioConBonif=p*(1-bonif/100);
+    const sub=cant*precioConBonif;
     neto+=sub/(1+pct/100);ivaT+=sub-sub/(1+pct/100);
     const si=tr.querySelector('[id$="_s"]');if(si)si.value=fmt(sub);
+    // Cap bonif at 30 visually
+    if(inp[3].value && parseFloat(inp[3].value)>30) inp[3].value=30;
   });
   document.getElementById('totNeto').textContent=fmt(neto);
   document.getElementById('totIva').textContent=fmt(ivaT);
