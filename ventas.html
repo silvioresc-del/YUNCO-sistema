@@ -876,6 +876,7 @@ table { min-width: 500px; }
           <select id="tipoComp" onchange="onTipoChange()">
             <option value="B">Factura B</option>
             <option value="A">Factura A</option>
+            <option value="OV">Orden de Venta</option>
             <option value="NC">Nota de Crédito</option>
             <option value="ND">Nota de Débito</option>
           </select>
@@ -1024,8 +1025,7 @@ table { min-width: 500px; }
 
     <!-- BOTONES -->
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:32px">
-      <button class="btn btn-primario" onclick="procesar('registrar')" style="flex:1;min-width:160px;padding:14px;font-size:15px">✅ Registrar y emitir</button>
-      <button class="btn btn-amarillo" onclick="procesar('grabar')" style="flex:1;min-width:160px;padding:14px;font-size:15px">💾 Solo grabar</button>
+      <button class="btn btn-primario" onclick="confirmarVenta()" style="flex:1;min-width:160px;padding:14px;font-size:15px">✅ Confirmar operación</button>
     </div>
   </div>
 
@@ -1206,7 +1206,7 @@ const ROLES = {
 const PERMISOS = {
   vendedor: {
     tabs:['nueva','presupuesto','consulta','clientes','ctacte'],
-    comprobantes:['A','B','NC','ND'],
+    comprobantes:['A','B','OV','NC','ND'],
     verTodosComp:false, eliminarComp:false, config:false, gestionUsuarios:false,
   },
   gerente: {
@@ -1440,8 +1440,8 @@ function toggleMotivoOtro(){
   const val = document.getElementById('ncndMotivo').value;
   document.getElementById('motivoOtroWrap').style.display = val==='otro'?'block':'none';
 }
-function updNro(){const t=document.getElementById('tipoComp')?.value||'B';const n=S.g('yunco_nums',{B:1228,A:0,NC:0,ND:0,PRES:0});if(document.getElementById('nroComp'))document.getElementById('nroComp').value=EMP.pv+'-'+String((n[t]||0)+1).padStart(8,'0');}
-function updNroPres(){const n=S.g('yunco_nums',{B:1228,A:0,NC:0,ND:0,PRES:0});if(document.getElementById('nroPres'))document.getElementById('nroPres').value='PRES-'+String((n.PRES||0)+1).padStart(6,'0');}
+function updNro(){const t=document.getElementById('tipoComp')?.value||'B';const n=S.g('yunco_nums',{B:1228,A:0,OV:0,NC:0,ND:0,PRES:0});if(document.getElementById('nroComp'))document.getElementById('nroComp').value=EMP.pv+'-'+String((n[t]||0)+1).padStart(8,'0');}
+function updNroPres(){const n=S.g('yunco_nums',{B:1228,A:0,OV:0,NC:0,ND:0,PRES:0});if(document.getElementById('nroPres'))document.getElementById('nroPres').value='PRES-'+String((n.PRES||0)+1).padStart(6,'0');}
 
 
 // ACTUALIZAR OPCIONES DE COMPROBANTE SEGUN ROL
@@ -1452,13 +1452,14 @@ function actualizarOpcionesComprobante(){
   const opciones = {
     'B':  'Factura B',
     'A':  'Factura A',
+    'OV': 'Orden de Venta',
     'NC': 'Nota de Crédito',
     'ND': 'Nota de Débito',
   };
   // PRES no va en el selector — solo se accede desde la pestaña Presupuesto
   const current = sel.value;
   sel.innerHTML = '';
-  ['B','A','NC','ND'].forEach(tipo => {
+  ['B','A','OV','NC','ND'].forEach(tipo => {
     if(perm.comprobantes.includes(tipo)){
       const opt = document.createElement('option');
       opt.value = tipo;
@@ -1649,7 +1650,7 @@ function togglePago(){
 function getVentaData(){
   const items=getItemsFrom('itemsBody');
   const tipo=document.getElementById('tipoComp').value;
-  const nums=S.g('yunco_nums',{B:1228,A:0,NC:0,ND:0,PRES:0});
+  const nums=S.g('yunco_nums',{B:1228,A:0,OV:0,NC:0,ND:0,PRES:0});
   const nro=(nums[tipo]||0)+1,nroStr=EMP.pv+'-'+String(nro).padStart(8,'0');
   let neto=0,ivaT=0;
   items.forEach(it=>{const sub=it.cant*it.precio,pct=parseFloat(it.iva)||21;neto+=sub/(1+pct/100);ivaT+=sub-sub/(1+pct/100);});
@@ -1779,10 +1780,23 @@ function abrirVentanaImpresion(html, titulo){
 }
 
 function buildFacturaHTML(v,esPres){
-  const tLabel={B:'FACTURA',A:'FACTURA',NC:'NOTA DE CRÉDITO',ND:'NOTA DE DÉBITO',PRES:'PRESUPUESTO'}[v.tipo]||'COMPROBANTE';
-  const letra=v.tipo==='NC'?'C':v.tipo==='ND'?'D':v.tipo==='PRES'?'P':v.tipo;
+  const tLabel={B:'FACTURA',A:'FACTURA',NC:'NOTA DE CRÉDITO',ND:'NOTA DE DÉBITO',PRES:'PRESUPUESTO',OV:'ORDEN DE VENTA'}[v.tipo]||'COMPROBANTE';
+  const letra=v.tipo==='NC'?'C':v.tipo==='ND'?'D':v.tipo==='PRES'?'P':v.tipo==='OV'?'OV':v.tipo;
   const fecha=new Date(v.fecha).toLocaleDateString('es-AR');
-  const rows=(v.items||[]).map(it=>`<tr><td>${it.cod||'-'}</td><td>${it.desc}</td><td style="text-align:right">${it.cant}</td><td>${it.um}</td><td style="text-align:right">${fmt(it.precio)}</td><td style="text-align:right">${it.iva}%</td><td style="text-align:right">${fmt(it.cant*it.precio)}</td></tr>`).join('');
+  const rows=(v.items||[]).map(it=>{
+    const tieneBonif = it.bonif && parseFloat(it.bonif) > 0;
+    const precioOriginal = it.precioOriginal || it.precio;
+    const precioFinal = it.precio;
+    return `<tr>
+      <td>${it.cod||'-'}</td>
+      <td>${it.desc}${tieneBonif && !esPres ? `<br><small style="color:#f59e0b">Bonif. ${it.bonif}% (antes: ${fmt(precioOriginal)})</small>` : ''}</td>
+      <td style="text-align:right">${it.cant}</td>
+      <td>${it.um||''}</td>
+      <td style="text-align:right">${fmt(precioFinal)}</td>
+      <td style="text-align:right">${it.iva}%</td>
+      <td style="text-align:right">${fmt(it.cant*precioFinal)}</td>
+    </tr>`;
+  }).join('');
   const dolarLine=v.dolar&&v.tipo==='A'?`<div class="fp-dolar">* Esta factura fue realizada con el dólar a cotización ${fmt(v.dolar)}</div>`:'';
   const vtoLine=esPres&&v.fechaVto?`<strong>Válido hasta: ${new Date(v.fechaVto).toLocaleDateString('es-AR')} (${v.vig} días)</strong>`:`Fecha Vto.: ${fecha}`;
   return `${esPres?'<div class="presup-banner">⚠️ PRESUPUESTO — NO VÁLIDO COMO COMPROBANTE FISCAL</div>':''}
@@ -2354,17 +2368,19 @@ function procesar(modo){
   }
   const comp=S.g('yunco_comp',[]);comp.unshift(data);S.s('yunco_comp',comp);
   // Descontar stock solo al registrar
-  if(data.modo === 'registrar' && data.tipo !== 'NC' && data.tipo !== 'ND'){
+  if(data.tipo !== 'NC' && data.tipo !== 'ND'){
     descontarStockVenta(data.items||[], data.nro);
   }
   // Auditoría operativa
   // Refrescar consulta de stock si está visible
-  if(data.modo === 'registrar' && typeof renderConsulta === 'function'){
+  if(typeof renderConsulta === 'function'){
     setTimeout(function(){ renderConsulta(); }, 200);
   }
-  auditOp(data.modo==='registrar'?'VENTA_REGISTRADA':'VENTA_GRABADA',
-    data.tipo + ' ' + data.nro + ' — ' + (data.cli?.nom||'CF') + ' — $' + parseFloat(data.total||0).toLocaleString('es-AR'),
-    {compId: data.id, tipo: data.tipo, total: data.total, pago: data.pago}
+  const totalBonif = (data.items||[]).reduce((s,it)=>s+(it.bonif&&parseFloat(it.bonif)>0?(it.precioOriginal-it.precio)*it.cant:0),0);
+  const bonifResumen = totalBonif > 0 ? ' — Bonif: $' + totalBonif.toLocaleString('es-AR') : '';
+  auditOp('VENTA_REGISTRADA',
+    data.tipo + ' ' + data.nro + ' — ' + (data.cli?.nom||'CF') + ' — $' + parseFloat(data.total||0).toLocaleString('es-AR') + bonifResumen,
+    {compId: data.id, tipo: data.tipo, total: data.total, pago: data.pago, totalBonificacion: totalBonif}
   );
   // Auditoría sistema
   auditSys('ventas', 'COMPROBANTE_' + data.modo.toUpperCase(), data.tipo + ' ' + data.nro);
@@ -2373,7 +2389,7 @@ function procesar(modo){
     registrarVentaCC(data);
   }
   if(modo==='registrar'){
-    const nums=S.g('yunco_nums',{B:1228,A:0,NC:0,ND:0,PRES:0});
+    const nums=S.g('yunco_nums',{B:1228,A:0,OV:0,NC:0,ND:0,PRES:0});
     nums[data.tipo]=(nums[data.tipo]||0)+1;S.s('yunco_nums',nums);
     // DESCONTAR STOCK
     try{
@@ -2388,12 +2404,16 @@ function procesar(modo){
       });
       localStorage.setItem('yunco_inv',JSON.stringify(prods));
     }catch(e){console.error('Error descontando stock:',e);}
-    // Abrir ventana de impresión
-    const html=buildFacturaHTML(data,false);
-    abrirVentanaImpresion(html,'Factura '+data.nro);
-    
+    // Mostrar modal de confirmación con opción de impresión
+    mostrarConfirmacionVenta(data.nro, data.tipo, function(){
+      const html = buildFacturaHTML(data, false);
+      abrirVentanaImpresion(html, (data.tipo==='OV'?'Orden de Venta ':'Comprobante ') + data.nro);
+    });
+    resetVenta();
+    return;
   }
-  alert(modo==='registrar'?'✅ Comprobante '+data.nro+' registrado.':'💾 Venta grabada.');
+  // Fallback si no hay impresión
+  mostrarConfirmacionVenta(data.nro, data.tipo, null);
   resetVenta();
 }
 
@@ -2406,6 +2426,9 @@ function resetVenta(){
   document.getElementById('cliIva').value='Consumidor Final';
   document.getElementById('medioPago').value='efectivo';document.getElementById('pagoExtraWrap').style.display='none';
   document.getElementById('tipoComp').value='B';document.getElementById('dolarWrap').style.display='none';
+  // Show post-op modal
+  const _tipoLabel = {A:'Factura A',B:'Factura B',OV:'Orden de Venta',NC:'Nota de Crédito',ND:'Nota de Débito'};
+  mostrarPostOp((_tipoLabel[data.tipo]||data.tipo) + ' <strong>' + data.nro + '</strong> generada correctamente.', data.id);
   updNro();recalc();addItem('itemsBody','recalc');
 }
 
@@ -2413,7 +2436,7 @@ function resetVenta(){
 function emitirPres(imprimir){
   const items=getItemsFrom('presBody');
   if(!items.length){alert('Agregá al menos un producto.');return;}
-  const nums=S.g('yunco_nums',{B:1228,A:0,NC:0,ND:0,PRES:0});
+  const nums=S.g('yunco_nums',{B:1228,A:0,OV:0,NC:0,ND:0,PRES:0});
   const nro=(nums.PRES||0)+1,nroStr='PRES-'+String(nro).padStart(6,'0');
   const vig=parseInt(document.getElementById('presVig').value)||15;
   let neto=0,ivaT=0;
@@ -2545,7 +2568,7 @@ function delCliByIdx(i){const cl=S.g('yunco_clis',[]);cl.splice(i,1);S.s('yunco_
 
 // CONFIG
 function renderConfig(){
-  const v=S.g('yunco_vend',{}),n=S.g('yunco_nums',{B:1228,A:0,NC:0,ND:0,PRES:0});
+  const v=S.g('yunco_vend',{}),n=S.g('yunco_nums',{B:1228,A:0,OV:0,NC:0,ND:0,PRES:0});
   let h='';
   const todos=[1,2,3,4,5,6,7,8,9,'gerente'];
   todos.forEach(i=>{const vv=v[i]||{};h+=`<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--borde)"><span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--azul3);width:60px">${i==='gerente'?'GERENTE':'#'+i}</span><span style="flex:1">${vv.nombre||(i==='gerente'?'Gerente':'Vendedor '+i)}</span><span style="color:#8bbadd;font-size:12px">${vv.claveSet?'Clave personalizada':'Clave default'}</span></div>`;});
@@ -2568,7 +2591,7 @@ function eliminarVendedor(){
   renderConfig();alert('✅ Vendedor eliminado. Usará clave default.');
 }
 function saveNum(){
-  const n=S.g('yunco_nums',{B:1228,A:0,NC:0,ND:0,PRES:0});
+  const n=S.g('yunco_nums',{B:1228,A:0,OV:0,NC:0,ND:0,PRES:0});
   n.B=parseInt(document.getElementById('cfgNroB').value)||1228;
   n.A=parseInt(document.getElementById('cfgNroA').value)||0;
   n.NC=parseInt(document.getElementById('cfgNroNC').value)||0;
@@ -2774,6 +2797,7 @@ function requiereAutorizacion(tipo, callback){
   _authPendiente = { tipo, callback };
 
   const labels = {
+    'OV': 'Orden de Venta',
     'NC': 'Nota de Crédito',
     'ND': 'Nota de Débito',
     'cuenta_corriente': 'Venta en Cuenta Corriente'
@@ -2939,6 +2963,63 @@ function descontarStockVenta(items, nroComp){
   } catch(e){ console.error('Error stock:', e); }
 }
 
+
+function confirmarVenta(){ procesar('registrar'); }
+
+var _postOpCompId = null;
+function mostrarPostOp(msg, compId){
+  _postOpCompId = compId;
+  document.getElementById('postOpMsg').innerHTML = msg;
+  document.getElementById('postOpOverlay').classList.add('abierto');
+}
+function cerrarPostOp(imprimir){
+  document.getElementById('postOpOverlay').classList.remove('abierto');
+  if(imprimir && _postOpCompId) prevComp(_postOpCompId);
+  _postOpCompId = null;
+}
+
+
+function mostrarConfirmacionVenta(nro, tipo, onPrint){
+  const tLabel = {B:'Factura B',A:'Factura A',NC:'Nota de Crédito',ND:'Nota de Débito',OV:'Orden de Venta'}[tipo]||tipo;
+  const msg = document.createElement('div');
+  msg.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:20px';
+  msg.innerHTML = `
+    <div style="background:#111f33;border:1px solid rgba(74,159,212,.3);border-radius:16px;padding:32px;max-width:420px;width:100%;text-align:center">
+      <div style="font-size:48px;margin-bottom:12px">✅</div>
+      <h3 style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:#4a9fd4;margin-bottom:8px">Operación realizada correctamente</h3>
+      <p style="color:#8baec8;font-size:14px;margin-bottom:24px">${tLabel} <strong style="color:#eef4fb">${nro}</strong> generada.</p>
+      <p style="color:#eef4fb;font-size:14px;margin-bottom:20px">¿Desea imprimir el comprobante?</p>
+      <div style="display:flex;gap:12px;justify-content:center">
+        <button onclick="this.closest('div[style*=fixed]').remove()" 
+          style="background:transparent;border:1px solid rgba(74,159,212,.3);color:#4a9fd4;padding:10px 24px;border-radius:10px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:14px;font-weight:700">
+          No imprimir
+        </button>
+        <button id="btnSiImprimir"
+          style="background:linear-gradient(135deg,#1a6fa8,#2d7fba);color:#fff;border:none;padding:10px 24px;border-radius:10px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:14px;font-weight:700">
+          🖨 Sí, imprimir
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(msg);
+  msg.querySelector('#btnSiImprimir').onclick = function(){
+    msg.remove();
+    if(onPrint) onPrint();
+  };
+}
+
 </script>
+
+<div class="overlay" id="postOpOverlay">
+  <div class="modal" style="max-width:440px;text-align:center">
+    <div style="font-size:48px;margin-bottom:12px">✅</div>
+    <h2 style="color:#22c55e">Operación realizada</h2>
+    <p id="postOpMsg" style="color:var(--texto-sec);font-size:14px;margin:12px 0 20px;line-height:1.6"></p>
+    <p style="font-weight:700;margin-bottom:16px">¿Desea imprimir el comprobante?</p>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn btn-outline" onclick="cerrarPostOp(false)">No imprimir</button>
+      <button class="btn btn-primario" onclick="cerrarPostOp(true)">🖨 Sí, imprimir</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
