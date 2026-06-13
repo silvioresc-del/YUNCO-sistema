@@ -735,6 +735,7 @@ tr:hover td { background: rgba(74,159,212,.05) !important; }
   .form-card { padding: 16px; }
 }
 .preview-overlay{display:none;position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.85);align-items:center;justify-content:center;padding:20px;overflow-y:auto;}
+.preview-overlay.abierto{display:flex !important;}
 
 /* ── RESPONSIVE GLOBAL ─────────────────────────────────────── */
 .tabla-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
@@ -1180,7 +1181,7 @@ table { min-width: 500px; }
 </div>
 
 <!-- PREVIEW FACTURA -->
-<div class="preview-overlay" id="previewOverlay" style="display:none">
+<div class="preview-overlay" id="previewOverlay">
   <div style="width:100%;max-width:820px">
     <div class="preview-actions">
       <button class="btn btn-outline" onclick="closePreview()" title="Cerrar vista previa">✕ Cerrar</button>
@@ -2509,9 +2510,9 @@ function renderComp(){
 <td><span class="badge ${eb}">${eL}</span></td>
 <td>${vN}</td>
 <td><div style="display:flex;gap:4px">
-  <button class="btn btn-verde btn-sm" onclick="prevComp(${c.id})">👁</button>
-  <button class="btn btn-outline btn-sm" onclick="printComp(${c.id})">🖨</button>
-  <button class="btn btn-rojo btn-sm" onclick="solAuth('Eliminar comprobante',()=>delComp(${c.id}))">🗑</button>
+  <button class="btn btn-verde btn-sm" onclick="prevComp(${c.id})" title="Ver comprobante">👁</button>
+  <button class="btn btn-outline btn-sm" onclick="printComp(${c.id})" title="Imprimir comprobante">🖨</button>
+  <button class="btn btn-rojo btn-sm" onclick="solAuth('Eliminar comprobante',()=>delComp(${c.id}))" title="Eliminar comprobante">🗑</button>
 </div></td>
 </tr>`;}).join('');}
 
