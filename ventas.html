@@ -734,6 +734,11 @@ tr:hover td { background: rgba(74,159,212,.05) !important; }
   .panel { padding: 14px; }
   .form-card { padding: 16px; }
 }
+.cli-busq-wrap{position:relative;}
+.cli-busq-results{display:none;position:absolute;top:100%;left:0;right:0;background:#162b44;border:1px solid rgba(45,127,186,.4);border-radius:0 0 8px 8px;z-index:9999;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.5);}
+.cli-busq-results.visible{display:block;}
+.cli-result-item{padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.07);font-size:13px;font-weight:600;color:#e8eef5;}
+.cli-result-item:hover{background:rgba(74,159,212,.15);}
 .preview-overlay{display:none;position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.85);align-items:center;justify-content:center;padding:20px;overflow-y:auto;}
 .preview-overlay.abierto{display:flex !important;}
 
@@ -771,6 +776,7 @@ table { min-width: 500px; }
 }
 
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -1072,7 +1078,9 @@ table { min-width: 500px; }
           <tbody id="presBody"></tbody>
         </table>
       </div>
-      
+      <div style="margin-top:10px">
+        <button class="btn btn-outline btn-sm" onclick="addItem('presBody','recalcPres')">+ Agregar producto</button>
+      </div>
       <div style="display:flex;justify-content:flex-end;margin-top:18px">
         <div class="totales-box">
           <div class="tot-row"><span class="tot-label">Neto:</span><span id="presTotNeto">$0,00</span></div>
@@ -1206,7 +1214,7 @@ const ROLES = {
 // Permisos por rol — ver yunco-permisos.js
 const PERMISOS = {
   vendedor: {
-    tabs:['nueva','presupuesto','consulta','clientes','ctacte'],
+    tabs:['nueva','presupuesto','comprobantes','consulta','clientes','ctacte'],
     comprobantes:['A','B','OV','NC','ND'],
     verTodosComp:false, eliminarComp:false, config:false, gestionUsuarios:false,
   },
@@ -1259,9 +1267,11 @@ let vAct = null, vRol = null, vNombre = null;
       auditSys('ventas', 'MODULO_ABIERTO', 'Ingreso a Ventas y Facturación');
       actualizarOpcionesComprobante();
       const perm = PERMISOS[vRol] || PERMISOS['vendedor'];
-      const allTabs = ['nueva','presupuesto','comprobantes','clientes','consulta','ctacte'];
-      document.querySelectorAll('.tab').forEach((el,i) => {
-        if(allTabs[i]) el.style.display = (perm.tabs||[]).includes(allTabs[i]) ? '' : 'none';
+      document.querySelectorAll('.tab').forEach((el) => {
+        const onclick = el.getAttribute('onclick')||'';
+        const match = onclick.match(/goTab\('([^']+)'\)/);
+        const tabName = match ? match[1] : '';
+        if(tabName) el.style.display = (perm.tabs||[]).includes(tabName) ? '' : 'none';
       });
       updNro();
       addItem('itemsBody','recalc');
@@ -2277,6 +2287,9 @@ function confirmarCobro(){
 }
 
 function procesar(modo){
+  // Validar productos primero — antes de cualquier otra lógica
+  const itemsCheck=getItemsFrom('itemsBody');
+  if(!itemsCheck.length){alert('Agregá al menos un producto antes de confirmar.');return;}
   // Verificar caja abierta para CUALQUIER modo de registro
   const cajaCheck = verificarCajaParaVender();
   if(!cajaCheck.ok){
@@ -2477,7 +2490,11 @@ function goTab(t){
   if(t === 'clientes' && typeof renderClis === 'function') renderClis();
   if(t === 'consulta' && typeof renderConsulta === 'function') renderConsulta();
   // Render específico por tab
-  if(t === 'presupuesto' && typeof updNroPres === 'function') updNroPres();
+  if(t === 'presupuesto' && typeof updNroPres === 'function'){
+    updNroPres();
+    const pb = document.getElementById('presBody');
+    if(pb && pb.querySelectorAll('tr').length === 0) addItem('presBody','recalcPres');
+  }
   // Auditoría sistema
   if(typeof auditSys === 'function') auditSys('ventas', 'TAB_' + t.toUpperCase(), 'Pestaña activa: ' + t);
 }
@@ -2487,7 +2504,7 @@ function renderComp(){
   const tipo=document.getElementById('filtTipo').value,est=document.getElementById('filtEstado').value;
   let comp=S.g('yunco_comp',[]);
   // Vendedor solo ve sus propios comprobantes
-  if(vRol==='vendedor') comp=comp.filter(c=>c.vend===vAct);
+
   if(q)comp=comp.filter(c=>(c.cli?.nom||'').toLowerCase().includes(q)||(c.nro||'').includes(q));
   if(tipo)comp=comp.filter(c=>c.tipo===tipo);
   if(est)comp=comp.filter(c=>c.modo===est);
@@ -2512,7 +2529,7 @@ function renderComp(){
 <td><div style="display:flex;gap:4px">
   <button class="btn btn-verde btn-sm" onclick="prevComp(${c.id})" title="Ver comprobante">👁</button>
   <button class="btn btn-outline btn-sm" onclick="printComp(${c.id})" title="Imprimir comprobante">🖨</button>
-  <button class="btn btn-rojo btn-sm" onclick="solAuth('Eliminar comprobante',()=>delComp(${c.id}))" title="Eliminar comprobante">🗑</button>
+
 </div></td>
 </tr>`;}).join('');}
 
@@ -2610,6 +2627,12 @@ function cambiarClaveMaestra(){
 
 document.getElementById('overlayCli').addEventListener('click',function(e){if(e.target===this)closeModalCli();});
 document.getElementById('previewOverlay').addEventListener('click',function(e){if(e.target===this)closePreview();});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){
+    const prev=document.getElementById('previewOverlay');
+    if(prev&&prev.classList.contains('abierto'))closePreview();
+  }
+});
 recalc();
 
 
