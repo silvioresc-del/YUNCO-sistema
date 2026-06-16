@@ -664,6 +664,10 @@ function renderVentas(){
 <td style="font-weight:700;color:var(--verde3)">${fmtFull(v.total)}</td>
 <td>${vN}</td>
 <td style="color:var(--muted)">${hora}</td>
+<td style="white-space:nowrap">
+  <button class="btn btn-verde btn-sm" onclick="verCompCaja('${v.id}')" title="Ver comprobante">👁</button>
+  <button class="btn btn-outline btn-sm" onclick="printCompCaja('${v.id}')" title="Imprimir comprobante">🖨</button>
+</td>
 </tr>`;}).join('');
 }
 
@@ -1160,6 +1164,57 @@ function mostrarDolarActual(){
   } else {
     el.innerHTML = '<span style="color:var(--warning)">⚠️ Dólar del día no cargado</span>';
     el.style.display = 'block';
+  }
+}
+
+
+function verCompCaja(id){
+  const comp = S.g('yunco_comp',[]).find(function(c){return c.id===id;});
+  if(!comp){ alert('Comprobante no encontrado.'); return; }
+  const tipos = {A:'FACTURA A',B:'FACTURA B',OV:'ORDEN DE VENTA',NC:'NOTA DE CRÉDITO',ND:'NOTA DE DÉBITO',PRES:'PRESUPUESTO'};
+  const fmt = function(n){ return '$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2}); };
+  const items = (comp.items||[]).map(function(it){
+    const tieneBonif = it.bonif && parseFloat(it.bonif) > 0;
+    return '<tr><td>'+(it.desc||'')+'</td><td style="text-align:right">'+it.cant+'</td><td style="text-align:right">'+fmt(it.precioOriginal||it.precio)+'</td><td style="text-align:center;color:#f59e0b">'+(tieneBonif?it.bonif+'%':'-')+'</td><td style="text-align:right">'+fmt(it.precio)+'</td><td style="text-align:right">'+fmt(it.cant*it.precio)+'</td></tr>';
+  }).join('');
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto';
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#111f33;border:1px solid rgba(74,159,212,.3);border-radius:12px;padding:24px;max-width:700px;width:100%;margin:auto';
+  box.innerHTML = '<h3 style="color:#4a9fd4;margin-bottom:4px">'+(tipos[comp.tipo]||comp.tipo)+' '+comp.nro+'</h3>'
+    +'<p style="color:#8baec8;font-size:12px;margin-bottom:16px">'+new Date(comp.fecha).toLocaleString('es-AR')+' — '+(comp.cli&&comp.cli.nom?comp.cli.nom:'Consumidor Final')+'</p>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="border-bottom:1px solid rgba(255,255,255,.1)">'
+    +'<th style="text-align:left;padding:6px">Producto</th><th style="text-align:right;padding:6px">Cant.</th><th style="text-align:right;padding:6px">P.Unit.</th><th style="text-align:center;padding:6px">Bonif.</th><th style="text-align:right;padding:6px">P.c/Desc.</th><th style="text-align:right;padding:6px">Subtotal</th></tr></thead>'
+    +'<tbody>'+items+'</tbody></table>'
+    +'<div style="margin-top:16px;text-align:right;font-size:15px;font-weight:700;color:#22c55e">TOTAL: '+fmt(comp.total)+'</div>'
+    +'<div style="text-align:center;margin-top:20px;display:flex;gap:10px;justify-content:center"></div>';
+  const btnCerrar = document.createElement('button');
+  btnCerrar.textContent = 'Cerrar';
+  btnCerrar.style.cssText = 'background:transparent;border:1px solid rgba(74,159,212,.3);color:#4a9fd4;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:13px';
+  btnCerrar.onclick = function(){ overlay.remove(); };
+  const btnPrint = document.createElement('button');
+  btnPrint.textContent = '🖨 Imprimir';
+  btnPrint.style.cssText = 'background:linear-gradient(135deg,#1a6fa8,#2d7fba);color:#fff;border:none;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:13px';
+  btnPrint.onclick = function(){ overlay.remove(); printCompCaja(id); };
+  box.querySelector('div:last-child').appendChild(btnCerrar);
+  box.querySelector('div:last-child').appendChild(btnPrint);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+}
+
+function printCompCaja(id){
+  const comp = S.g('yunco_comp',[]).find(c=>c.id===id);
+  if(!comp){ alert('Comprobante no encontrado.'); return; }
+  // Use ventas buildFacturaHTML if available, otherwise basic print
+  if(typeof buildFacturaHTML === 'function'){
+    const html = buildFacturaHTML(comp, comp.tipo==='PRES');
+    const w = window.open('','_blank','width=800,height=600');
+    w.document.write(html);
+    w.document.close();
+    setTimeout(()=>{ w.print(); }, 500);
+  } else {
+    window.print();
   }
 }
 
