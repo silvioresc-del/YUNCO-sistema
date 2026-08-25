@@ -619,11 +619,11 @@ function goTab(t){
 
 // STATS
 function actualizarStats(){
-  const prods=getCatalogos();
-  const cero=prods.filter(p=>p.stock===0).length;
-  const bajo=prods.filter(p=>p.stock>0&&p.stock<=p.min).length;
+  const prods=getProductos().filter(p=>p.activo!==false);
+  const cero=prods.filter(p=>parseFloat(p.stock||0)===0).length;
+  const bajo=prods.filter(p=>parseFloat(p.stock||0)>0&&parseFloat(p.stock||0)<=parseFloat(p.stockMinimo||0)).length;
   document.getElementById('stProd').textContent=prods.length;
-  document.getElementById('stUnid').textContent=prods.reduce((a,p)=>a+p.stock,0).toLocaleString('es-AR');
+  document.getElementById('stUnid').textContent=prods.reduce((a,p)=>a+parseFloat(p.stock||0),0).toLocaleString('es-AR');
   document.getElementById('stAlerta').textContent=bajo;
   document.getElementById('stCero').textContent=cero;
   const total=bajo+cero;
@@ -633,8 +633,8 @@ function actualizarStats(){
 
 // FILL CATEGORIAS FILTER
 function fillCatFilter(){
-  const prods=getCatalogos();
-  const cats=[...new Set(prods.map(p=>p.categoria))].sort();
+  const prods=getProductos();
+  const cats=[...new Set(prods.map(p=>p.categoria).filter(Boolean))].sort();
   const sel=document.getElementById('filtCat');
   sel.innerHTML='<option value="">Todas las categorías</option>'+cats.map(c=>`<option>${c}</option>`).join('');
 }
@@ -872,6 +872,22 @@ function nuevoProducto(){
   }, 80);
 }
 
+function eliminarProductoDef(id){
+  solAuth('Eliminar producto', function(){
+    const prods = getProductos();
+    const idx = prods.findIndex(p => p.id === id);
+    if(idx < 0) return;
+    const nombre = prods[idx].nombre;
+    if(!confirm('¿Eliminar definitivamente "' + nombre + '"?\n\nEsta acción no se puede deshacer.')) return;
+    prods.splice(idx, 1);
+    saveProductos(prods);
+    if(typeof auditOp === 'function') auditOp('PRODUCTO_ELIMINADO', nombre, {prodId: id});
+    renderStock();
+    actualizarStats();
+    fillCatFilter();
+  });
+}
+
 function renderStock(){
   const prods = getProductos();
   const q = (document.getElementById('busqStock')?.value||'').toLowerCase();
@@ -961,6 +977,13 @@ function renderStock(){
       toggleBtn.title = inactivo?'Activar producto':'Desactivar producto';
       toggleBtn.onclick = () => toggleActivo(p.id);
       tdAcc.appendChild(toggleBtn);
+      const delBtn = document.createElement('button');
+      delBtn.className = 'btn btn-rojo btn-sm';
+      delBtn.style.margin = '2px';
+      delBtn.textContent = '🗑';
+      delBtn.title = 'Eliminar producto (permanente)';
+      delBtn.onclick = () => eliminarProductoDef(p.id);
+      tdAcc.appendChild(delBtn);
     } else {
       addBtn('historial','📋');
     }
