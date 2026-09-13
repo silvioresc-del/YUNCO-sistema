@@ -985,7 +985,9 @@ table { min-width: 500px; }
           <tbody id="itemsBody"></tbody>
         </table>
       </div>
-      
+      <div style="margin-top:10px">
+        <button type="button" class="btn btn-outline btn-sm" onclick="addItem('itemsBody','recalc')">➕ Agregar producto</button>
+      </div>
       <div style="display:flex;justify-content:flex-end;margin-top:16px">
         <div class="totales-box">
           <div class="tot-row"><span class="tot-label">Neto Gravado:</span><span id="totNeto">$0,00</span></div>
@@ -1071,7 +1073,9 @@ table { min-width: 500px; }
           <tbody id="presBody"></tbody>
         </table>
       </div>
-      
+      <div style="margin-top:10px">
+        <button type="button" class="btn btn-outline btn-sm" onclick="addItem('presBody','recalcPres')">➕ Agregar producto</button>
+      </div>
       <div style="display:flex;justify-content:flex-end;margin-top:18px">
         <div class="totales-box">
           <div class="tot-row"><span class="tot-label">Neto:</span><span id="presTotNeto">$0,00</span></div>
