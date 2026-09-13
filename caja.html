@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<script src="yunco-permisos.js"></script>
 <script>
 (function(){
   const s=localStorage.getItem('yunco_session');
   if(!s){window.location.href='index.html';return;}
   try{
     const ses=JSON.parse(s);
-    const permitidos=['gerente', 'dueno'];
+    const permitidos=['vendedor', 'gerente', 'dueno'];
     if(!permitidos.includes(ses.rol)){window.location.href='index.html';return;}
     window.YUNCO_SESSION=ses;
   }catch(e){window.location.href='index.html';}
@@ -16,7 +15,7 @@
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cierre de Caja — YUNCO</title>
+<title>Ventas — YUNCO</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -33,6 +32,7 @@
   --text-muted:    #4d6a82;
   --accent:        #2d7fba;
   --accent-light:  #4a9fd4;
+  --accent-glow:   rgba(45,127,186,.3);
   --success:       #22c55e;
   --success-bg:    rgba(34,197,94,.1);
   --danger:        #ef4444;
@@ -41,181 +41,738 @@
   --warning-bg:    rgba(245,158,11,.1);
   --shadow-card:   0 2px 16px rgba(0,0,0,.35), 0 1px 0 rgba(255,255,255,.04) inset;
   --shadow-elevated: 0 8px 40px rgba(0,0,0,.5);
-  --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px; --radius-xl: 20px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
 }
+
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:'Barlow',sans-serif; background:var(--bg-base); min-height:100vh; color:var(--text-primary); overflow-x:hidden; font-size:14px; line-height:1.5; }
-body::before { content:''; position:fixed; inset:0; pointer-events:none; background:radial-gradient(ellipse 70% 50% at 10% 0%,rgba(31,78,120,.4) 0%,transparent 60%); }
-.topbar { position:sticky; top:0; z-index:100; background:rgba(8,15,26,.92); backdrop-filter:blur(20px); border-bottom:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:space-between; padding:12px 20px; gap:12px; }
+
+body {
+  font-family: 'Barlow', sans-serif;
+  background: var(--bg-base);
+  min-height: 100vh;
+  color: var(--text-primary);
+  overflow-x: hidden;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 70% 50% at 10% 0%, rgba(31,78,120,.4) 0%, transparent 60%);
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(8,15,26,.92);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  gap: 12px;
+}
+
 .topbar-left { display:flex; align-items:center; gap:12px; }
-.back-btn { display:flex; align-items:center; gap:5px; background:transparent; border:1px solid var(--border-subtle); color:var(--text-muted); text-decoration:none; padding:7px 13px; border-radius:var(--radius-md); font-size:12px; font-weight:700; transition:color .2s,border-color .2s; }
-.back-btn:hover { color:var(--text-primary); border-color:var(--border-mid); }
-.topbar-badge { font-size:9px; font-weight:800; letter-spacing:2.5px; text-transform:uppercase; color:var(--text-muted); margin-bottom:2px; }
-.topbar-title { font-family:'Bebas Neue',sans-serif; font-size:19px; letter-spacing:2px; }
-.vendedor-info { background:var(--success-bg); border:1px solid rgba(34,197,94,.25); padding:6px 13px; border-radius:var(--radius-md); font-size:12px; font-weight:700; color:var(--success); }
-.logout-btn { background:transparent; border:1px solid var(--border-subtle); color:var(--text-muted); padding:6px 12px; border-radius:var(--radius-md); font-size:12px; font-weight:600; cursor:pointer; font-family:'Barlow',sans-serif; transition:color .2s,border-color .2s; }
-.logout-btn:hover { color:var(--danger); border-color:rgba(239,68,68,.3); }
-.contenido { max-width:1200px; margin:0 auto; padding:24px 20px; }
-.tabs { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
-.tab { padding:9px 16px; border-radius:var(--radius-md); font-size:12px; font-weight:700; letter-spacing:.3px; border:1px solid var(--border-subtle); background:transparent; color:var(--text-muted); cursor:pointer; transition:color .2s,background .2s,border-color .2s; }
-.tab:hover { color:var(--text-secondary); background:rgba(255,255,255,.03); border-color:var(--border-mid); }
-.tab.activo { background:var(--bg-card); border-color:var(--border-mid); color:var(--accent-light); font-weight:800; }
-.panel { display:none; animation:fadeUp .3s ease both; }
-.panel.activo { display:block; }
-@keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-.form-card { background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-lg); padding:20px; margin-bottom:12px; box-shadow:var(--shadow-card); }
-.form-group { margin-bottom:12px; }
-.form-group label { display:block; font-size:10px; font-weight:800; letter-spacing:1px; color:var(--text-muted); margin-bottom:5px; text-transform:uppercase; }
-.form-group input,.form-group select,.form-group textarea { width:100%; background:var(--bg-input); border:1px solid var(--border-subtle); color:var(--text-primary); padding:10px 13px; border-radius:var(--radius-md); font-family:'Barlow',sans-serif; font-size:14px; outline:none; transition:border-color .2s,box-shadow .2s; }
-.form-group input:focus,.form-group select:focus { border-color:var(--border-strong); box-shadow:0 0 0 3px rgba(45,127,186,.12); }
-.form-group select option { background:#111f33; }
-.form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-.tabla-wrap { overflow-x:auto; border-radius:var(--radius-md); border:1px solid var(--border-subtle); }
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 7px 13px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  transition: color .2s, border-color .2s;
+}
+.back-btn:hover { color: var(--text-primary); border-color: var(--border-mid); }
+
+.topbar-badge {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.topbar-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 19px;
+  letter-spacing: 2px;
+  color: var(--text-primary);
+}
+
+.vendedor-info {
+  background: var(--success-bg);
+  border: 1px solid rgba(34,197,94,.25);
+  padding: 6px 13px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--success);
+}
+
+.logout-btn {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Barlow', sans-serif;
+  transition: color .2s, border-color .2s;
+}
+.logout-btn:hover { color: var(--danger); border-color: rgba(239,68,68,.3); }
+
+/* ── TABS ── */
+.tabs {
+  display: flex;
+  gap: 6px;
+  padding: 16px 20px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+}
+
+.tab {
+  padding: 9px 16px;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color .2s, background .2s;
+  position: relative;
+  bottom: -1px;
+}
+
+.tab:hover { color: var(--text-secondary); background: rgba(255,255,255,.03); }
+
+.tab.activo {
+  background: var(--bg-card);
+  border-color: var(--border-subtle);
+  border-bottom-color: var(--bg-card);
+  color: var(--accent-light);
+  font-weight: 800;
+}
+
+/* ── PANELS ── */
+.panel { display:none; padding: 20px; animation: fadeUp .3s ease both; }
+.panel.activo { display: block; }
+
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(10px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+/* ── FORM CARDS ── */
+.form-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+
+.form-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(74,159,212,.3), transparent);
+}
+
+/* ── SECTION TITLES ── */
+.form-card > div[style*="Bebas Neue"],
+.form-card h3 {
+  font-family: 'Bebas Neue', sans-serif !important;
+  font-size: 16px !important;
+  letter-spacing: 1.5px !important;
+  color: var(--text-secondary) !important;
+  text-transform: uppercase;
+  margin-bottom: 14px !important;
+}
+
+/* ── FORM GROUPS ── */
+.form-group { margin-bottom: 12px; }
+.form-group:last-child { margin-bottom: 0; }
+
+.form-group label {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  padding: 10px 13px;
+  border-radius: var(--radius-md);
+  font-family: 'Barlow', sans-serif;
+  font-size: 14px;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 3px rgba(45,127,186,.12);
+}
+
+.form-group select option { background: #111f33; }
+
+/* ── TABLA ITEMS ── */
+.items-tabla { width:100%; border-collapse:collapse; }
+
+.items-tabla thead { background: rgba(13,31,51,.8); }
+
+.items-tabla th {
+  padding: 9px 10px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.items-tabla td {
+  padding: 6px 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+
+.items-tabla tr:last-child td { border-bottom: none; }
+
+.items-tabla input,
+.items-tabla select {
+  background: var(--bg-input) !important;
+  border: 1px solid var(--border-subtle) !important;
+  color: var(--text-primary) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 6px 8px !important;
+  width: 100% !important;
+  font-family: 'Barlow', sans-serif !important;
+  font-size: 13px !important;
+  transition: border-color .2s !important;
+  outline: none !important;
+}
+
+.items-tabla input:focus,
+.items-tabla select:focus {
+  border-color: var(--border-strong) !important;
+}
+
+/* ── TABLA GENERAL ── */
+.tabla-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
 table { width:100%; border-collapse:collapse; }
-thead { background:rgba(13,31,51,.9); }
-th { padding:10px 14px; text-align:left; font-size:10px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-muted); border-bottom:1px solid var(--border-subtle); white-space:nowrap; }
-td { padding:11px 14px; font-size:13px; font-weight:500; color:var(--text-primary); border-bottom:1px solid var(--border-subtle); vertical-align:middle; }
-tr:nth-child(even) td { background:rgba(255,255,255,.02); }
-tr:last-child td { border-bottom:none; }
-tr:hover td { background:rgba(74,159,212,.05)!important; }
-.btn { display:inline-flex; align-items:center; gap:6px; padding:9px 18px; border-radius:var(--radius-md); font-family:'Barlow',sans-serif; font-size:13px; font-weight:700; cursor:pointer; border:none; letter-spacing:.3px; transition:opacity .2s,transform .15s; }
-.btn:hover { opacity:.88; transform:translateY(-1px); }
-.btn-primario { background:linear-gradient(135deg,var(--accent),var(--accent-light)); color:#fff; box-shadow:0 2px 12px rgba(45,127,186,.3); }
-.btn-verde { background:var(--success-bg); border:1px solid rgba(34,197,94,.3); color:var(--success); }
-.btn-rojo { background:var(--danger-bg); border:1px solid rgba(239,68,68,.3); color:var(--danger); }
-.btn-amarillo { background:var(--warning-bg); border:1px solid rgba(245,158,11,.3); color:var(--warning); }
-.btn-outline { background:transparent; border:1px solid var(--border-subtle); color:var(--text-secondary); }
-.btn-outline:hover { border-color:var(--border-mid); color:var(--text-primary); }
-.btn-sm { padding:6px 12px; font-size:12px; }
-.stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:20px; }
-.stat-card { background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-lg); padding:16px 18px; display:flex; align-items:center; gap:12px; box-shadow:var(--shadow-card); }
-.stat-icon { font-size:26px; flex-shrink:0; }
-.stat-num { font-family:'Bebas Neue',sans-serif; font-size:26px; color:var(--text-primary); letter-spacing:1px; line-height:1; }
-.stat-label { font-size:11px; color:var(--text-muted); margin-top:2px; font-weight:600; }
-.stat-card.verde { border-color:rgba(34,197,94,.2); }
-.stat-card.rojo { border-color:rgba(239,68,68,.2); }
-.stat-card.azul { border-color:var(--border-mid); }
-.stat-card.naranja { border-color:rgba(245,158,11,.2); }
-.auth-overlay { display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.8); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:20px; }
-.auth-overlay.abierto { display:flex; }
-.auth-box { background:var(--bg-card); border:1px solid rgba(239,68,68,.4); border-radius:var(--radius-xl); padding:32px; width:100%; max-width:360px; text-align:center; box-shadow:var(--shadow-elevated); }
-.auth-box h3 { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--danger); margin-bottom:8px; }
-.auth-box p { color:var(--text-secondary); font-size:13px; margin-bottom:18px; }
-.auth-box input { width:100%; background:var(--bg-input); border:1px solid var(--border-subtle); color:var(--text-primary); padding:12px; border-radius:var(--radius-md); font-size:15px; outline:none; text-align:center; letter-spacing:4px; margin-bottom:10px; transition:border-color .2s; }
-.auth-box input:focus { border-color:var(--border-strong); }
-.auth-error { color:var(--danger); font-size:12px; margin-bottom:8px; display:none; }
-.login-overlay { position:fixed; inset:0; z-index:999; background:var(--bg-base); display:flex; align-items:center; justify-content:center; padding:20px; }
-.login-box { background:var(--bg-card); border:1px solid var(--border-mid); border-radius:var(--radius-xl); padding:40px 36px; width:100%; max-width:380px; text-align:center; box-shadow:var(--shadow-elevated); animation:fadeUp .5s ease both; position:relative; overflow:hidden; }
-.login-box::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(74,159,212,.5),transparent); }
-.login-logo { font-size:44px; font-weight:900; color:#c0392b; -webkit-text-stroke:2px rgba(80,30,20,.5); letter-spacing:3px; margin-bottom:4px; }
-.login-sub { color:var(--text-secondary); font-size:12px; margin-bottom:24px; }
-.login-box select,.login-box input { width:100%; background:var(--bg-input); border:1px solid var(--border-subtle); color:var(--text-primary); padding:12px 14px; border-radius:var(--radius-md); font-family:'Barlow',sans-serif; font-size:14px; outline:none; margin-bottom:10px; transition:border-color .2s,box-shadow .2s; }
-.login-box select:focus,.login-box input:focus { border-color:var(--border-strong); box-shadow:0 0 0 3px rgba(45,127,186,.12); }
-.login-box select option { background:#111f33; }
-.login-btn { width:100%; background:linear-gradient(135deg,var(--accent),var(--accent-light)); color:#fff; border:none; padding:13px; border-radius:var(--radius-md); font-family:'Barlow',sans-serif; font-size:15px; font-weight:700; cursor:pointer; transition:opacity .2s,transform .15s; }
-.login-btn:hover { opacity:.9; transform:translateY(-1px); }
-.login-error { color:var(--danger); font-size:12px; margin-top:8px; display:none; }
-.vacio { text-align:center; padding:40px; color:var(--text-muted); font-size:14px; }
-.cat-tag { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:5px; background:rgba(45,127,186,.15); border:1px solid rgba(74,159,212,.2); color:var(--accent-light); }
-.stock-ok { color:var(--success); font-weight:800; }
-.stock-bajo { color:var(--warning); font-weight:800; }
-.stock-cero { color:var(--danger); font-weight:800; }
-.pm-tag { display:inline-block; font-size:10px; font-weight:800; padding:2px 7px; border-radius:5px; background:rgba(34,197,94,.1); border:1px solid rgba(34,197,94,.2); color:var(--success); }
-.toolbar { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; align-items:center; }
-.toolbar input,.toolbar select { background:var(--bg-input); border:1px solid var(--border-subtle); color:var(--text-primary); padding:9px 13px; border-radius:var(--radius-md); font-family:'Barlow',sans-serif; font-size:13px; outline:none; transition:border-color .2s; }
-.toolbar input:focus,.toolbar select:focus { border-color:var(--border-strong); }
-.gasto-item { display:flex; align-items:center; gap:12px; padding:12px 16px; background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-md); margin-bottom:8px; }
-.hist-item { display:flex; align-items:center; gap:12px; padding:11px 14px; background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-md); margin-bottom:7px; }
-.alerta-item { display:flex; align-items:center; gap:14px; padding:12px 16px; border-radius:var(--radius-md); margin-bottom:8px; }
-.alerta-cero { background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.25); }
-.alerta-bajo { background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.2); }
-.alerta-badge { display:none; align-items:center; gap:6px; background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3); color:var(--danger); font-size:12px; font-weight:700; padding:5px 12px; border-radius:var(--radius-md); cursor:pointer; }
-.alerta-badge.visible { display:flex; }
-.modal { background:var(--bg-card); border:1px solid var(--border-mid); border-radius:var(--radius-xl); padding:28px; width:100%; max-width:480px; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow-elevated); }
-.modal h2 { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:1px; margin-bottom:20px; }
-.modal-footer { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
-.overlay { display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.75); backdrop-filter:blur(4px); align-items:center; justify-content:center; padding:20px; }
-.overlay.abierto { display:flex; }
-.badge { display:inline-block; font-size:11px; font-weight:800; padding:3px 9px; border-radius:5px; letter-spacing:.3px; }
-.badge-a,.badge-b { background:rgba(45,127,186,.2); color:var(--accent-light); border:1px solid rgba(74,159,212,.25); }
-.badge-nc { background:var(--warning-bg); color:var(--warning); border:1px solid rgba(245,158,11,.25); }
-.badge-nd,.badge-rojo { background:var(--danger-bg); color:var(--danger); border:1px solid rgba(239,68,68,.25); }
-.badge-reg { background:var(--success-bg); color:var(--success); border:1px solid rgba(34,197,94,.25); }
-.badge-grab { background:var(--warning-bg); color:var(--warning); border:1px solid rgba(245,158,11,.25); }
-.ctacte-item { background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-lg); padding:16px; margin-bottom:10px; }
-.ctacte-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
-.ctacte-nombre { font-size:15px; font-weight:700; }
-.ctacte-deuda { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--danger); }
-.medio-card { background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:14px; text-align:center; }
-.medios-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-bottom:20px; }
-@media(max-width:600px) { .form-row{grid-template-columns:1fr;} .contenido{padding:16px;} .tabs{gap:4px;} .tab{padding:8px 12px;font-size:11px;} }
+
+thead { background: rgba(13,31,51,.9); }
+
+th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+td {
+  padding: 11px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+
+tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(74,159,212,.05) !important; }
+
+/* ── TOTALES ── */
+.totales-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  min-width: 260px;
+  box-shadow: var(--shadow-card);
+}
+
+.tot-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+}
+
+.tot-row span:last-child { color: var(--text-primary); font-weight: 700; }
+
+.tot-row.grande {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 26px;
+  letter-spacing: 1px;
+  color: var(--success);
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 10px;
+  margin-top: 6px;
+}
+
+.tot-label { color: var(--text-muted); }
+
+/* ── BOTONES ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: var(--radius-md);
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  letter-spacing: .3px;
+  transition: opacity .2s, transform .15s, box-shadow .2s;
+}
+
+.btn:hover { opacity: .88; transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+
+.btn-primario {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(45,127,186,.3);
+}
+
+.btn-verde {
+  background: var(--success-bg);
+  border: 1px solid rgba(34,197,94,.3);
+  color: var(--success);
+}
+
+.btn-rojo {
+  background: var(--danger-bg);
+  border: 1px solid rgba(239,68,68,.3);
+  color: var(--danger);
+}
+
+.btn-amarillo {
+  background: var(--warning-bg);
+  border: 1px solid rgba(245,158,11,.3);
+  color: var(--warning);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.btn-outline:hover { border-color: var(--border-mid); color: var(--text-primary); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn-grande { padding: 14px 28px; font-size: 15px; }
+
+/* ── BADGES ── */
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 9px;
+  border-radius: 5px;
+  letter-spacing: .3px;
+}
+
+.badge-a,.badge-b {
+  background: rgba(45,127,186,.2);
+  color: var(--accent-light);
+  border: 1px solid rgba(74,159,212,.25);
+}
+
+.badge-nc {
+  background: rgba(245,158,11,.15);
+  color: var(--warning);
+  border: 1px solid rgba(245,158,11,.25);
+}
+
+.badge-nd {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid rgba(239,68,68,.25);
+}
+
+.badge-reg {
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid rgba(34,197,94,.25);
+}
+
+.badge-grab {
+  background: var(--warning-bg);
+  color: var(--warning);
+  border: 1px solid rgba(245,158,11,.25);
+}
+
+/* ── OVERLAYS ── */
+.auth-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  z-index: 200;
+  background: rgba(0,0,0,.8);
+  backdrop-filter: blur(8px);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.auth-overlay.abierto { display: flex; }
+
+.auth-box {
+  background: var(--bg-card);
+  border: 1px solid rgba(239,68,68,.4);
+  border-radius: var(--radius-xl);
+  padding: 32px;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+  box-shadow: var(--shadow-elevated), 0 0 40px rgba(239,68,68,.1);
+}
+
+.auth-box h3 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  color: var(--danger);
+  margin-bottom: 8px;
+}
+
+.auth-box p { color: var(--text-secondary); font-size: 13px; margin-bottom: 18px; }
+
+.auth-box input {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  outline: none;
+  text-align: center;
+  letter-spacing: 4px;
+  margin-bottom: 10px;
+  transition: border-color .2s;
+}
+
+.auth-box input:focus { border-color: var(--border-strong); }
+
+.auth-error {
+  color: var(--danger);
+  font-size: 12px;
+  margin-bottom: 8px;
+  display: none;
+}
+
+/* LOGIN OVERLAY */
+.login-overlay {
+  position: fixed; inset: 0;
+  z-index: 999;
+  background: var(--bg-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.login-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-xl);
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+  box-shadow: var(--shadow-elevated), 0 0 32px rgba(45,127,186,.2);
+  animation: fadeUp .5s cubic-bezier(.16,1,.3,1) both;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-box::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(74,159,212,.5), transparent);
+}
+
+.login-logo {
+  font-size: 48px;
+  font-weight: 900;
+  color: #c0392b;
+  -webkit-text-stroke: 2px rgba(80,30,20,.5);
+  letter-spacing: 3px;
+  margin-bottom: 4px;
+}
+
+.login-sub { color: var(--text-secondary); font-size: 12px; margin-bottom: 26px; }
+
+.login-box select,
+.login-box input {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  font-family: 'Barlow', sans-serif;
+  font-size: 14px;
+  outline: none;
+  margin-bottom: 10px;
+  transition: border-color .2s, box-shadow .2s;
+}
+
+.login-box select:focus,
+.login-box input:focus {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 3px rgba(45,127,186,.12);
+}
+
+.login-box select option { background: #111f33; }
+
+.login-btn {
+  width: 100%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  color: #fff;
+  border: none;
+  padding: 13px;
+  border-radius: var(--radius-md);
+  font-family: 'Barlow', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .2s, transform .15s;
+}
+
+.login-btn:hover { opacity: .9; transform: translateY(-1px); }
+.login-error { color: var(--danger); font-size: 12px; margin-top: 8px; display: none; }
+
+/* ── MISC ── */
+.vacio {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.vacio-icon { font-size: 40px; margin-bottom: 12px; }
+
+.cat-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 5px;
+  background: rgba(45,127,186,.15);
+  border: 1px solid rgba(74,159,212,.2);
+  color: var(--accent-light);
+}
+
+.stock-ok  { color: var(--success); font-weight: 800; }
+.stock-bajo { color: var(--warning); font-weight: 800; }
+.stock-cero { color: var(--danger); font-weight: 800; }
+
+.pm-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: rgba(34,197,94,.1);
+  border: 1px solid rgba(34,197,94,.2);
+  color: var(--success);
+}
+
+/* ── MODAL ── */
+.overlay {
+  display: none;
+  position: fixed; inset: 0;
+  z-index: 200;
+  background: rgba(0,0,0,.75);
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.overlay.abierto { display: flex; }
+
+.modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-xl);
+  padding: 28px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-elevated);
+}
+
+.modal h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 1px;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* ── CONFIG ── */
+.config-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 12px;
+}
+
+.config-section h3 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.toolbar input,
+.toolbar select {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  padding: 9px 13px;
+  border-radius: var(--radius-md);
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  outline: none;
+  transition: border-color .2s;
+}
+
+.toolbar input:focus,
+.toolbar select:focus { border-color: var(--border-strong); }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+/* ── PRINT OVERLAY ── */
+#printOverlay {display:none;
+  position: fixed; inset: 0;
+  z-index: 99999;
+  background: #f5f5f5;
+  overflow-y: auto;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 600px) {
+  .form-row, .form-row-3 { grid-template-columns: 1fr; }
+  .panel { padding: 14px; }
+  .form-card { padding: 16px; }
+}
+.preview-overlay{display:none;position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.85);align-items:center;justify-content:center;padding:20px;overflow-y:auto;}
 
 /* ── RESPONSIVE GLOBAL ─────────────────────────────────────── */
 .tabla-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
 table { min-width: 500px; }
 .tabla-wrap table { width: 100%; }
-
-/* Toolbar adapts to available space */
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
 .toolbar input, .toolbar select { min-width: 120px; flex: 1 1 160px; }
 .toolbar .btn { flex-shrink: 0; }
-
-/* Tabs wrap on small screens */
 .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
-
-/* Stats grids adapt */
 .stats-grid, .stat-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
-
-/* Form rows adapt */
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-/* Modal adapts */
 .modal { width: 100%; box-sizing: border-box; }
 .overlay { padding: 12px; }
-
-/* Buttons always visible */
 .btn { white-space: nowrap; }
 .btn-sm { padding: 5px 10px; font-size: 11px; }
-
-/* Table action columns */
-td[style*="white-space:nowrap"], td[style*="white-space: nowrap"] { min-width: 100px; }
-
-/* Panels fill width */
 .panel { width: 100%; box-sizing: border-box; }
-
-/* Cards */
 .form-card { box-sizing: border-box; width: 100%; }
-
 @media (max-width: 900px) {
   .form-row { grid-template-columns: 1fr 1fr; }
   .stats-grid, .stat-strip { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
 }
-
 @media (max-width: 600px) {
   .form-row { grid-template-columns: 1fr; }
   .tabs .tab { font-size: 11px; padding: 7px 10px; }
   .stats-grid, .stat-strip { grid-template-columns: 1fr 1fr; }
   .toolbar { flex-direction: column; align-items: stretch; }
-  .toolbar input, .toolbar select, .toolbar .btn { width: 100%; }
+  .toolbar input, .toolbar select, .toolbar .btn { width: 100%; box-sizing: border-box; }
   .modal { padding: 16px !important; }
-  .topbar-title { font-size: 15px; }
-  h1, .topbar-title { word-break: break-word; }
 }
-
 @media (max-width: 400px) {
   .stats-grid, .stat-strip { grid-template-columns: 1fr; }
   .tabs .tab { font-size: 10px; padding: 6px 8px; }
 }
 
-/* Tooltip via title - enhance with CSS */
-[title] { cursor: help; }
-button[title] { cursor: pointer; }
-
 </style>
 </head>
 <body>
 
-<!-- AUTH -->
 <div class="auth-overlay" id="authOverlay">
   <div class="auth-box">
     <h3>🔐 Autorización Requerida</h3>
@@ -231,180 +788,1343 @@ button[title] { cursor: pointer; }
 
 </div>
 
-<!-- TOPBAR -->
+
+<!-- OVERLAY CAJA BLOQUEADA -->
+<div class="auth-overlay" id="cajaBlockOverlay_old" style="display:none" style="z-index:995">
+  <div class="auth-box" style="border-color:rgba(245,158,11,.5);max-width:440px">
+    <div style="font-size:52px;margin-bottom:14px">🔒</div>
+    <h3 style="color:var(--warning,#f59e0b);font-family:'Bebas Neue',sans-serif;font-size:22px;margin-bottom:10px">Operación Bloqueada</h3>
+    <p id="cajaBlockMsg" style="color:var(--text-secondary,#8baec8);font-size:13px;margin-bottom:20px;line-height:1.6"></p>
+    <button onclick="document.getElementById('cajaBlockOverlay').classList.remove('abierto')"
+      style="width:100%;background:var(--accent,#2d7fba);color:#fff;border:none;padding:12px;border-radius:8px;font-family:'Barlow',sans-serif;font-size:14px;font-weight:700;cursor:pointer">
+      Entendido
+    </button>
+  </div>
+</div>
+
+
+<!-- BLOQUEO POR CAJA -->
+<div id="cajaBloqueoPantalla" style="display:none;position:fixed;inset:0;z-index:500;background:var(--bg-base,#080f1a);display:flex;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--bg-card,#111f33);border:1px solid rgba(245,158,11,.4);border-radius:20px;padding:40px;width:100%;max-width:480px;text-align:center">
+    <div style="font-size:56px;margin-bottom:16px">🔒</div>
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;color:#f59e0b;margin-bottom:12px">Ventas Bloqueadas</h2>
+    <p id="cajaBloqueMsg" style="color:#8baec8;font-size:14px;line-height:1.7;margin-bottom:24px"></p>
+    <div id="cajaBloqueAccion"></div>
+    <a href="index.html" style="display:inline-block;margin-top:16px;color:#4d6a82;font-size:13px;text-decoration:none">← Volver al menú principal</a>
+  </div>
+</div>
+
+
+<!-- AUTORIZACIÓN OPERATIVA -->
+<div class="auth-overlay" id="authOpOverlay" style="z-index:600">
+  <div class="auth-box" style="max-width:420px;border-color:rgba(245,158,11,.5)">
+    <div style="font-size:44px;margin-bottom:12px">🔐</div>
+    <h3 style="color:var(--warning,#f59e0b);font-size:20px;margin-bottom:8px">Autorización Requerida</h3>
+    <p style="color:var(--text-secondary,#8baec8);font-size:13px;margin-bottom:6px">
+      La operación <strong id="authOp_tipo" style="color:var(--text-primary)">—</strong> requiere autorización del Gerente General o Dueño.
+    </p>
+    <p style="color:var(--text-muted,#4d6a82);font-size:12px;margin-bottom:20px">
+      Ingresá las credenciales del autorizante. La autorización aplica únicamente a esta operación.
+    </p>
+    <select id="authOp_usuario"
+      style="width:100%;background:var(--bg-input,#0a1525);border:1px solid var(--border-subtle);color:var(--text-primary);padding:11px 14px;border-radius:8px;font-family:'Barlow',sans-serif;font-size:14px;outline:none;margin-bottom:10px">
+      <option value="">— Seleccioná el autorizante —</option>
+      <option value="gerente">Gerente General</option>
+      <option value="dueno">Dueño</option>
+    </select>
+    <input type="password" id="authOp_clave" placeholder="Contraseña del autorizante"
+      onkeydown="if(event.key==='Enter')confirmarAuthOp()"
+      style="width:100%;background:var(--bg-input,#0a1525);border:1px solid var(--border-subtle);color:var(--text-primary);padding:11px 14px;border-radius:8px;font-family:'Barlow',sans-serif;font-size:14px;outline:none;margin-bottom:10px;letter-spacing:3px">
+    <div id="authOp_err" style="display:none;color:var(--danger,#ef4444);font-size:12px;margin-bottom:10px;background:rgba(239,68,68,.1);padding:8px 12px;border-radius:6px"></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline" style="flex:1" onclick="cancelarAuthOp()">Cancelar</button>
+      <button class="btn btn-primario" style="flex:1" onclick="confirmarAuthOp()">✅ Autorizar</button>
+    </div>
+  </div>
+</div>
+
 <div class="topbar">
   <div class="topbar-left">
     <a href="index.html" class="back-btn">← Inicio</a>
-    <div><div class="topbar-badge">MÓDULO</div><div class="topbar-title">🧾 CIERRE DE CAJA</div></div>
+    <div><div class="topbar-badge">MÓDULO</div><div class="topbar-title">💵 VENTAS Y FACTURACIÓN</div></div>
   </div>
   <div style="display:flex;align-items:center;gap:10px">
     <div class="vendedor-info" id="vendedorInfo">👤 —</div>
-    <div id="cajaEstadoBadge" style="display:none;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:700"></div>
     <button class="logout-btn" onclick="logout()">Salir</button>
   </div>
 </div>
 
-<div class="contenido" id="mainContenido">
-
-  <!-- CAJA CERRADA -->
-  <div id="viewCerrada" style="display:none">
-    <div class="caja-cerrada">
-      <div class="caja-cerrada-icon">🔒</div>
-      <h2>Caja Cerrada</h2>
-      <p>No hay ninguna caja abierta hoy.<br>El Gerente General o Dueño debe abrir la caja para comenzar.</p>
-      <div id="btnAbrirWrap">
-        <button class="btn btn-primario btn-grande" onclick="abrirCaja()">🔓 Abrir Caja del Día</button>
-      </div>
-      <div style="margin-top:24px">
-        <button class="btn btn-outline" onclick="goHistorialCajas()">📚 Ver historial de cierres</button>
-      </div>
-    </div>
+<div class="contenido">
+  <div class="tabs" id="tabsWrap">
+    <div class="tab activo" onclick="goTab('nueva')">➕ Nueva Venta</div>
+    <div class="tab" onclick="goTab('presupuesto')">📝 Presupuesto</div>
+    <div class="tab" onclick="goTab('comprobantes')">📋 Comprobantes</div>
+    <div class="tab" onclick="goTab('clientes')">👥 Clientes</div>
+    <div class="tab" onclick="goTab('consulta')">🔍 Consulta Stock</div>
+    
+    
   </div>
 
-  <!-- CAJA ABIERTA -->
-  
-<!-- OVERLAY DÓLAR DEL DÍA -->
-<div class="overlay" id="overlayDolar">
-  <div class="modal" style="max-width:400px">
-    <div style="font-size:40px;text-align:center;margin-bottom:12px">💵</div>
-    <h2 id="dolarTitulo" style="text-align:center;margin-bottom:6px">Dólar del Día</h2>
-    <p style="color:var(--text-secondary);font-size:13px;text-align:center;margin-bottom:16px">
-      El valor queda fijo para toda la jornada.
-    </p>
-    <div id="dolarUltimo" style="display:none;background:rgba(74,159,212,.1);border:1px solid rgba(74,159,212,.2);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--accent-light);margin-bottom:12px;text-align:center"></div>
-    <input type="hidden" id="dolarModo" value="apertura">
-    <div class="form-group">
-      <label>Valor del dólar ($)</label>
-      <input type="number" id="dolarValorInput" placeholder="ej: 1200" min="1" step="0.01"
-        onkeydown="if(event.key==='Enter')confirmarDolar()"
-        style="font-size:20px;text-align:center;font-weight:700">
-    </div>
-    <div class="form-group" id="dolarMotivoWrap" style="display:none">
-      <label>Motivo de la modificación</label>
-      <input type="text" id="dolarMotivo" placeholder="Motivo obligatorio para modificaciones">
-    </div>
-    <div id="dolarErr" style="display:none;color:var(--danger);font-size:12px;background:rgba(239,68,68,.1);padding:8px 12px;border-radius:6px;margin-bottom:10px"></div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="cerrarPanelDolar()">Cancelar</button>
-      <button class="btn btn-primario" onclick="confirmarDolar()">✅ Confirmar</button>
-    </div>
-  </div>
-</div>
+    <!-- NUEVA VENTA -->
+  <div class="panel activo" id="panel-nueva">
 
-<div id="viewAbierta" style="display:none">
-
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
-      <div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px">📅 <span id="fechaCaja"></span></div>
-  <div id="dolarActualDisplay" style="margin:10px 0;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:8px;font-size:13px"></div>
-        <div style="color:var(--muted);font-size:13px">Caja abierta · <span id="horaApertura"></span></div>
+    <!-- TIPO COMPROBANTE -->
+    <div class="form-card" style="padding:16px 20px;margin-bottom:12px">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+        <div class="form-group" style="margin:0;flex:1;min-width:160px">
+          <label>Comprobante</label>
+          <select id="tipoComp" onchange="onTipoChange()">
+            <option value="B">Factura B</option>
+            <option value="A">Factura A</option>
+            <option value="OV">Orden de Venta</option>
+            <option value="NC">Nota de Crédito</option>
+            <option value="ND">Nota de Débito</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;flex:1;min-width:160px">
+          <label>N° Comprobante</label>
+          <input type="text" id="nroComp" readonly style="opacity:.6">
+        </div>
+        <div class="form-group" id="dolarWrap" style="margin:0;flex:1;min-width:160px;display:none">
+          <label>💵 Cotización dólar ($)</label>
+          <input type="number" id="dolarCotiz" placeholder="Ej: 1250.00" step="0.01">
+        </div>
       </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap" id="botonesGerente">
-        <button class="btn btn-amarillo" onclick="solAuth('Cerrar caja del día',cerrarCaja)" title="Cerrar la caja del día">🔒 Cerrar Caja</button>
-        <button class="btn btn-primario" onclick="previsualizarCierre()">👁 Vista Previa</button>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border-subtle)">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:13px;color:var(--text-secondary)">
+          <input type="checkbox" id="ventaInterna" onchange="toggleVentaInterna()" style="width:auto;margin:0">
+          🧾 Venta interna (sin factura) — no entrega comprobante fiscal, solo suma a la caja del día
+        </label>
       </div>
     </div>
 
-    <!-- STATS -->
-    <div class="stats-grid" id="statsGrid">
-      <div class="stat-card verde"><div class="stat-icon">💰</div><div><div class="stat-num" id="stIngreso">$0</div><div class="stat-label">Total ingresos</div></div></div>
-      <div class="stat-card rojo"><div class="stat-icon">💸</div><div><div class="stat-num" id="stGasto">$0</div><div class="stat-label">Total gastos</div></div></div>
-      <div class="stat-card azul"><div class="stat-icon">📊</div><div><div class="stat-num" id="stSaldo">$0</div><div class="stat-label">Saldo neto</div></div></div>
-      <div class="stat-card naranja"><div class="stat-icon">📋</div><div><div class="stat-num" id="stFacturas">0</div><div class="stat-label">Comprobantes</div></div></div>
+
+    <!-- NC/ND REFERENCIA (solo visible cuando tipo es NC o ND) -->
+    <div class="form-card" id="ncndPanel" style="display:none;border-color:rgba(245,158,11,.3)">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;color:var(--warning,#f59e0b);margin-bottom:14px">
+        📎 Referencia a Comprobante Original
+      </div>
+      <div class="form-group">
+        <label>Cliente al que pertenece la operación original</label>
+        <input type="text" id="ncndCliBusq" placeholder="Escribí nombre o CUIT para buscar facturas..." 
+          oninput="buscarFacturasCliente()" autocomplete="off">
+        <div id="ncndCliRes" style="display:none;background:var(--bg-card,#111f33);border:1px solid var(--border-mid);border-radius:8px;margin-top:4px;max-height:160px;overflow-y:auto"></div>
+      </div>
+      <div id="ncndFacturasWrap" style="display:none">
+        <div class="form-group">
+          <label>Seleccionar factura original</label>
+          <select id="ncndFacturaSel" onchange="selFacturaOriginal()" style="width:100%">
+            <option value="">— Seleccioná la factura original —</option>
+          </select>
+        </div>
+        <div id="ncndFacturaInfo" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px;margin-bottom:12px;font-size:12px"></div>
+      </div>
+      <div class="form-group">
+        <label>Motivo</label>
+        <select id="ncndMotivo" onchange="toggleMotivoOtro()">
+          <option value="">— Seleccioná un motivo —</option>
+          <option value="Devolución de mercadería">Devolución de mercadería</option>
+          <option value="Error en precio">Error en precio</option>
+          <option value="Descuento posterior">Descuento posterior</option>
+          <option value="Bonificación comercial">Bonificación comercial</option>
+          <option value="Ajuste contable">Ajuste contable</option>
+          <option value="otro">Otro (especificar)</option>
+        </select>
+      </div>
+      <div class="form-group" id="motivoOtroWrap" style="display:none">
+        <label>Especificá el motivo</label>
+        <input type="text" id="ncndMotivoOtro" placeholder="Describí el motivo...">
+      </div>
+      <input type="hidden" id="ncndFacturaRefId">
+      <input type="hidden" id="ncndFacturaRefNro">
     </div>
 
-    <!-- MEDIOS DE PAGO -->
-    <div class="medios-grid" id="mediosGrid">
-      <div class="medio-card"><div class="medio-icon">💵</div><div class="medio-label">Efectivo</div><div class="medio-monto" id="mEfectivo">$0</div></div>
-      <div class="medio-card"><div class="medio-icon">🏦</div><div class="medio-label">Transferencia</div><div class="medio-monto" id="mTransferencia">$0</div></div>
-      <div class="medio-card"><div class="medio-icon">📱</div><div class="medio-label">QR</div><div class="medio-monto" id="mQr">$0</div></div>
-      <div class="medio-card"><div class="medio-icon">💳</div><div class="medio-label">Tarjeta</div><div class="medio-monto" id="mTarjeta">$0</div></div>
-      <div class="medio-card"><div class="medio-icon">📄</div><div class="medio-label">Cheque</div><div class="medio-monto" id="mCheque">$0</div></div>
-      <div class="medio-card"><div class="medio-icon">📒</div><div class="medio-label">Cta. Corriente</div><div class="medio-monto" id="mCtaCte">$0</div></div>
+    <!-- CLIENTE -->
+    <div class="form-card" style="padding:16px 20px;margin-bottom:12px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--azul3);margin-bottom:12px">Cliente</div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label>Buscar o escribir nombre del cliente</label>
+        <div style="position:relative">
+          <input type="text" id="cliBusq" placeholder="Escribí nombre o CUIT..." oninput="buscarCliente()" autocomplete="off">
+          <div id="cliBusqResults" style="display:none;position:absolute;top:100%;left:0;right:0;background:#162b44;border:1px solid rgba(45,127,186,.4);border-radius:0 0 8px 8px;z-index:9999;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.5)"></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-group" style="margin:0">
+          <label id="cuitLabel">CUIT / DNI</label>
+          <input type="text" id="cliCuit" placeholder="11-11111111-1">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label>Condición IVA</label>
+          <select id="cliIva">
+            <option>Consumidor Final</option>
+            <option>Responsable Inscripto</option>
+            <option>Monotributista</option>
+            <option>Exento</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:10px;margin-bottom:0">
+        <label>Nombre / Razón Social</label>
+        <input type="text" id="cliNombre" placeholder="Nombre del cliente">
+      </div>
+      <div class="form-group" style="margin-top:10px;margin-bottom:0">
+        <label>Domicilio</label>
+        <input type="text" id="cliDom" placeholder="Dirección del cliente">
+      </div>
     </div>
 
-    <div class="tabs">
-      <div class="tab activo" onclick="goTab('ventas')">💵 Ventas del día</div>
-      <div class="tab" onclick="goTab('gastos')">💸 Gastos</div>
-      <div class="tab" onclick="goTab('ctacte')">📒 Cta. Corriente</div>
-      <div class="tab tab-gerente" onclick="goTab('histcajas')">📚 Historial cajas</div>
-    </div>
-
-    <!-- VENTAS DEL DIA -->
-    <div class="panel activo" id="panel-ventas">
-      <div class="tabla-wrap">
-        <table>
-          <thead><tr><th>N°</th><th>Tipo</th><th>Cliente</th><th>Pago</th><th>Total</th><th>Vendedor</th><th>Hora</th></tr></thead>
-          <tbody id="tablaVentas"></tbody>
+    <!-- DETALLE PRODUCTOS -->
+    <div class="form-card" style="padding:16px 20px;margin-bottom:12px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--azul3);margin-bottom:12px">Detalle</div>
+      <div style="overflow-x:auto;overflow-y:visible;position:relative">
+        <table class="items-tabla" style="min-width:600px;table-layout:auto">
+          <thead><tr>
+            <th style="width:160px">Descripción</th>
+            <th style="width:55px">Cant.</th>
+            <th style="width:70px">Bonif.</th>
+            <th style="width:100px">Precio Unit.</th>
+            <th style="width:70px">% IVA</th>
+            <th style="width:90px">Subtotal</th>
+            <th style="width:30px"></th>
+          </tr></thead>
+          <tbody id="itemsBody"></tbody>
         </table>
       </div>
-    </div>
-
-    <!-- GASTOS -->
-    <div class="panel" id="panel-gastos">
-      <div class="form-card" style="max-width:500px">
-        <h3>➕ Agregar Gasto</h3>
-        <div class="form-group"><label>Descripción</label><input type="text" id="gastoDesc" placeholder="Ej: Pago proveedor García, Luz, etc."></div>
-        <div class="form-row">
-          <div class="form-group"><label>Monto ($)</label><input type="number" id="gastoMonto" min="0" placeholder="0"></div>
-          <div class="form-group"><label>Categoría</label>
-            <select id="gastoCat">
-              <option>Proveedor</option><option>Sueldo</option><option>Servicios</option>
-              <option>Alquiler</option><option>Flete</option><option>Varios</option>
-            </select>
-          </div>
+      <div style="margin-top:10px">
+        <button type="button" class="btn btn-outline btn-sm" onclick="addItem('itemsBody','recalc')">➕ Agregar producto</button>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:16px">
+        <div class="totales-box">
+          <div class="tot-row"><span class="tot-label">Neto Gravado:</span><span id="totNeto">$0,00</span></div>
+          <div class="tot-row"><span class="tot-label">IVA (<span id="ivaPorc">—</span>%):</span><span id="totIva">$0,00</span></div>
+          <div class="tot-row"><span class="tot-label">Otros Tributos:</span><span>$0,00</span></div>
+          <div class="tot-row grande"><span>TOTAL:</span><span id="totTotal">$0,00</span></div>
+          <div id="ivaContenidoWrap" style="display:none;margin-top:6px;font-size:12px;color:#8bbadd">IVA Contenido (Ley 27743): <span id="ivaContenido">$0,00</span></div>
         </div>
-        <button class="btn btn-rojo" onclick="agregarGasto()">➕ Agregar gasto</button>
-      </div>
-      <div id="listaGastos"></div>
-    </div>
-
-    <!-- CTA CTE -->
-    <div class="panel" id="panel-ctacte">
-      <div id="listaCtaCte"></div>
-      <div style="margin-top:16px">
-        <button class="btn btn-primario" onclick="abrirRegistrarCobro()">💰 Registrar cobro de cta. cte.</button>
       </div>
     </div>
 
-    <!-- HISTORIAL CAJAS -->
-    <div class="panel" id="panel-histcajas">
-      <div id="listaHistCajas"></div>
+    <!-- PAGO -->
+    <div class="form-card" id="pagoCard" style="padding:16px 20px;margin-bottom:12px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--azul3);margin-bottom:12px">Pago</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-group" style="margin:0">
+          <label>Medio de Pago</label>
+          <select id="medioPago" onchange="togglePago()">
+            <option value="efectivo">💵 Efectivo</option>
+            <option value="transferencia">🏦 Transferencia</option>
+            <option value="qr">📱 QR</option>
+            <option value="tarjeta">💳 Tarjeta</option>
+            <option value="cheque">📄 Cheque</option>
+            <option value="cuenta_corriente">📒 Cuenta Corriente</option>
+          </select>
+        </div>
+        <div class="form-group" id="pagoExtraWrap" style="margin:0;display:none">
+          <label id="pagoExtraLabel">Detalle</label>
+          <input type="text" id="pagoExtraVal">
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:10px;margin-bottom:0">
+        <label>Observaciones</label>
+        <input type="text" id="obsVenta" placeholder="Observaciones adicionales...">
+      </div>
     </div>
 
+    <!-- BOTONES -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:32px">
+      <button class="btn btn-primario" onclick="confirmarVenta()" style="flex:1;min-width:160px;padding:14px;font-size:15px">✅ Confirmar operación</button>
+    </div>
   </div>
 
-</div>
+  <!-- PRESUPUESTO -->
+  <div class="panel" id="panel-presupuesto">
+    <div class="form-card">
+      <h3>📝 Presupuesto</h3>
+      <div class="form-row">
+        <div class="form-group"><label>N° Presupuesto</label><input type="text" id="nroPres" readonly style="opacity:.6"></div>
+        <div class="form-group"><label>Válido por</label>
+          <select id="presVig"><option value="7">7 días</option><option value="15" selected>15 días</option><option value="30">30 días</option><option value="60">60 días</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="form-card">
+      <h3>Cliente</h3>
+      <div class="form-group">
+        <label>Buscar cliente</label>
+        <div class="cli-busq-wrap">
+          <input type="text" id="presCliBusq" placeholder="Escribí nombre o CUIT..." oninput="buscarClientePres()" autocomplete="off">
+          <div class="cli-busq-results" id="presCliBusqResults"></div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>CUIT / DNI</label><input type="text" id="presCliCuit" placeholder="11-11111111-1"></div>
+        <div class="form-group"><label>Condición IVA</label>
+          <select id="presCliIva"><option>Consumidor Final</option><option>Responsable Inscripto</option><option>Monotributista</option><option>Exento</option></select>
+        </div>
+      </div>
+      <div class="form-group"><label>Nombre / Razón Social</label><input type="text" id="presCliNom" placeholder="Nombre del cliente"></div>
+      <div class="form-group"><label>Domicilio</label><input type="text" id="presCliDom" placeholder="Dirección"></div>
+    </div>
+    <div class="form-card">
+      <h3>Detalle</h3>
+      <div style="overflow-x:auto">
+        <table class="items-tabla">
+          <thead><tr>
+            <th style="width:85px">Código</th><th>Descripción</th>
+            <th style="width:72px">Cant.</th><th style="width:75px">U.Med.</th>
+            <th style="width:115px">Pr.Unit.</th><th style="width:68px">%IVA</th>
+            <th style="width:115px">Subtotal</th><th style="width:34px"></th>
+          </tr></thead>
+          <tbody id="presBody"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        <button type="button" class="btn btn-outline btn-sm" onclick="addItem('presBody','recalcPres')">➕ Agregar producto</button>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:18px">
+        <div class="totales-box">
+          <div class="tot-row"><span class="tot-label">Neto:</span><span id="presTotNeto">$0,00</span></div>
+          <div class="tot-row"><span class="tot-label">IVA:</span><span id="presTotIva">$0,00</span></div>
+          <div class="tot-row grande"><span>TOTAL:</span><span id="presTotTotal">$0,00</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="form-card">
+      <div class="form-group"><label>Observaciones</label><input type="text" id="presObs" placeholder="Precio sujeto a variación..."></div>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:32px">
+      <button class="btn btn-primario" onclick="emitirPres(true)" style="flex:1;min-width:180px;padding:14px">🖨 Emitir e Imprimir</button>
+      <button class="btn btn-outline" onclick="emitirPres(false)" style="flex:1;min-width:180px;padding:14px">💾 Solo Guardar</button>
+    </div>
+  </div>
 
-<!-- MODAL COBRO CTA CTE -->
-<div class="auth-overlay" id="overlayCobroCte" style="z-index:300">
-  <div class="auth-box" style="max-width:420px;border-color:rgba(45,127,186,.4)">
-    <h3 style="color:#7ab8e8">💰 Registrar Cobro</h3>
-    <p>Registrá un pago recibido de cuenta corriente</p>
-    <div style="text-align:left;margin-bottom:12px">
-      <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:5px">Cliente</label>
-      <select id="cobroCliente" style="width:100%;background:rgba(13,31,51,.8);border:1px solid var(--borde);color:var(--texto);padding:10px;border-radius:8px;font-size:14px;outline:none;margin-bottom:12px"></select>
-      <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:5px">Monto cobrado ($)</label>
-      <input type="number" id="cobroMonto" placeholder="0" style="width:100%;background:rgba(13,31,51,.8);border:1px solid var(--borde);color:var(--texto);padding:10px;border-radius:8px;font-size:14px;outline:none;margin-bottom:12px">
-      <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:5px">Medio de pago</label>
-      <select id="cobroMedio" style="width:100%;background:rgba(13,31,51,.8);border:1px solid var(--borde);color:var(--texto);padding:10px;border-radius:8px;font-size:14px;outline:none;margin-bottom:12px">
-        <option value="efectivo">💵 Efectivo</option>
-        <option value="transferencia">🏦 Transferencia</option>
-        <option value="cheque">📄 Cheque</option>
+  <!-- COMPROBANTES -->
+  <div class="panel" id="panel-comprobantes">
+    <div class="toolbar">
+      <input type="text" id="busqComp" placeholder="🔍 Buscar..." oninput="renderComp()">
+      <select id="filtTipo" onchange="renderComp()">
+        <option value="">Todos</option><option value="A">Fact. A</option>
+        <option value="B">Fact. B</option><option value="NC">N. Crédito</option>
+        <option value="ND">N. Débito</option><option value="PRES">Presupuesto</option>
+        <option value="INTERNO">🧾 Interno (sin factura)</option>
+      </select>
+      <select id="filtEstado" onchange="renderComp()">
+        <option value="">Todos</option><option value="registrar">Registradas</option>
+        <option value="grabar">Grabadas</option><option value="presupuesto">Presupuestos</option>
       </select>
     </div>
-    <div style="display:flex;gap:10px">
-      <button class="btn btn-outline" style="flex:1" onclick="document.getElementById('overlayCobroCte').classList.remove('abierto')">Cancelar</button>
-      <button class="btn btn-primario" style="flex:1" onclick="registrarCobroCte()">✅ Registrar</button>
+    <div class="tabla-wrap">
+      <table class="comp">
+        <thead><tr>
+          <th>N°</th><th>Tipo</th><th>Fecha</th><th>Cliente</th>
+          <th>Pago</th><th>Total</th><th>Estado</th><th>Vendedor</th><th>Acc.</th>
+        </tr></thead>
+        <tbody id="tablaComp"></tbody>
+      </table>
     </div>
+  </div>
+
+  <!-- CLIENTES -->
+  <div class="panel" id="panel-clientes">
+    <div class="form-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+        <input type="text" id="busqCli" placeholder="🔍 Buscar por nombre o CUIT..." oninput="renderClis()"
+          style="flex:1;min-width:200px;background:var(--bg-input);border:1px solid var(--border-subtle);color:var(--text-primary);padding:10px 14px;border-radius:8px;font-family:'Barlow',sans-serif;font-size:14px;outline:none">
+      </div>
+      <div id="listaClis">
+        <div class="tabla-wrap">
+          <table>
+            <thead><tr><th>Nombre / Razón Social</th><th>CUIT / DNI</th><th>Condición IVA</th><th>Domicilio</th><th>Saldo CC</th></tr></thead>
+            <tbody><tr><td colspan="5" class="vacio">Cargando clientes...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  
+
+  
+</div>
+
+
+  <!-- CONSULTA STOCK -->
+  <div class="panel" id="panel-consulta">
+    <div class="form-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+        <input type="text" id="consultaBusq" placeholder="🔍 Buscar producto o categoría..." 
+          oninput="renderConsulta()"
+          style="flex:1;min-width:200px;background:var(--bg-input);border:1px solid var(--border-subtle);color:var(--text-primary);padding:10px 14px;border-radius:8px;font-family:'Barlow',sans-serif;font-size:14px;outline:none">
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-verde btn-sm" onclick="exportarStockExcel()" title="Exportar a Excel">📥 Excel</button>
+          <button class="btn btn-outline btn-sm" onclick="imprimirStock()" title="Imprimir listado">🖨 Imprimir</button>
+        </div>
+      </div>
+      <div id="consultaTabla"></div>
+    </div>
+    
+  </div>
+
+<!-- MODAL CLIENTE -->
+<div class="overlay" id="overlayCli">
+  <div class="modal">
+    <h2 id="modalCliTit">👤 Nuevo Cliente</h2>
+    <div class="form-row">
+      <div class="form-group"><label>CUIT / DNI</label><input type="text" id="mcCuit" placeholder="30-12345678-9"></div>
+      <div class="form-group"><label>Condición IVA</label>
+        <select id="mcIva"><option>Consumidor Final</option><option>Responsable Inscripto</option><option>Monotributista</option><option>Exento</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label>Nombre / Razón Social</label><input type="text" id="mcNom" placeholder="Nombre completo"></div>
+    <div class="form-group"><label>Domicilio</label><input type="text" id="mcDom" placeholder="Dirección completa"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Teléfono</label><input type="text" id="mcTel" placeholder="381 000 0000"></div>
+      <div class="form-group"><label>Email</label><input type="text" id="mcMail" placeholder="cliente@mail.com"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModalCli()">Cancelar</button>
+      <button class="btn btn-primario" onclick="saveCli()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- PREVIEW FACTURA -->
+<div class="preview-overlay" id="previewOverlay" style="display:none">
+  <div style="width:100%;max-width:820px">
+    <div class="preview-actions">
+      <button class="btn btn-outline" onclick="closePreview()" title="Cerrar vista previa">✕ Cerrar</button>
+      <button class="btn btn-primario" onclick="imprimirDesdePreview()">🖨 Imprimir / Guardar PDF</button>
+    </div>
+    <div class="preview-box" id="previewBox"></div>
   </div>
 </div>
 
 <script>
+const EMP={nombre:'FEMO SRL',marca:'Yunco',cuit:'30-718081463-3',dom:'Av. Juan B. Justo 1223',ciudad:'San Miguel de Tucumán, CP 4000',iibb:'30718081463',iniAct:'01/05/2023',iva:'IVA Responsable Inscripto',tel:'(381) 3 17 55 43',wa:'381 6 24 41 05',mail:'yuncosrl@hotmail.com',pv:'0006'};
+
+
+const ROLES = {
+  admin:    'admin',
+  gerente:  'gerente',
+  dueno:    'dueno',
+  1:'vendedor',2:'vendedor',3:'vendedor',4:'vendedor',5:'vendedor',
+  6:'vendedor',7:'vendedor',8:'vendedor',9:'vendedor'
+};
+
+// Permisos por rol — ver yunco-permisos.js
+const PERMISOS = {
+  vendedor: {
+    tabs:['nueva','presupuesto','consulta','clientes','ctacte'],
+    comprobantes:['A','B','OV','NC','ND'],
+    verTodosComp:false, eliminarComp:false, config:false, gestionUsuarios:false,
+  },
+  gerente: {
+    tabs:['nueva','presupuesto','comprobantes','consulta','clientes','ctacte'],
+    comprobantes:['A','B','NC','ND','ND'],
+    verTodosComp:true, eliminarComp:true, config:false, gestionUsuarios:false,
+  },
+  dueno: {
+    tabs:['nueva','presupuesto','comprobantes','consulta','clientes','ctacte'],
+    comprobantes:['A','B','NC','ND','ND'],
+    verTodosComp:true, eliminarComp:true, config:true, gestionUsuarios:true,
+  },
+  admin: {
+    tabs:['nueva','presupuesto','comprobantes','consulta','clientes','ctacte'],
+    comprobantes:['A','B','NC','ND','ND'],
+    verTodosComp:true, eliminarComp:true, config:true, gestionUsuarios:false,
+  },
+};
+
+
+// ── SESIÓN ÚNICA ─────────────────────────────────────────────
+// Lee la sesión del login central (index.html)
+// No requiere login propio en este módulo
+let vAct = null, vRol = null, vNombre = null;
+
+(function initSesion(){
+  const raw = localStorage.getItem('yunco_session');
+  if(!raw){ window.location.href='index.html'; return; }
+  try{
+    const ses = JSON.parse(raw);
+    const permitidos = ['vendedor', 'gerente', 'dueno', 'admin'];
+    if(!permitidos.includes(ses.rol)){ window.location.href='index.html'; return; }
+    vAct = ses.usuario;
+    vRol = ses.rol;
+    vNombre = ses.nombre;
+    // Actualizar UI con datos de sesión
+    const ui = document.getElementById('vendedorInfo');
+    if(ui) ui.textContent = '👤 ' + vNombre;
+    
+    // Aplicar tabs y permisos según rol de sesión
+    setTimeout(() => {
+      actualizarOpcionesComprobante();  // Configurar opciones según rol
+      goTab('nueva');  // Mostrar nueva venta por defecto
+      verificarEstadoCajaAlCargar();
+      cargarClientesIniciales();  // Cargar base de 777 clientes si aún no están cargados
+      // Ocultar tab config para vendedor
+      const tabConfig = document.getElementById('tabConfig');
+      if(tabConfig) tabConfig.style.display = (vRol==='vendedor') ? 'none' : '';
+      // Auditoría sistema — acceso al módulo
+      auditSys('ventas', 'MODULO_ABIERTO', 'Ingreso a Ventas y Facturación');
+      actualizarOpcionesComprobante();
+      const perm = PERMISOS[vRol] || PERMISOS['vendedor'];
+      const allTabs = ['nueva','presupuesto','comprobantes','clientes','consulta','ctacte'];
+      document.querySelectorAll('.tab').forEach((el,i) => {
+        if(allTabs[i]) el.style.display = (perm.tabs||[]).includes(allTabs[i]) ? '' : 'none';
+      });
+      updNro();
+      addItem('itemsBody','recalc');
+    }, 0);
+  } catch(e) { window.location.href='index.html'; }
+})();
+
+function logout(){
+  auditSys('ventas', 'LOGOUT', 'Cierre de sesión desde ventas');
+  localStorage.removeItem('yunco_session');
+  window.location.href='index.html';
+}
+
+function getPerm(key){ return PERMISOS[vRol]?.[key]; }
 
 const S={g:(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}},s:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
-const fmt=n=>'$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:0});
-const fmtFull=n=>'$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2});
+const fmt=n=>'$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2});
+
+let authCb=null,editCli=null,iCnt=0,pCnt=0,previewData=null;
+
+function getCM(){return S.g('yunco_cm','SANTINO15');}
+
+
+// CONSULTA PUBLICA
+
+
+
+
+
+
+
+
+function solAuth(msg,cb){authCb=cb;document.getElementById('authClave').value='';document.getElementById('authErr').style.display='none';document.getElementById('authMsg').textContent=msg||'Ingresá la clave maestra.';document.getElementById('authOverlay').classList.add('abierto');setTimeout(()=>document.getElementById('authClave').focus(),100);}
+function confirmarAuth(){if(document.getElementById('authClave').value===getCM()){document.getElementById('authOverlay').classList.remove('abierto');if(authCb)authCb();authCb=null;}else{document.getElementById('authErr').style.display='block';document.getElementById('authClave').value='';}}
+function cancelarAuth(){document.getElementById('authOverlay').classList.remove('abierto');authCb=null;}
+
+
+
+
+function toggleVentaInterna(){
+  const activo = document.getElementById('ventaInterna').checked;
+  const tipoSel = document.getElementById('tipoComp');
+  const dolarWrap = document.getElementById('dolarWrap');
+  const ncndPanel = document.getElementById('ncndPanel');
+  if(tipoSel){ tipoSel.disabled = activo; tipoSel.style.opacity = activo ? '.5' : '1'; }
+  if(activo){
+    if(dolarWrap) dolarWrap.style.display='none';
+    if(ncndPanel) ncndPanel.style.display='none';
+    limpiarNcNd();
+  } else {
+    onTipoChange();
+  }
+  updNro();
+}
+
+function onTipoChange(){
+  updNro();
+  const t = document.getElementById('tipoComp').value;
+
+  // Dólar solo para Factura A
+  const dolarWrap = document.getElementById('dolarWrap');
+  if(dolarWrap) dolarWrap.style.display = t==='A' ? 'block' : 'none';
+
+  // Panel NC/ND
+  const isNcNd = t==='NC' || t==='ND';
+  const ncndPanel = document.getElementById('ncndPanel');
+  if(ncndPanel) ncndPanel.style.display = isNcNd ? 'block' : 'none';
+  if(!isNcNd) limpiarNcNd();
+
+  // Ocultar sección de pago para NC y ND
+  const pagoCard = document.getElementById('pagoCard');
+  if(pagoCard) pagoCard.style.display = isNcNd ? 'none' : 'block';
+
+  // Factura A: CUIT obligatorio
+  const cuitLabel = document.getElementById('cuitLabel');
+  if(cuitLabel) cuitLabel.textContent = t==='A' ? 'CUIT (obligatorio)' : 'CUIT / DNI';
+  const cuitInput = document.getElementById('cliCuit');
+  if(cuitInput) cuitInput.placeholder = t==='A' ? 'CUIT requerido' : 'CUIT o DNI del cliente';
+
+  // Factura B: IVA bloqueado en Consumidor Final
+  const ivaSelect = document.getElementById('cliIva');
+  if(ivaSelect){
+    if(t==='B'){
+      ivaSelect.value='Consumidor Final';
+      ivaSelect.disabled=true;
+      ivaSelect.style.opacity='.6';
+    } else {
+      ivaSelect.disabled=false;
+      ivaSelect.style.opacity='1';
+    }
+  }
+
+  // Autorización para vendedor en NC/ND
+  if(vRol==='vendedor' && (t==='NC'||t==='ND')){
+    requiereAutorizacion(t, function(auth){
+      auditSys('ventas','TIPO_COMPROBANTE',t+' autorizado por '+auth.nomAut);
+    });
+  }
+  recalc();
+}
+
+function limpiarNcNd(){
+  ['ncndCliBusq','ncndMotivoOtro','ncndFacturaRefId','ncndFacturaRefNro'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  const sel=document.getElementById('ncndFacturaSel');if(sel)sel.innerHTML='<option value="">— Seleccioná la factura original —</option>';
+  const wrap=document.getElementById('ncndFacturasWrap');if(wrap)wrap.style.display='none';
+  const info=document.getElementById('ncndFacturaInfo');if(info){info.style.display='none';info.innerHTML='';}
+  const res=document.getElementById('ncndCliRes');if(res){res.style.display='none';res.innerHTML='';}
+}
+
+function buscarFacturasCliente(){
+  const q = (document.getElementById('ncndCliBusq').value||'').toLowerCase().trim();
+  const res = document.getElementById('ncndCliRes');
+  if(!q){res.style.display='none';return;}
+  // Get unique clients from comprobantes
+  const comps = S.g('yunco_comp',[]);
+  const clientes = {};
+  comps.forEach(c=>{
+    if(!c.cli||!c.cli.nom) return;
+    if((c.cli.nom.toLowerCase().includes(q)||(c.cli.cuit||'').includes(q))){
+      clientes[c.cli.nom] = c.cli;
+    }
+  });
+  const lista = Object.values(clientes);
+  if(!lista.length){
+    res.innerHTML='<div style="padding:10px;font-size:13px;color:var(--text-muted)">No se encontraron clientes con comprobantes</div>';
+    res.style.display='block';
+    return;
+  }
+  res.innerHTML = lista.map(c=>`
+    <div onclick="selClienteNcNd('${c.nom.replace(/'/g,"\'")}','${(c.cuit||'').replace(/'/g,"\'")}') "
+      style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border-subtle);font-size:13px">
+      <strong>${c.nom}</strong> <span style="color:var(--text-muted);font-size:11px">${c.cuit||'S/CUIT'}</span>
+    </div>`).join('');
+  res.style.display='block';
+}
+
+function selClienteNcNd(nom, cuit){
+  document.getElementById('ncndCliBusq').value = nom;
+  document.getElementById('ncndCliRes').style.display = 'none';
+  // Load facturas for this client
+  const tipo = document.getElementById('tipoComp').value;
+  const comps = S.g('yunco_comp',[]).filter(c=>{
+    if(!c.cli||c.cli.nom!==nom) return false;
+    // NC/ND can only reference A or B facturas
+    return c.tipo==='A'||c.tipo==='B';
+  });
+  const sel = document.getElementById('ncndFacturaSel');
+  if(!comps.length){
+    sel.innerHTML='<option value="">— Sin facturas disponibles para este cliente —</option>';
+  } else {
+    sel.innerHTML='<option value="">— Seleccioná la factura original —</option>'+
+      comps.map(c=>{
+        const fecha = new Date(c.fecha).toLocaleDateString('es-AR');
+        const fmt = n=>'$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:0});
+        return `<option value="${c.id}">${c.nro} — ${fecha} — ${fmt(c.total)}</option>`;
+      }).join('');
+  }
+  document.getElementById('ncndFacturasWrap').style.display='block';
+}
+
+function selFacturaOriginal(){
+  const id = parseInt(document.getElementById('ncndFacturaSel').value);
+  const info = document.getElementById('ncndFacturaInfo');
+  if(!id){info.style.display='none';return;}
+  const comp = S.g('yunco_comp',[]).find(c=>c.id===id);
+  if(!comp){info.style.display='none';return;}
+  document.getElementById('ncndFacturaRefId').value = id;
+  document.getElementById('ncndFacturaRefNro').value = comp.nro;
+  // Auto-fill client data
+  if(comp.cli){
+    document.getElementById('cliBusq').value = comp.cli.nom||'';
+    document.getElementById('cliNombre').value = comp.cli.nom||'';
+    document.getElementById('cliCuit').value = comp.cli.cuit||'';
+    document.getElementById('cliDom').value = comp.cli.dom||'';
+    document.getElementById('cliIva').value = comp.cli.iva||'Consumidor Final';
+  }
+  const fmt = n=>'$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2});
+  const fecha = new Date(comp.fecha).toLocaleDateString('es-AR');
+  info.innerHTML=`
+    <div style="font-weight:700;color:var(--warning,#f59e0b);margin-bottom:6px">📎 Factura referenciada</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <div><span style="color:var(--text-muted)">N°:</span> ${comp.nro}</div>
+      <div><span style="color:var(--text-muted)">Fecha:</span> ${fecha}</div>
+      <div><span style="color:var(--text-muted)">Cliente:</span> ${comp.cli?.nom||'-'}</div>
+      <div><span style="color:var(--text-muted)">Total original:</span> <strong style="color:var(--success)">${fmt(comp.total)}</strong></div>
+    </div>`;
+  info.style.display='block';
+}
+
+function toggleMotivoOtro(){
+  const val = document.getElementById('ncndMotivo').value;
+  document.getElementById('motivoOtroWrap').style.display = val==='otro'?'block':'none';
+}
+function updNro(){
+  const esInterna = document.getElementById('ventaInterna')?.checked;
+  if(esInterna){
+    const n=S.g('yunco_nums',{INTERNO:0});
+    if(document.getElementById('nroComp'))document.getElementById('nroComp').value='INT-'+String((n.INTERNO||0)+1).padStart(6,'0');
+    return;
+  }
+  const t=document.getElementById('tipoComp')?.value||'B';const n=S.g('yunco_nums',{B:1228,A:0,OV:0,NC:0,ND:0,PRES:0});if(document.getElementById('nroComp'))document.getElementById('nroComp').value=EMP.pv+'-'+String((n[t]||0)+1).padStart(8,'0');}
+function updNroPres(){const n=S.g('yunco_nums',{B:1228,A:0,OV:0,NC:0,ND:0,PRES:0});if(document.getElementById('nroPres'))document.getElementById('nroPres').value='PRES-'+String((n.PRES||0)+1).padStart(6,'0');}
+
+
+// ACTUALIZAR OPCIONES DE COMPROBANTE SEGUN ROL
+function actualizarOpcionesComprobante(){
+  const sel = document.getElementById('tipoComp');
+  if(!sel) return;
+  const perm = PERMISOS[vRol] || PERMISOS['vendedor'];
+  const opciones = {
+    'B':  'Factura B',
+    'A':  'Factura A',
+    'OV': 'Orden de Venta',
+    'NC': 'Nota de Crédito',
+    'ND': 'Nota de Débito',
+  };
+  // PRES no va en el selector — solo se accede desde la pestaña Presupuesto
+  const current = sel.value;
+  sel.innerHTML = '';
+  ['B','A','OV','NC','ND'].forEach(tipo => {
+    if(perm.comprobantes.includes(tipo)){
+      const opt = document.createElement('option');
+      opt.value = tipo;
+      opt.textContent = opciones[tipo];
+      sel.appendChild(opt);
+    }
+  });
+  // Restaurar valor si sigue disponible (y no es PRES)
+  if(current !== 'PRES' && perm.comprobantes.includes(current)) sel.value = current;
+  else sel.value = 'B';
+}
+
+// BUSQUEDA DINAMICA CLIENTE
+function buscarCliente(){
+  const q=document.getElementById('cliBusq').value.trim().toLowerCase();
+  const qOrig=document.getElementById('cliBusq').value.trim();
+  const res=document.getElementById('cliBusqResults');
+  document.getElementById('cliNombre').value=qOrig;
+  if(!q){res.style.display='none';document.getElementById('cliCuit').value='';document.getElementById('cliDom').value='';document.getElementById('cliIva').value='Consumidor Final';return;}
+  const todos=S.g('yunco_clis',[]);
+  const cl=todos.filter(c=>(c.nom||'').toLowerCase().includes(q)||(c.cuit||'').includes(q));
+  if(!cl.length){res.style.display='none';return;}
+  res.innerHTML=cl.map(c=>`<div onclick="selCli(${todos.indexOf(c)})" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.07);display:flex;justify-content:space-between;align-items:center">
+<div><div style="font-size:13px;font-weight:600;color:#e8eef5">${c.nom}</div><div style="font-size:11px;color:#8ba5be">${c.cuit||'S/CUIT'} · ${c.iva||'CF'}</div></div>
+${(c.domicilio||c.dom)?'<div style="font-size:11px;color:#8ba5be">'+(c.domicilio||c.dom)+'</div>':''}
+</div>`).join('');
+  res.style.display='block';
+}
+function selCli(i){
+  const c=S.g('yunco_clis',[])[i];if(!c)return;
+  document.getElementById('cliBusq').value=c.nom;
+  document.getElementById('cliCuit').value=c.cuit||'';
+  document.getElementById('cliNombre').value=c.nom||'';
+  document.getElementById('cliDom').value=c.domicilio||c.dom||'';
+  document.getElementById('cliIva').value=c.iva||'Consumidor Final';
+  document.getElementById('cliBusqResults').classList.remove('visible');
+  // Ocultar campos manuales cuando se selecciona un cliente existente
+  document.getElementById('cliBusqResults').innerHTML='';
+}
+
+
+function buscarClientePres(){
+  const q=document.getElementById('presCliBusq').value.trim().toLowerCase();
+  const res=document.getElementById('presCliBusqResults');
+  if(!q){res.classList.remove('visible');return;}
+  const cl=S.g('yunco_clis',[]).filter(c=>(c.nom||'').toLowerCase().includes(q)||(c.cuit||'').includes(q));
+  if(!cl.length){res.innerHTML='<div class="cli-result-item" style="color:#8bbadd">No se encontraron clientes</div>';res.classList.add('visible');return;}
+  const todos=S.g('yunco_clis',[]);
+  res.innerHTML=cl.map(c=>`<div class="cli-result-item" onclick="selCliPres(${todos.indexOf(c)})">${c.nom} <span style="color:#8ba5be;font-size:11px">${c.cuit||'S/CUIT'}</span></div>`).join('');
+  res.classList.add('visible');
+}
+function selCliPres(i){
+  const c=S.g('yunco_clis',[])[i];if(!c)return;
+  document.getElementById('presCliBusq').value=c.nom;
+  document.getElementById('presCliCuit').value=c.cuit||'';
+  document.getElementById('presCliNom').value=c.nom||'';
+  document.getElementById('presCliDom').value=c.dom||'';
+  document.getElementById('presCliIva').value=c.iva||'Consumidor Final';
+  document.getElementById('presCliBusqResults').classList.remove('visible');
+}
+document.addEventListener('click',e=>{if(!e.target.closest('.cli-busq-wrap')){document.querySelectorAll('.cli-busq-results').forEach(r=>r.classList.remove('visible'));}});
+
+// ITEMS
+function addItem(bodyId,calcFn){
+  const cnt=bodyId==='itemsBody'?++iCnt:++pCnt;
+  const id=(bodyId==='itemsBody'?'it':'pi')+cnt;
+  const tr=document.createElement('tr');tr.id=id;
+  tr.innerHTML=`<td style="display:none"><input type="text" id="${id}_cod" tabindex="-1"></td>
+<td style="position:relative">
+  <input type="text" placeholder="Buscar producto..." id="${id}_desc"
+    oninput="buscarProdItem('${id}','${calcFn}')"
+    onkeydown="handleItemKey(event,'${id}','${calcFn}')"
+    autocomplete="off">
+  <div id="${id}_res" style="display:none;position:fixed;background:#162b44;border:1px solid rgba(45,127,186,.4);border-radius:8px;z-index:99999;max-height:220px;overflow-y:auto;box-shadow:0 12px 32px rgba(0,0,0,.8);min-width:300px"></div>
+</td>
+<td><input type="number" value="1" min="0" step="any"
+  oninput="${calcFn}('${id}')"
+  onkeydown="handleItemEnter(event,'${id}_bonif')"
+  style="text-align:right;width:100%"></td>
+<td><input type="number" value="" placeholder="0" min="0" max="30"
+  id="${id}_bonif"
+  oninput="if(parseFloat(this.value)>30)this.value=30;recalc()"
+  onkeydown="handleItemEnter(event,'${id}_precio')"
+  style="width:100%"></td>
+<td><input type="number" value="0" min="0" step="any"
+  id="${id}_precio"
+  oninput="${calcFn}('${id}')"
+  onkeydown="handleItemEnter(event,'${id}_iva',true,'${calcFn}')"
+  style="text-align:right;width:100%"></td>
+<td><select id="${id}_iva"
+  onchange="${calcFn}('${id}')"
+  onkeydown="handleItemEnter(event,null,true,'${calcFn}')"
+  style="width:100%;min-width:70px">
+  <option value="21">21%</option>
+  <option value="10.5">10.5%</option>
+  <option value="0">0%</option>
+</select></td>
+<td><input type="text" id="${id}_s" readonly tabindex="-1" style="text-align:right;opacity:.7;width:100%" value="$0,00"></td>
+<td><button class="btn btn-rojo btn-sm" onclick="delItem('${id}','${calcFn}')" tabindex="-1" title="Eliminar línea">✕</button></td>`;
+  document.getElementById(bodyId).appendChild(tr);
+  updateDelBtns(bodyId);
+}
+function delItem(id,fn){
+  const bodyId = fn==='recalc'?'itemsBody':'presItemsBody';
+  const rows = document.querySelectorAll('#'+bodyId+' tr');
+  if(rows.length <= 1){ alert('Debe haber al menos una línea de detalle.'); return; }
+  const el=document.getElementById(id);if(el)el.remove();
+  fn==='recalc'?recalc():recalcPres();
+  updateDelBtns(bodyId);
+}
+
+function updateDelBtns(bodyId){
+  const rows = document.querySelectorAll('#'+bodyId+' tr');
+  rows.forEach(tr => {
+    const btn = tr.querySelector('.btn-rojo');
+    if(btn) btn.style.visibility = rows.length <= 1 ? 'hidden' : 'visible';
+  });
+}
+function getItemsFrom(bodyId){
+  const items=[];
+  document.querySelectorAll('#'+bodyId+' tr').forEach(tr=>{
+    const inp=tr.querySelectorAll('input'),sel=tr.querySelectorAll('select');
+    if(inp.length<5)return;
+    const desc=inp[1].value.trim(),cant=parseFloat(inp[2].value)||0,p=parseFloat(inp[4].value)||0;
+    const bonif=Math.min(parseFloat(inp[3].value)||0,30);
+    if(desc&&cant>0) items.push({
+      cod: inp[0].value,
+      desc, cant,
+      bonif: bonif,
+      precioOriginal: p,
+      precio: parseFloat((p*(1-bonif/100)).toFixed(2)),
+      iva: sel[0]?.value||21,
+      prodId: tr.dataset.prodId||null,
+      formaId: tr.dataset.formaId||null,
+      factorStock: parseFloat(tr.dataset.factorStock||1)
+    });
+  });
+  return items;
+}
+function recalc(){
+  let neto=0,ivaT=0;
+  document.querySelectorAll('#itemsBody tr').forEach(tr=>{
+    const inp=tr.querySelectorAll('input'),sel=tr.querySelectorAll('select');
+    if(inp.length<5)return;
+    const cant=parseFloat(inp[2].value)||0;
+    const bonif=Math.min(parseFloat(inp[3].value)||0,30); // max 30%
+    const p=parseFloat(inp[4].value)||0;
+    const pct=parseFloat(sel[0]?.value||21);
+    const precioConBonif=p*(1-bonif/100);
+    const sub=cant*precioConBonif;
+    neto+=sub/(1+pct/100);ivaT+=sub-sub/(1+pct/100);
+    const si=tr.querySelector('[id$="_s"]');if(si)si.value=fmt(sub);
+    // Cap bonif at 30 visually
+    if(inp[3].value && parseFloat(inp[3].value)>30) inp[3].value=30;
+  });
+  document.getElementById('totNeto').textContent=fmt(neto);
+  document.getElementById('totIva').textContent=fmt(ivaT);
+  // Update IVA % label - show first row's %
+  const firstSel = document.querySelector('#itemsBody tr select');
+  const porcEl = document.getElementById('ivaPorc');
+  if(porcEl && firstSel) porcEl.textContent = firstSel.value;
+  document.getElementById('totTotal').textContent=fmt(neto+ivaT);
+  document.getElementById('ivaContenido').textContent=fmt(ivaT);
+  const t=document.getElementById('tipoComp')?.value||'B';
+  document.getElementById('ivaContenidoWrap').style.display=t==='B'?'block':'none';
+}
+function recalcPres(){
+  let neto=0,ivaT=0;
+  document.querySelectorAll('#presBody tr').forEach(tr=>{
+    const inp=tr.querySelectorAll('input'),sel=tr.querySelectorAll('select');
+    if(inp.length<5)return;
+    const cant=parseFloat(inp[2].value)||0,p=parseFloat(inp[4].value)||0,pct=parseFloat(sel[0]?.value||21),sub=cant*p;
+    neto+=sub/(1+pct/100);ivaT+=sub-sub/(1+pct/100);
+    const si=tr.querySelector('[id$="_s"]');if(si)si.value=fmt(sub);
+  });
+  document.getElementById('presTotNeto').textContent=fmt(neto);
+  document.getElementById('presTotIva').textContent=fmt(ivaT);
+  document.getElementById('presTotTotal').textContent=fmt(neto+ivaT);
+}
+
+function togglePago(){
+  const v=document.getElementById('medioPago').value,w=document.getElementById('pagoExtraWrap'),l=document.getElementById('pagoExtraLabel');
+  if(v==='cheque'){w.style.display='';l.textContent='N° Cheque / Banco';}
+  else if(v==='transferencia'){w.style.display='';l.textContent='Referencia Transferencia';}
+  else w.style.display='none';
+}
+
+function getVentaData(){
+  const items=getItemsFrom('itemsBody');
+  const esInterna = document.getElementById('ventaInterna')?.checked;
+  let tipo, nroStr;
+  if(esInterna){
+    tipo = 'INTERNO';
+    const nums=S.g('yunco_nums',{INTERNO:0});
+    const nro=(nums.INTERNO||0)+1;
+    nroStr = 'INT-'+String(nro).padStart(6,'0');
+  } else {
+    tipo=document.getElementById('tipoComp').value;
+    const nums=S.g('yunco_nums',{B:1228,A:0,OV:0,NC:0,ND:0,PRES:0});
+    const nro=(nums[tipo]||0)+1;
+    nroStr=EMP.pv+'-'+String(nro).padStart(8,'0');
+  }
+  let neto=0,ivaT=0;
+  items.forEach(it=>{const sub=it.cant*it.precio,pct=parseFloat(it.iva)||21;neto+=sub/(1+pct/100);ivaT+=sub-sub/(1+pct/100);});
+  return{id:Date.now(),nro:nroStr,tipo,esInterna:!!esInterna,
+    cli:{cuit:document.getElementById('cliCuit').value||'11-11111111-1',nom:document.getElementById('cliNombre').value||'Consumidor Final',iva:document.getElementById('cliIva').value,dom:document.getElementById('cliDom').value},
+    items,pago:document.getElementById('medioPago').value,pagoExtra:document.getElementById('pagoExtraVal').value||'',
+    obs:document.getElementById('obsVenta').value,dolar:document.getElementById('dolarCotiz').value,
+    neto,iva:ivaT,total:neto+ivaT,vend:vAct,fecha:new Date().toISOString()};
+}
+
+function previsualizarVenta(){
+  const items=getItemsFrom('itemsBody');
+  if(!items.length){alert('Agregá al menos un producto.');return;}
+  // Validar NC/ND tienen referencia obligatoria
+  const tipoActual = document.getElementById('tipoComp').value;
+  if(tipoActual==='NC'||tipoActual==='ND'){
+    const refId = document.getElementById('ncndFacturaRefId')?.value;
+    const motivo = document.getElementById('ncndMotivo')?.value;
+    const motivoOtro = document.getElementById('ncndMotivoOtro')?.value;
+    if(!refId){
+      alert('⚠️ Las Notas de Crédito y Débito deben referenciar una factura original.\nBuscá el cliente y seleccioná la factura correspondiente.');
+      return;
+    }
+    if(!motivo){
+      alert('⚠️ Debe seleccionar un motivo para la Nota de ' + (tipoActual==='NC'?'Crédito':'Débito') + '.');
+      return;
+    }
+    if(motivo==='otro'&&!motivoOtro.trim()){
+      alert('⚠️ Especificá el motivo en el campo de texto.');
+      return;
+    }
+  }
+  const data=getVentaData();
+  // Agregar referencia NC/ND si corresponde
+  const tipoV = document.getElementById('tipoComp').value;
+  if(tipoV==='NC'||tipoV==='ND'){
+    const refId = document.getElementById('ncndFacturaRefId')?.value;
+    const refNro = document.getElementById('ncndFacturaRefNro')?.value;
+    const motivo = document.getElementById('ncndMotivo')?.value;
+    const motivoOtro = document.getElementById('ncndMotivoOtro')?.value;
+    data.refFacturaId = parseInt(refId)||null;
+    data.refFacturaNro = refNro||'';
+    data.motivo = motivo==='otro' ? motivoOtro : motivo;
+  }
+  previewData=data;
+  document.getElementById('previewBox').innerHTML=buildFacturaHTML(data,false);
+  document.getElementById('previewOverlay').classList.add('abierto');
+}
+function closePreview(){document.getElementById('previewOverlay').classList.remove('abierto');}
+
+function imprimirDesdePreview(){
+  if(!previewData)return;
+  const html=buildFacturaHTML(previewData,false);
+  abrirVentanaImpresion(html,'Factura '+previewData.nro);
+}
+
+
+
+
+
+// ── SISTEMA DE IMPRESIÓN ─────────────────────────────────────
+function registrarImpresion(nro, tipo){
+  auditSys('ventas', 'IMPRESION', 'Comprobante ' + tipo + ' ' + nro + ' impreso');
+}
+function closePrint(){
+  const el = document.getElementById('printOverlay');
+  if(el) el.style.display = 'none';
+}
+
+function abrirVentanaImpresion(html, titulo){
+  let printDiv = document.getElementById('printOverlay');
+  if(!printDiv){
+    printDiv = document.createElement('div');
+    printDiv.id = 'printOverlay';
+    document.body.appendChild(printDiv);
+  }
+
+  const CSS = `
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:Arial,sans-serif;background:#f0f0f0;}
+    .print-page{background:#fff;width:210mm;min-height:267mm;margin:0 auto;padding:8mm;display:flex;flex-direction:column;}
+    .orig{text-align:center;font-weight:700;font-size:11px;letter-spacing:2px;margin-bottom:4mm;border-bottom:2px solid #000;padding-bottom:3mm;}
+    .head{display:flex;border:2px solid #000;}
+    .logo-cell{padding:6px 10px;border-right:2px solid #000;display:flex;align-items:center;min-width:100px;}
+    .logo{font-size:22px;font-weight:900;color:#c0392b;-webkit-text-stroke:2px rgba(80,30,20,.5);letter-spacing:2px;}
+    .emp{padding:5px 8px;font-size:9px;line-height:1.6;border-right:2px solid #000;flex:1;}
+    .tipo-cell{padding:5px 10px;text-align:center;border-right:2px solid #000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:75px;}
+    .letra{font-size:32px;font-weight:900;border:3px solid #000;width:50px;height:50px;display:flex;align-items:center;justify-content:center;margin:0 auto 2px;}
+    .tipo-nom{font-size:10px;font-weight:700;}
+    .nro{font-size:9px;margin-top:2px;}
+    .right{padding:5px 8px;font-size:9px;line-height:1.7;flex:1;}
+    .cli{border:1px solid #000;border-top:none;padding:5px 8px;font-size:9px;display:flex;gap:10px;flex-wrap:wrap;}
+    .items-wrap{flex:1;margin-top:3mm;}
+    table{width:100%;border-collapse:collapse;}
+    th,td{border:1px solid #000;padding:3px 5px;font-size:9px;}
+    th{background:#eee;font-weight:700;text-align:center;}
+    td:nth-child(3),td:nth-child(4),td:nth-child(5),td:nth-child(7){text-align:right;}
+    .bot{display:flex;justify-content:space-between;margin-top:3mm;gap:6px;align-items:flex-start;}
+    .trib{border:1px solid #000;padding:4px;font-size:9px;flex:1;}
+    .trib-row{display:flex;justify-content:space-between;padding:2px 4px;border-bottom:1px solid #eee;}
+    .tots{border:2px solid #000;padding:6px 10px;min-width:190px;}
+    .tot-row{display:flex;justify-content:space-between;font-size:9px;margin-bottom:2px;}
+    .tot-row.big{font-weight:700;font-size:13px;border-top:2px solid #000;padding-top:4px;margin-top:3px;}
+    .foot{margin-top:auto;padding-top:3mm;border-top:2px solid #000;display:flex;justify-content:space-between;font-size:9px;flex-wrap:wrap;gap:4px;}
+    .pie{text-align:center;font-size:8px;margin-top:2mm;color:#555;}
+    .presup-banner{background:#f5f5f5;border:2px dashed #999;padding:4px 10px;text-align:center;font-size:10px;font-weight:700;margin-bottom:3mm;}
+    @media print{
+      body{background:#fff;}
+      .no-print{display:none!important;}
+      .print-page{margin:0;padding:6mm;width:100%;min-height:auto;box-shadow:none;}
+      @page{size:A4;margin:6mm;}
+    }
+  `;
+
+  printDiv.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#f0f0f0;overflow-y:auto;';
+  printDiv.innerHTML =
+    '<div class="no-print" style="background:#1a3a5c;padding:10px 16px;display:flex;gap:10px;align-items:center;justify-content:flex-end;position:sticky;top:0;z-index:10">' +
+    '<span style="color:#a8d4f5;font-size:13px;font-weight:600;flex:1">' + titulo + '</span>' +
+    '<button onclick="window.print()" style="padding:9px 18px;background:#22c55e;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">🖨 Imprimir / PDF</button>' +
+    '<button onclick="closePrint()" style="padding:9px 18px;background:#ef4444;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer" title="Cerrar vista previa">✕ Cerrar</button>' +
+    '</div>' +
+    '<style>' + CSS + '</style>' +
+    '<div class="print-page">' + html + '</div>';
+
+  printDiv.style.display = 'block';
+  printDiv.scrollTop = 0;
+}
+
+function buildFacturaHTML(v,esPres){
+  const tLabel={B:'FACTURA',A:'FACTURA',NC:'NOTA DE CRÉDITO',ND:'NOTA DE DÉBITO',PRES:'PRESUPUESTO',OV:'ORDEN DE VENTA',INTERNO:'COMPROBANTE INTERNO'}[v.tipo]||'COMPROBANTE';
+  const letra=v.tipo==='NC'?'C':v.tipo==='ND'?'D':v.tipo==='PRES'?'P':v.tipo==='OV'?'OV':v.tipo==='INTERNO'?'X':v.tipo;
+  const fecha=new Date(v.fecha).toLocaleDateString('es-AR');
+  const rows=(v.items||[]).map(it=>{
+    const tieneBonif = it.bonif && parseFloat(it.bonif) > 0;
+    const precioOriginal = it.precioOriginal || it.precio;
+    const precioFinal = it.precio;
+    return `<tr>
+      <td>${it.cod||'-'}</td>
+      <td>${it.desc}${tieneBonif && !esPres ? `<br><small style="color:#f59e0b">Bonif. ${it.bonif}% (antes: ${fmt(precioOriginal)})</small>` : ''}</td>
+      <td style="text-align:right">${it.cant}</td>
+      <td>${it.um||''}</td>
+      <td style="text-align:right">${fmt(precioFinal)}</td>
+      <td style="text-align:right">${it.iva}%</td>
+      <td style="text-align:right">${fmt(it.cant*precioFinal)}</td>
+    </tr>`;
+  }).join('');
+  const dolarLine=v.dolar&&v.tipo==='A'?`<div class="fp-dolar">* Esta factura fue realizada con el dólar a cotización ${fmt(v.dolar)}</div>`:'';
+  const vtoLine=esPres&&v.fechaVto?`<strong>Válido hasta: ${new Date(v.fechaVto).toLocaleDateString('es-AR')} (${v.vig} días)</strong>`:`Fecha Vto.: ${fecha}`;
+  const esInterno = v.tipo==='INTERNO';
+  return `${esPres?'<div class="presup-banner">⚠️ PRESUPUESTO — NO VÁLIDO COMO COMPROBANTE FISCAL</div>':''}${esInterno?'<div class="presup-banner" style="border-color:#c0392b;color:#c0392b">🧾 COMPROBANTE INTERNO — NO VÁLIDO COMO FACTURA</div>':''}
+<div class="orig">${esPres?'PRESUPUESTO':esInterno?'COMPROBANTE INTERNO':'O R I G I N A L'}</div>
+<div class="head">
+  <div class="logo-cell"><div class="logo">Yunco</div></div>
+  <div class="emp">Razón Social: ${EMP.nombre}<br>Domicilio: ${EMP.dom} - ${EMP.ciudad}<br>Condición frente al IVA: ${EMP.iva}</div>
+  <div class="tipo-cell">
+    <div class="letra">${letra}</div>
+    <div class="tipo-nom">${tLabel}</div>
+    <div class="nro">N° ${v.nro}</div>
+  </div>
+  <div class="right">Fecha: ${fecha}<br>CUIT: ${EMP.cuit}<br>Ing.Brutos: ${EMP.iibb}<br>Inicio Act.: ${EMP.iniAct}<br>${vtoLine}</div>
+</div>
+<div class="cli">
+  <span><b>CUIT/DNI:</b> ${v.cli.cuit||'11-11111111-1'}</span>
+  <span><b>Cliente:</b> ${v.cli.nom}</span>
+  <span><b>Cond.IVA:</b> ${v.cli.iva||'Consumidor Final'}</span>
+  <span><b>Domicilio:</b> ${v.cli.dom||'-'}</span>
+  ${!esPres?`<span><b>Pago:</b> ${pagoLbl(v.pago)}</span>`:''}
+</div>
+<div class="items-wrap">
+  <table>
+    <thead><tr><th>Código</th><th>Producto/Servicio</th><th>Cant.</th><th>U.Med.</th><th>Pr.Unit.</th><th>%IVA</th><th>SubTotal</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+</div>
+<div class="bot">
+  <div class="trib">
+    <div style="font-weight:700;padding:2px 4px;border-bottom:1px solid #000;margin-bottom:2px">Otros Tributos</div>
+    <div class="trib-row"><span>Per./Ret. Ganancias</span><span>$0,00</span></div>
+    <div class="trib-row"><span>Per./Ret. IVA</span><span>$0,00</span></div>
+    <div class="trib-row"><span>Per./Ret. IIBB</span><span>$0,00</span></div>
+    ${v.obs?`<div style="padding:3px 4px;font-style:italic;font-size:8px">Obs: ${v.obs}</div>`:''}
+  </div>
+  <div class="tots">
+    <div class="tot-row"><span>Importe Neto Gravado:</span><span>${fmt(v.neto)}</span></div>
+    <div class="tot-row"><span>IVA 21%:</span><span>${fmt(v.iva)}</span></div>
+    <div class="tot-row"><span>Otros Tributos:</span><span>$0,00</span></div>
+    <div class="tot-row big"><span>TOTAL:</span><span>${fmt(v.total)}</span></div>
+    ${v.tipo==='B'?`<div style="font-size:8px;color:#555;margin-top:3px">IVA Contenido (Ley 27743): ${fmt(v.iva)}</div>`:''}
+    ${dolarLine}
+  </div>
+</div>
+<div class="foot">
+  <span>Tel.: ${EMP.tel}</span>
+  <span>correo: ${EMP.mail}</span>
+  <span>WhatsApp: ${EMP.wa}</span>
+</div>
+<div class="pie">${esPres?'Presupuesto sin valor fiscal — '+EMP.nombre:esInterno?'⚠️ COMPROBANTE INTERNO — NO VÁLIDO COMO FACTURA — USO EXCLUSIVO INTERNO — '+EMP.nombre:v.modo==='registrar'?'Comprobante Autorizado — AFIP — '+EMP.nombre:'⚠️ COMPROBANTE NO OFICIAL — USO INTERNO'}</div>`;
+}
+
+
+// BUSCAR PRODUCTO DEL INVENTARIO EN ITEMS
+function buscarProdItem(id, calcFn){
+  const input=document.getElementById(id+'_desc');
+  const res=document.getElementById(id+'_res');
+  const q=(input?.value||'').toLowerCase();
+  if(!q||q.length<2){if(res)res.style.display='none';calcFn==='recalc'?recalc():recalcPres();return;}
+
+  // Lee yunco_productos (nueva arquitectura) con fallback a yunco_inv
+  let prods=[];
+  try{
+    const nuevos = JSON.parse(localStorage.getItem('yunco_productos')||'null');
+    if(nuevos && nuevos.length > 0 && nuevos[0].formas !== undefined){
+      prods = nuevos.filter(p => p.activo !== false);
+    } else {
+      prods = JSON.parse(localStorage.getItem('yunco_inv')||'[]');
+    }
+  }catch{prods=[];}
+
+  const isNuevo = prods.length > 0 && prods[0].formas !== undefined;
+
+  const matches = prods.filter(p =>
+    (p.nombre||'').toLowerCase().includes(q) ||
+    (p.categoria||'').toLowerCase().includes(q) ||
+    (p.codigo||'').toLowerCase().includes(q)
+  ).slice(0,12);
+
+  if(!matches.length){
+    res.innerHTML='<div style="padding:10px 14px;font-size:13px;color:#8bbadd">Sin resultados</div>';
+    res.style.display='block';
+    return;
+  }
+
+  res.innerHTML = matches.map(p => {
+    if(isNuevo){
+      // Nueva arquitectura — mostrar formas de comercialización
+      const s = parseFloat(p.stock||0), m = parseFloat(p.stockMinimo||0);
+      const cls = s<=0?'color:#e74c3c':s<=m?'color:#f39c12':'color:#2ecc71';
+      const est = s<=0?'🚨 SIN STOCK':s<=m?'⚠️ '+s+' '+p.unidadStock:'✅ '+s+' '+p.unidadStock;
+      const formasHTML = (p.formas||[]).map(f => {
+        const dolar = parseFloat((JSON.parse(localStorage.getItem('yunco_config')||'{}')).dolarHoy||0);
+        const precio = p.dolarizado
+          ? (parseFloat(p.precioBase||0)*dolar*parseFloat(f.factorStock||1)+parseFloat(f.precioExtra||0))
+          : (parseFloat(p.precioBase||0)*parseFloat(f.factorStock||1)+parseFloat(f.precioExtra||0));
+        return '<div onclick="selProdItemNuevo(\'' + id + '\',\'' + p.id + '\',\'' + f.id + '\',\'' + calcFn + '\')" ' +
+          'style="padding:8px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04);display:flex;justify-content:space-between;background:#1a3350;padding-left:28px">' +
+          '<span style="font-size:12px;color:#a0bdd4">↳ '+f.nombre+'</span>' +
+          '<span style="font-size:12px;font-weight:700;color:#5ddf8a">$'+precio.toLocaleString('es-AR',{minimumFractionDigits:2})+'</span>' +
+          '</div>';
+      }).join('');
+      return '<div style="padding:10px 14px;background:#162b44;border-bottom:1px solid rgba(255,255,255,.06)">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center">' +
+        '<div><div style="font-size:13px;font-weight:600;color:#e8eef5">'+p.nombre+'</div>' +
+        '<div style="font-size:11px;color:#8ba5be">'+p.categoria+(p.codigo?' · '+p.codigo:'')+'</div></div>' +
+        '<div style="font-size:12px;font-weight:700;'+cls+'">'+est+'</div></div>' +
+        (formasHTML||'<div style="padding:8px 14px;font-size:12px;color:#8ba5be;padding-left:28px">Sin formas de venta</div>') +
+        '</div>';
+    } else {
+      // Formato viejo
+      const cls=p.stock===0?'color:#e74c3c':p.stock<=p.min?'color:#f39c12':'color:#2ecc71';
+      const est=p.stock===0?'🚨 SIN STOCK':p.stock<=p.min?'⚠️ '+p.stock+' '+p.unidad:'✅ '+p.stock+' '+p.unidad;
+      return '<div onclick="selProdItem(\'' + id + '\',' + p.id + ',\'' + calcFn + '\')" ' +
+        'style="padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);display:flex;justify-content:space-between;align-items:center;background:#162b44">' +
+        '<div><div style="font-size:13px;font-weight:600;color:#e8eef5">'+p.nombre+'</div>' +
+        '<div style="font-size:11px;color:#8ba5be">'+p.categoria+'</div></div>' +
+        '<div style="text-align:right"><div style="font-size:12px;font-weight:700;'+cls+'">'+est+'</div>' +
+        (p.venta?'<div style="font-size:11px;color:#5ddf8a">$'+parseFloat(p.venta).toLocaleString('es-AR')+'</div>':'') +
+        '</div></div>';
+    }
+  }).join('');
+
+  // Position dropdown
+  const rect = input.getBoundingClientRect();
+  const spaceBelow = window.innerHeight - rect.bottom;
+  const spaceAbove = rect.top;
+  const goUp = spaceBelow < 220 && spaceAbove > spaceBelow;
+  if(goUp){
+    res.style.bottom = (window.innerHeight - rect.top + 2) + 'px';
+    res.style.top = 'auto';
+    res.style.maxHeight = (spaceAbove - 10) + 'px';
+  } else {
+    res.style.top = (rect.bottom + 2) + 'px';
+    res.style.bottom = 'auto';
+    res.style.maxHeight = (spaceBelow - 10) + 'px';
+  }
+  res.style.left = Math.max(4, rect.left) + 'px';
+  res.style.width = Math.max(rect.width, 340) + 'px';
+  res.style.display = 'block';
+}
+
+
+function selProdItemNuevo(rowId, prodId, formaId, calcFn){
+  const prods = JSON.parse(localStorage.getItem('yunco_productos')||'[]');
+  const p = prods.find(x => x.id === prodId);
+  if(!p) return;
+  const forma = (p.formas||[]).find(f => f.id === formaId) || p.formas[0];
+  if(!forma) return;
+
+  const descInput = document.getElementById(rowId+'_desc');
+  const codInput = document.getElementById(rowId+'_cod');
+  const res = document.getElementById(rowId+'_res');
+  const tr = document.getElementById(rowId);
+
+  if(descInput) descInput.value = p.nombre + (forma.nombre !== 'Por unidad' ? ' — ' + forma.nombre : '');
+  if(codInput) codInput.value = p.id;
+  if(res) res.style.display = 'none';
+
+  // Store prodId and formaId for stock discount later
+  tr.dataset.prodId = p.id;
+  tr.dataset.formaId = forma.id;
+  tr.dataset.factorStock = forma.factorStock;
+
+  // inp[0]=cod, inp[1]=desc, inp[2]=cant, inp[3]=unidad, inp[4]=precio, inp[5]=subtotal
+  const allInputs = tr.querySelectorAll('input');
+  // Bonif field (allInputs[3]) left empty for manual input
+
+  // Calculate price
+  const config = JSON.parse(localStorage.getItem('yunco_config')||'{}');
+  const dolarHoy = parseFloat(config.dolarHoy||0);
+  const precio = p.dolarizado
+    ? (parseFloat(p.precioBase||0) * dolarHoy * parseFloat(forma.factorStock||1)) + parseFloat(forma.precioExtra||0)
+    : (parseFloat(p.precioBase||0) * parseFloat(forma.factorStock||1)) + parseFloat(forma.precioExtra||0);
+
+  if(allInputs[4]){
+    allInputs[4].value = precio.toFixed(2);
+    allInputs[4].dispatchEvent(new Event('input'));
+  }
+  calcFn === 'recalc' ? recalc() : recalcPres();
+}
+
+function selProdItem(id, prodId, calcFn){
+  let prods=[];
+  try{prods=JSON.parse(localStorage.getItem('yunco_inv')||'[]');}catch{prods=[];}
+  const p=prods.find(x=>x.id===prodId);if(!p)return;
+  const descInput=document.getElementById(id+'_desc');
+  const codInput=document.getElementById(id+'_cod');
+  const res=document.getElementById(id+'_res');
+  const tr=document.getElementById(id);
+  if(descInput)descInput.value=p.nombre;
+  if(codInput)codInput.value=p.id;
+  if(res)res.style.display='none';
+  // inp[0]=cod, inp[1]=desc, inp[2]=cant, inp[3]=unidad, inp[4]=precio, inp[5]=subtotal
+  const allInputs=tr.querySelectorAll('input');
+  // Bonif field left empty for manual input
+  if(allInputs[4]){
+    allInputs[4].value=parseFloat(p.venta)||0;
+    // Trigger input event to recalc
+    allInputs[4].dispatchEvent(new Event('input'));
+  }
+  calcFn==='recalc'?recalc():recalcPres();
+}
+
+// CERRAR RESULTADOS AL CLICK FUERA
+document.addEventListener('click',e=>{
+  if(!e.target.closest('[id$="_desc"]')&&!e.target.closest('[id$="_res"]')){
+    document.querySelectorAll('[id$="_res"]').forEach(r=>{if(r.style)r.style.display='none';});
+  }
+});
+
+
+// CONSULTA STOCK
+
+function renderConsulta(){
+  const q = (document.getElementById('consultaBusq')?.value||'').toLowerCase().trim();
+  let prods = [];
+  try{
+    const nuevos = JSON.parse(localStorage.getItem('yunco_productos')||'null');
+    if(nuevos && nuevos.length > 0 && nuevos[0].formas !== undefined){
+      prods = nuevos.filter(p => p.activo !== false);
+    } else {
+      prods = JSON.parse(localStorage.getItem('yunco_inv')||'[]');
+    }
+  }catch{ prods=[]; }
+  const filtrados = q ? prods.filter(p =>
+    (p.nombre||'').toLowerCase().includes(q) ||
+    (p.categoria||'').toLowerCase().includes(q)
+  ) : prods;
+  const el = document.getElementById('consultaTabla');
+  if(!el) return;
+  if(!prods.length){
+    el.innerHTML='<div class="vacio">No hay productos en el inventario.</div>';
+    return;
+  }
+  const fmt = n => '$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2});
+  const fmtStock = p => {
+    const s=parseFloat(p.stock||0), m=parseFloat(p.min||0);
+    const color = s<=0?'var(--danger)':s<=m?'var(--warning)':'var(--success)';
+    return '<span style="color:'+color+';font-weight:800">'+s+'</span>';
+  };
+  el.innerHTML =
+    '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">'+filtrados.length+' productos</div>'+
+    '<div class="tabla-wrap"><table><thead><tr>'+
+    '<th>Producto</th><th>Categoría</th><th>Stock</th><th>Unidad</th><th>Precio Venta</th>'+
+    '</tr></thead><tbody>'+
+    filtrados.map(p =>
+      '<tr><td><strong>'+p.nombre+'</strong></td>'+
+      '<td><span class="cat-tag">'+p.categoria+'</span></td>'+
+      '<td>'+fmtStock(p)+'</td>'+
+      '<td style="color:var(--text-muted)">'+p.unidad+'</td>'+
+      '<td>'+(parseFloat(p.venta||0)>0?fmt(p.venta):'<span style="color:var(--text-muted)">Sin precio</span>')+'</td>'+
+      '</tr>'
+    ).join('')+
+    '</tbody></table></div>';
+}
+
+function renderConsultaStock(){
+  const q=(document.getElementById('consultaStockBusq').value||'').toLowerCase();
+  const el=document.getElementById('consultaStockRes');
+  if(!q){el.innerHTML='<div class="vacio"><div class="vacio-icon">🔍</div><p>Escribí para buscar productos.</p></div>';return;}
+  let prods=[];
+  try{prods=JSON.parse(localStorage.getItem('yunco_inv')||'[]');}catch{prods=[];}
+  const matches=prods.filter(p=>p.nombre.toLowerCase().includes(q)||p.categoria.toLowerCase().includes(q));
+  if(!matches.length){el.innerHTML='<div class="vacio"><div class="vacio-icon">📭</div><p>No se encontraron productos.</p></div>';return;}
+  el.innerHTML='<div class="tabla-wrap"><table><thead><tr><th>Producto</th><th>Categoría</th><th>Stock</th><th>Unidad</th><th>Precio Venta</th><th>Estado</th></tr></thead><tbody>'+
+  matches.map(p=>{
+    const cls=p.stock===0?'color:var(--rojo3)':p.stock<=p.min?'color:var(--amarillo3)':'color:var(--verde3)';
+    const estado=p.stock===0?'🚨 SIN STOCK':p.stock<=p.min?'⚠️ STOCK BAJO':'✅ DISPONIBLE';
+    const estadoCls=p.stock===0?'badge-nd':p.stock<=p.min?'badge-nc':'badge-a';
+    return`<tr>
+<td><strong>${p.nombre}</strong>${p.pm?'&nbsp;<span style="font-size:10px;background:rgba(26,122,60,.3);color:var(--verde3);padding:2px 7px;border-radius:5px;font-weight:700">por metros</span>':''}</td>
+<td><span class="badge badge-b">${p.categoria}</span></td>
+<td style="font-weight:700;${cls}">${p.stock.toLocaleString('es-AR')}</td>
+<td style="color:#8bbadd">${p.unidad}</td>
+<td style="color:var(--verde3)">${p.venta?'$'+parseFloat(p.venta).toLocaleString('es-AR'):'-'}</td>
+<td><span class="badge ${estadoCls}">${estado}</span></td>
+</tr>`;}).join('')+
+  '</tbody></table></div>';
+}
+
+function pagoLbl(p){return{efectivo:'Efectivo',transferencia:'Transferencia',qr:'QR',tarjeta:'Tarjeta',cheque:'Cheque',cuenta_corriente:'Cta. Corriente'}[p]||p||'-';}
 
 
 // ── CONTROL DE CAJA ──────────────────────────────────────────
@@ -462,762 +2182,946 @@ function formatFecha(fechaStr){
 }
 
 
-// ── SESIÓN ÚNICA ─────────────────────────────────────────────
-let vAct = null, vRol = null, vNombre = null;
-
-(function initSesion(){
-  const raw = localStorage.getItem('yunco_session');
-  if(!raw){ window.location.href='index.html'; return; }
-  try{
-    const ses = JSON.parse(raw);
-    const permitidos = ['gerente','dueno'];
-    if(!permitidos.includes(ses.rol)){ window.location.href='index.html'; return; }
-    vAct = ses.usuario;
-    vRol = ses.rol;
-    vNombre = ses.nombre;
-    const ui = document.getElementById('vendedorInfo');
-    if(ui) ui.textContent = '👤 ' + vNombre;
-  } catch(e){ window.location.href='index.html'; }
-})();
-
-
-function verCajaPendiente(fecha){
-  const cajaDatos = S.g('yunco_caja_' + fecha, null);
-  if(!cajaDatos){
-    alert('No se encontraron datos de la caja del ' + formatFecha(fecha));
-    return;
-  }
-  // Show the pending caja in the abierta view
-  mostrarCajaAbierta(cajaDatos, fecha);
-  // Add warning banner inside the view
-  const viewAb = document.getElementById('viewAbierta');
-  if(viewAb){
-    const existing = document.getElementById('cajaPendienteBanner');
-    if(!existing){
-      const banner = document.createElement('div');
-      banner.id = 'cajaPendienteBanner';
-      banner.style.cssText = 'background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:10px;padding:14px 18px;margin-bottom:16px;font-size:13px;color:#f59e0b;font-weight:600;line-height:1.6;';
-      banner.innerHTML = 'Caja pendiente del ' + formatFecha(fecha) + '. Revisa los movimientos y realizá el cierre para poder operar normalmente.';
-      viewAb.insertBefore(banner, viewAb.firstChild);
-    }
-  }
-}
-
-function logout(){
-  localStorage.removeItem('yunco_session');
-  window.location.href='index.html';
-}
-
-function getCM(){return localStorage.getItem('yunco_cm')||'SANTINO15';}
-
-let authCb=null;
-
-// AUTH
-function solAuth(msg,cb){authCb=cb;document.getElementById('authClave').value='';document.getElementById('authErr').style.display='none';document.getElementById('authMsg').textContent=msg+' — Clave maestra:';document.getElementById('authOverlay').classList.add('abierto');setTimeout(()=>document.getElementById('authClave').focus(),100);}
-function confirmarAuth(){if(document.getElementById('authClave').value===getCM()){document.getElementById('authOverlay').classList.remove('abierto');if(authCb)authCb();authCb=null;}else{document.getElementById('authErr').style.display='block';document.getElementById('authClave').value='';}}
-function cancelarAuth(){document.getElementById('authOverlay').classList.remove('abierto');authCb=null;}
-
-// LOGIN
-
-
-function goHistorialCajas(){document.getElementById('viewCerrada').style.display='none';document.getElementById('viewAbierta').style.display='block';setTimeout(()=>goTab('histcajas'),100);}
-
-// INIT CAJA
-function initCaja(){
+function getCajaActiva(){
   const estado = getCajaEstado();
+  if(estado.estado !== 'abierta') return null;
   const hoy = getFechaHoy();
-
-  if(estado.estado === 'pendiente'){
-    document.getElementById('viewCerrada').style.display = 'block';
-    document.getElementById('viewAbierta').style.display = 'none';
-    const wrap = document.getElementById('btnAbrirWrap');
-    wrap.innerHTML = '';
-    const div = document.createElement('div');
-    div.style.cssText = 'background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.4);border-radius:12px;padding:20px;max-width:500px;margin:0 auto';
-    const fp = estado.fechaPendiente;
-    div.innerHTML = '<div style="font-size:22px;margin-bottom:8px">⚠️</div>'
-      + '<div style="font-weight:700;font-size:15px;color:#f59e0b;margin-bottom:8px">Caja pendiente de cierre</div>'
-      + '<div style="font-size:13px;color:#8baec8;margin-bottom:16px;line-height:1.6">'
-      + 'Existe una caja del <strong>' + formatFecha(fp) + '</strong> que no fue cerrada.<br>'
-      + 'Puede deberse a un corte de energia, cierre accidental del navegador u otro imprevisto.<br><br>'
-      + 'Debe cerrar esa caja antes de abrir una nueva.</div>';
-    const btn = document.createElement('button');
-    btn.textContent = 'Ver y cerrar caja pendiente';
-    btn.style.cssText = 'background:#f59e0b;color:#000;border:none;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer';
-    btn.onclick = function(){ verCajaPendiente(fp); };
-    div.appendChild(btn);
-    wrap.appendChild(div);
-    return;
+  const c = S.g('yunco_caja_' + hoy, null);
+  if(!c) return null;
+  // Generate stable ID from fecha + apertura
+  if(!c.id) {
+    c.id = 'CAJA-' + hoy + '-' + (c.apertura||'').replace(/[^0-9]/g,'').slice(0,6);
+    S.s('yunco_caja_' + hoy, c);
   }
+  return c;
+}
 
-  if(estado.estado === 'abierta'){
-    const cajaDatos = S.g('yunco_caja_' + hoy, null);
-    mostrarCajaAbierta(cajaDatos, hoy);
-  mostrarDolarActual();
-    return;
-  }
-
-  document.getElementById('viewCerrada').style.display = 'block';
-  document.getElementById('viewAbierta').style.display = 'none';
+function mostrarAlertaCaja(mensaje, tipo){
+  document.getElementById('cajaBlockMsg').textContent = mensaje;
+  document.getElementById('cajaBlockOverlay').classList.add('abierto');
 }
 
 
-function abrirCaja(){
-  const estado = getCajaEstado();
+// ── CUENTA CORRIENTE ─────────────────────────────────────────
+function getCtaCte(){ return S.g('yunco_ctacte', {}); }
+function saveCtaCte(data){ S.s('yunco_ctacte', data); }
 
-  if(estado.estado === 'pendiente'){
-    alert('⚠️ Existe una caja del ' + formatFecha(estado.fechaPendiente) + ' pendiente de cierre.\n\nDebe cerrar esa caja antes de abrir una nueva.');
-    return;
-  }
-
-  if(estado.estado === 'abierta'){
-    alert('Ya existe una caja abierta para el día de hoy.');
-    return;
-  }
-
-  // Requerir dólar del día antes de abrir
-  abrirPanelDolar('apertura');
+function getClienteKey(cli){
+  return cli.cuit ? 'cuit_' + cli.cuit.replace(/[^0-9]/g,'') : 'nom_' + (cli.nom||'').toLowerCase().replace(/\s+/g,'_');
 }
 
-function mostrarCajaAbierta(caja,fecha){
-  document.getElementById('viewCerrada').style.display='none';
-  document.getElementById('viewAbierta').style.display='block';
-  const d=new Date(fecha+'T00:00:00');
-  document.getElementById('fechaCaja').textContent=d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  document.getElementById('horaApertura').textContent='Apertura: '+new Date(caja.apertura).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
-  actualizarStats();
-  renderVentas();
-  mostrarDolarActual();
-}
-
-// OBTENER VENTAS DEL DIA
-function getVentasHoy(fecha){
-  const hoy = fecha || getFechaHoy();
-  return S.g('yunco_comp',[]).filter(v=>{
-    if(!v.fecha)return false;
-    return v.fecha.startsWith(hoy)&&v.modo==='registrar';
-  });
-}
-
-// STATS
-function actualizarStats(){
-  const hoyStats=getFechaHoy();
-  const ventas=getVentasHoy(hoyStats);
-  
-  const caja=S.g('yunco_caja_'+hoyStats,{gastos:[],cobros_cte:[]});
-  const gastos=caja.gastos||[];
-  const cobros=caja.cobros_cte||[];
-
-  let totVentas=0,ef=0,tr=0,qr=0,ta=0,ch=0,cc=0;
-  ventas.forEach(v=>{
-    const t=parseFloat(v.total)||0;
-    totVentas+=t;
-    if(v.pago==='efectivo')ef+=t;
-    else if(v.pago==='transferencia')tr+=t;
-    else if(v.pago==='qr')qr+=t;
-    else if(v.pago==='tarjeta')ta+=t;
-    else if(v.pago==='cheque')ch+=t;
-    else if(v.pago==='cuenta_corriente')cc+=t;
-  });
-  // Cobros cta cte
-  cobros.forEach(c=>{
-    const m=parseFloat(c.monto)||0;
-    totVentas+=m;
-    if(c.medio==='efectivo')ef+=m;
-    else if(c.medio==='transferencia')tr+=m;
-    else if(c.medio==='cheque')ch+=m;
-  });
-
-  const totGastos=gastos.reduce((a,g)=>a+parseFloat(g.monto||0),0);
-  const saldo=totVentas-totGastos;
-
-  document.getElementById('stIngreso').textContent=fmt(totVentas);
-  document.getElementById('stGasto').textContent=fmt(totGastos);
-  document.getElementById('stSaldo').textContent=fmt(saldo);
-  document.getElementById('stSaldo').style.color=saldo>=0?'var(--verde3)':'var(--rojo3)';
-  document.getElementById('stFacturas').textContent=ventas.length;
-  document.getElementById('mEfectivo').textContent=fmt(ef);
-  document.getElementById('mTransferencia').textContent=fmt(tr);
-  document.getElementById('mQr').textContent=fmt(qr);
-  document.getElementById('mTarjeta').textContent=fmt(ta);
-  document.getElementById('mCheque').textContent=fmt(ch);
-  document.getElementById('mCtaCte').textContent=fmt(cc);
-}
-
-// VENTAS
-function renderVentas(){
-  const ventas=getVentasHoy(getFechaHoy());
-  const tbody=document.getElementById('tablaVentas');
-  if(!ventas.length){tbody.innerHTML='<tr><td colspan="7"><div class="vacio">No hay ventas registradas hoy.</div></td></tr>';return;}
-  const pi={efectivo:'💵',transferencia:'🏦',qr:'📱',tarjeta:'💳',cheque:'📄',cuenta_corriente:'📒'};
-  const pc={efectivo:'badge-ef',transferencia:'badge-tr',qr:'badge-qr',tarjeta:'badge-ta',cheque:'badge-ch',cuenta_corriente:'badge-cc'};
-  const pl={efectivo:'Efectivo',transferencia:'Transferencia',qr:'QR',tarjeta:'Tarjeta',cheque:'Cheque',cuenta_corriente:'Cta.Cte'};
-  const vends=S.g('yunco_vend',{});
-  tbody.innerHTML=ventas.map(v=>{
-    const hora=new Date(v.fecha).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
-    const vN=vends[v.vend]?.nombre||(v.vend==='admin'?'Admin':v.vend==='gerente'?'Gerente':'V'+v.vend);
-    return`<tr>
-<td style="font-family:'Bebas Neue',sans-serif;font-size:12px">${v.nro}</td>
-<td><span class="badge" style="background:rgba(31,78,120,.4);color:#7ab8e8">Fact.${v.tipo}</span></td>
-<td>${v.cli?.nom||'-'}</td>
-<td><span class="badge ${pc[v.pago]||''}">${pi[v.pago]||''} ${pl[v.pago]||v.pago||'-'}</span></td>
-<td style="font-weight:700;color:var(--verde3)">${fmtFull(v.total)}</td>
-<td>${vN}</td>
-<td style="color:var(--muted)">${hora}</td>
-<td style="white-space:nowrap">
-  <button class="btn btn-verde btn-sm" onclick="verCompCaja('${v.id}')" title="Ver comprobante">👁</button>
-  <button class="btn btn-outline btn-sm" onclick="printCompCaja('${v.id}')" title="Imprimir comprobante">🖨</button>
-</td>
-</tr>`;}).join('');
-}
-
-// GASTOS
-function agregarGasto(){
-  const desc=document.getElementById('gastoDesc').value.trim();
-  const monto=parseFloat(document.getElementById('gastoMonto').value)||0;
-  if(!desc||monto<=0){alert('Completá descripción y monto.');return;}
-  const hoy=getFechaHoy();
-  const caja=S.g('yunco_caja_'+hoy,{abierta:true,fecha:hoy,apertura:new Date().toISOString(),gastos:[],cobros_cte:[]});
-  caja.gastos.push({id:Date.now(),desc,monto,cat:document.getElementById('gastoCat').value,hora:new Date().toISOString(),vend:vAct});
-  S.s('yunco_caja_'+hoy,caja);
-  document.getElementById('gastoDesc').value='';document.getElementById('gastoMonto').value='';
-  actualizarStats();renderGastos();
-}
-
-function renderGastos(){
-  const hoy=getFechaHoy();
-  const caja=S.g('yunco_caja_'+hoy,{gastos:[]});
-  const gastos=caja.gastos||[];
-  const el=document.getElementById('listaGastos');
-  if(!gastos.length){el.innerHTML='<div class="vacio">No hay gastos registrados hoy.</div>';return;}
-  el.innerHTML=gastos.map(g=>`<div class="gasto-item">
-<span style="font-size:20px">💸</span>
-<div style="flex:1">
-  <div style="font-size:14px;font-weight:600">${g.desc}</div>
-  <div style="font-size:12px;color:var(--muted)">${g.cat} · ${new Date(g.hora).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})}</div>
-</div>
-<div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--rojo3)">${fmtFull(g.monto)}</div>
-<button class="btn btn-rojo btn-sm" onclick="solAuth('Eliminar gasto',()=>eliminarGasto(${g.id}))">🗑</button>
-</div>`).join('');
-}
-
-function eliminarGasto(id){
-  const hoy=getFechaHoy();
-  const caja=S.g('yunco_caja_'+hoy,{gastos:[]});
-  caja.gastos=(caja.gastos||[]).filter(g=>g.id!==id);
-  S.s('yunco_caja_'+hoy,caja);
-  actualizarStats();renderGastos();
-}
-
-// CTA CTE
-function renderCtaCte(){
-  const ventas=S.g('yunco_comp',[]).filter(v=>v.pago==='cuenta_corriente'&&v.modo==='registrar');
-  const cobros=S.g('yunco_cobros_cte',[]);
-  // Agrupar por cliente
-  const clientes={};
-  ventas.forEach(v=>{
-    const nom=v.cli?.nom||'Sin nombre';
-    if(!clientes[nom])clientes[nom]={nom,cuit:v.cli?.cuit||'',deuda:0,movs:[]};
-    clientes[nom].deuda+=parseFloat(v.total)||0;
-    clientes[nom].movs.push({tipo:'deuda',desc:'Factura '+v.nro,monto:v.total,fecha:v.fecha});
-  });
-  cobros.forEach(c=>{
-    const nom=c.cliente;
-    if(!clientes[nom])clientes[nom]={nom,cuit:'',deuda:0,movs:[]};
-    clientes[nom].deuda-=parseFloat(c.monto)||0;
-    clientes[nom].movs.push({tipo:'cobro',desc:'Cobro',monto:c.monto,fecha:c.fecha});
-  });
-  const el=document.getElementById('listaCtaCte');
-  const lista=Object.values(clientes).filter(c=>c.deuda>0);
-  if(!lista.length){el.innerHTML='<div class="vacio">✅ No hay cuentas corrientes pendientes.</div>';return;}
-  el.innerHTML=lista.map(c=>`<div class="ctacte-item">
-<div class="ctacte-header">
-  <div><div class="ctacte-nombre">${c.nom}</div><div class="ctacte-movs">${c.cuit||'Sin CUIT'}</div></div>
-  <div style="text-align:right"><div class="ctacte-deuda">${fmtFull(c.deuda)}</div><div style="font-size:11px;color:var(--muted)">saldo pendiente</div></div>
-</div>
-<div style="font-size:12px;color:var(--muted)">
-${c.movs.slice(0,3).map(m=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid var(--borde)">
-<span>${m.tipo==='deuda'?'📤':'💰'} ${m.desc}</span>
-<span style="color:${m.tipo==='deuda'?'var(--rojo3)':'var(--verde3)'}">${m.tipo==='deuda'?'-':'+'}${fmtFull(m.monto)}</span>
-</div>`).join('')}
-</div>
-</div>`).join('');
-  // Fill select cobro
-  const sel=document.getElementById('cobroCliente');
-  sel.innerHTML=lista.map(c=>`<option value="${c.nom}">${c.nom} — debe ${fmtFull(c.deuda)}</option>`).join('');
-}
-
-function abrirRegistrarCobro(){document.getElementById('overlayCobroCte').classList.add('abierto');}
-function registrarCobroCte(){
-  const cliente=document.getElementById('cobroCliente').value;
-  const monto=parseFloat(document.getElementById('cobroMonto').value)||0;
-  const medio=document.getElementById('cobroMedio').value;
-  if(!cliente||monto<=0){alert('Completá los datos.');return;}
-  const cobros=S.g('yunco_cobros_cte',[]);
-  cobros.push({id:Date.now(),cliente,monto,medio,fecha:new Date().toISOString(),vend:vAct});
-  S.s('yunco_cobros_cte',cobros);
-  // Registrar en caja del dia
-  const hoy=getFechaHoy();
-  const caja=S.g('yunco_caja_'+hoy,{abierta:true,fecha:hoy,apertura:new Date().toISOString(),gastos:[],cobros_cte:[]});
-  if(!caja.cobros_cte)caja.cobros_cte=[];
-  caja.cobros_cte.push({cliente,monto,medio,fecha:new Date().toISOString()});
-  S.s('yunco_caja_'+hoy,caja);
-  document.getElementById('overlayCobroCte').classList.remove('abierto');
-  document.getElementById('cobroMonto').value='';
-  actualizarStats();renderCtaCte();alert('✅ Cobro registrado.');
-}
-
-// CERRAR CAJA
-function cerrarCaja(){
-  // Determinar qué caja cerrar: pendiente de día anterior o la de hoy
-  const estado = getCajaEstado();
-  let fechaCierre;
-  if(estado.estado === 'pendiente'){
-    fechaCierre = estado.fechaPendiente;
-  } else if(estado.estado === 'abierta'){
-    fechaCierre = getFechaHoy();
-  } else {
-    alert('No hay ninguna caja abierta para cerrar.');
-    return;
-  }
-
-  const cajaDatos = S.g('yunco_caja_' + fechaCierre, {});
-  cajaDatos.abierta = false;
-  cajaDatos.cierre = new Date().toISOString();
-  cajaDatos.cierreUsuario = vAct;
-  cajaDatos.cierreUsuarioNom = vNombre;
-  cajaDatos.resumen = generarResumen(fechaCierre);
-
-  // Persistir cierre — fuente única de verdad
-  S.s('yunco_caja_' + fechaCierre, cajaDatos);
-
-  // Guardar en historial
-  const hist = S.g('yunco_hist_cajas', []);
-  hist.unshift({fecha: fechaCierre, ...cajaDatos.resumen, cierre: cajaDatos.cierre});
-  S.s('yunco_hist_cajas', hist);
-
-  // Verificar que quedó cerrada
-  const verificacion = S.g('yunco_caja_' + fechaCierre, null);
-  if(verificacion && verificacion.abierta === false){
-    auditCajaOp('CAJA_CIERRE', 'Caja del ' + fechaCierre + ' cerrada correctamente');
-    // Limpiar cualquier caja huérfana de días anteriores que haya quedado abierta
-    const hoyLimpieza = getFechaHoy();
-    Object.keys(localStorage).forEach(k => {
-      if(!k.startsWith('yunco_caja_')) return;
-      const f = k.replace('yunco_caja_','');
-      if(f === hoyLimpieza) return;
-      try{
-        const c = JSON.parse(localStorage.getItem(k));
-        if(c && c.abierta === true){
-          c.abierta = false;
-          c.cierreAutomatico = true;
-          localStorage.setItem(k, JSON.stringify(c));
-        }
-      }catch{}
-    });
-    // Generar backup automático
-    try{
-      const nombreArchivo = generarBackup();
-      alert('✅ Caja del ' + fechaCierre + ' cerrada correctamente.\n\n📦 Backup generado automáticamente.\nGuardá el archivo ' + nombreArchivo + ' en un lugar seguro.');
-    } catch(e){
-      alert('✅ Caja del ' + fechaCierre + ' cerrada correctamente.\n\n⚠️ No se pudo generar el backup automáticamente.');
-    }
-    // Small delay then reload to ensure fresh state
-    setTimeout(function(){ window.location.reload(); }, 800);
-  } else {
-    alert('Error al cerrar la caja. Intentá nuevamente.');
-  }
-}
-
-function generarResumen(fecha){
-  const ventas=getVentasHoy(getFechaHoy());
-  const hoy = fecha || getFechaHoy();
-  const caja=S.g('yunco_caja_' + hoy,{gastos:[],cobros_cte:[]});
-  let totVentas=0,ef=0,tr=0,qr=0,ta=0,ch=0,cc=0;
-  ventas.forEach(v=>{const t=parseFloat(v.total)||0;totVentas+=t;if(v.pago==='efectivo')ef+=t;else if(v.pago==='transferencia')tr+=t;else if(v.pago==='qr')qr+=t;else if(v.pago==='tarjeta')ta+=t;else if(v.pago==='cheque')ch+=t;else if(v.pago==='cuenta_corriente')cc+=t;});
-  (caja.cobros_cte||[]).forEach(c=>{const m=parseFloat(c.monto)||0;totVentas+=m;if(c.medio==='efectivo')ef+=m;else if(c.medio==='transferencia')tr+=m;else if(c.medio==='cheque')ch+=m;});
-  const totGastos=(caja.gastos||[]).reduce((a,g)=>a+parseFloat(g.monto||0),0);
-  return{totVentas,totGastos,saldo:totVentas-totGastos,ef,tr,qr,ta,ch,cc,cantFacturas:ventas.length,gastos:caja.gastos||[],ventas};
-}
-
-// VISTA PREVIA / PDF
-function previsualizarCierre(imprimir=false){
-  const r=generarResumen();
-  const hoy=getFechaHoy();
-  const d=new Date(hoy+'T00:00:00');
-  const fecha=d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  const vends=S.g('yunco_vend',{});
-  const filasVentas=r.ventas.map(v=>{
-    const hora=new Date(v.fecha).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
-    const vN=vends[v.vend]?.nombre||(v.vend==='admin'?'Admin':v.vend==='gerente'?'Gerente':'V'+v.vend);
-    const pl={efectivo:'Efectivo',transferencia:'Transferencia',qr:'QR',tarjeta:'Tarjeta',cheque:'Cheque',cuenta_corriente:'Cta.Cte'};
-    return`<tr><td>${v.nro}</td><td>Fact.${v.tipo}</td><td>${v.cli?.nom||'-'}</td><td>${pl[v.pago]||v.pago}</td><td style="text-align:right;font-weight:700">${fmtFull(v.total)}</td><td>${vN}</td><td>${hora}</td></tr>`;}).join('');
-  const filasGastos=(r.gastos||[]).map(g=>`<tr><td>${g.desc}</td><td>${g.cat}</td><td style="text-align:right;color:#c0392b;font-weight:700">${fmtFull(g.monto)}</td></tr>`).join('');
-
-  const html=`
-<div style="font-family:Arial,sans-serif;color:#000;max-width:800px;margin:0 auto;padding:20px">
-  <div style="text-align:center;margin-bottom:20px;border-bottom:3px solid #000;padding-bottom:16px">
-    <div style="font-size:36px;font-weight:900;color:#c0392b;-webkit-text-stroke:2px #555;letter-spacing:2px">Yunco</div>
-    <div style="font-size:11px;color:#555">FEMO SRL · CUIT 30-718081463-3 · Av. Juan B. Justo 1223, San Miguel de Tucumán</div>
-    <div style="font-size:18px;font-weight:700;margin-top:8px;text-transform:uppercase;letter-spacing:2px">Resumen de Cierre de Caja</div>
-    <div style="font-size:13px;color:#555;margin-top:4px;text-transform:capitalize">${fecha}</div>
-  </div>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px">
-    <div style="border:2px solid #27ae60;border-radius:8px;padding:12px;text-align:center">
-      <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:1px">Total Ingresos</div>
-      <div style="font-size:24px;font-weight:900;color:#27ae60">${fmtFull(r.totVentas)}</div>
-    </div>
-    <div style="border:2px solid #c0392b;border-radius:8px;padding:12px;text-align:center">
-      <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:1px">Total Gastos</div>
-      <div style="font-size:24px;font-weight:900;color:#c0392b">${fmtFull(r.totGastos)}</div>
-    </div>
-    <div style="border:2px solid #2d7fba;border-radius:8px;padding:12px;text-align:center">
-      <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:1px">Saldo Neto</div>
-      <div style="font-size:24px;font-weight:900;color:${r.saldo>=0?'#27ae60':'#c0392b'}">${fmtFull(r.saldo)}</div>
-    </div>
-  </div>
-
-  <div style="margin-bottom:16px">
-    <div style="font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;border-bottom:1px solid #ddd;padding-bottom:4px">Desglose por Medio de Pago</div>
-    <table style="width:100%;border-collapse:collapse;font-size:12px">
-      <tr><td style="padding:5px 8px">💵 Efectivo</td><td style="text-align:right;font-weight:700;padding:5px 8px">${fmtFull(r.ef)}</td></tr>
-      <tr style="background:#f9f9f9"><td style="padding:5px 8px">🏦 Transferencia</td><td style="text-align:right;font-weight:700;padding:5px 8px">${fmtFull(r.tr)}</td></tr>
-      <tr><td style="padding:5px 8px">📱 QR</td><td style="text-align:right;font-weight:700;padding:5px 8px">${fmtFull(r.qr)}</td></tr>
-      <tr style="background:#f9f9f9"><td style="padding:5px 8px">💳 Tarjeta</td><td style="text-align:right;font-weight:700;padding:5px 8px">${fmtFull(r.ta)}</td></tr>
-      <tr><td style="padding:5px 8px">📄 Cheque</td><td style="text-align:right;font-weight:700;padding:5px 8px">${fmtFull(r.ch)}</td></tr>
-      <tr style="background:#f9f9f9"><td style="padding:5px 8px">📒 Cta. Corriente</td><td style="text-align:right;font-weight:700;padding:5px 8px">${fmtFull(r.cc)}</td></tr>
-    </table>
-  </div>
-
-  ${r.ventas.length?`<div style="margin-bottom:16px">
-    <div style="font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;border-bottom:1px solid #ddd;padding-bottom:4px">Comprobantes del Día (${r.cantFacturas})</div>
-    <table style="width:100%;border-collapse:collapse;font-size:11px">
-      <thead><tr style="background:#eee"><th style="padding:5px 8px;text-align:left">N°</th><th style="padding:5px 8px;text-align:left">Tipo</th><th style="padding:5px 8px;text-align:left">Cliente</th><th style="padding:5px 8px;text-align:left">Pago</th><th style="padding:5px 8px;text-align:right">Total</th><th style="padding:5px 8px;text-align:left">Vendedor</th><th style="padding:5px 8px;text-align:left">Hora</th></tr></thead>
-      <tbody>${filasVentas}</tbody>
-    </table>
-  </div>`:''}
-
-  ${r.gastos&&r.gastos.length?`<div style="margin-bottom:16px">
-    <div style="font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;border-bottom:1px solid #ddd;padding-bottom:4px">Gastos del Día</div>
-    <table style="width:100%;border-collapse:collapse;font-size:11px">
-      <thead><tr style="background:#eee"><th style="padding:5px 8px;text-align:left">Descripción</th><th style="padding:5px 8px;text-align:left">Categoría</th><th style="padding:5px 8px;text-align:right">Monto</th></tr></thead>
-      <tbody>${filasGastos}</tbody>
-    </table>
-  </div>`:''}
-
-  <div style="margin-top:20px;border-top:2px solid #000;padding-top:12px;display:flex;justify-content:space-between;font-size:11px;color:#555">
-    <span>YUNCO DE FEMO SRL · yuncosrl@hotmail.com</span>
-    <span>WhatsApp: 381 6 24 41 05</span>
-    <span>Generado: ${new Date().toLocaleString('es-AR')}</span>
-  </div>
-</div>`;
-
-  const w=window.open('','_blank','width=900,height=700');
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Cierre de Caja ${hoy}</title></head><body>${html}
-  <div style="text-align:center;margin-top:20px;font-family:Arial,sans-serif">
-    <button onclick="window.print()" style="padding:12px 24px;background:#2d7fba;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;margin-right:10px">🖨 Imprimir / Guardar PDF</button>
-    <button onclick="compartirWhatsApp()" style="padding:12px 24px;background:#25D366;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer">📱 Enviar por WhatsApp</button>
-  </div>
-  <script>
-  function compartirWhatsApp(){
-    const texto = encodeURIComponent("📊 *CIERRE DE CAJA YUNCO*\\n📅 ${fecha}\\n\\n💰 *Total Ingresos:* ${fmtFull(r.totVentas)}\\n💸 *Total Gastos:* ${fmtFull(r.totGastos)}\\n📊 *Saldo Neto:* ${fmtFull(r.saldo)}\\n\\n💵 Efectivo: ${fmtFull(r.ef)}\\n🏦 Transferencia: ${fmtFull(r.tr)}\\n📱 QR: ${fmtFull(r.qr)}\\n💳 Tarjeta: ${fmtFull(r.ta)}\\n📄 Cheque: ${fmtFull(r.ch)}\\n📒 Cta.Cte: ${fmtFull(r.cc)}\\n\\n📋 Comprobantes: ${r.cantFacturas}");
-    window.open("https://wa.me/?text="+texto,"_blank");
-  }
-  <\/script>
-  </body></html>`);
-  w.document.close();
-}
-
-// HISTORIAL CAJAS
-function renderHistCajas(){
-  const hist=S.g('yunco_hist_cajas',[]);
-  const el=document.getElementById('listaHistCajas');
-  if(!hist.length){el.innerHTML='<div class="vacio">No hay cierres anteriores.</div>';return;}
-  el.innerHTML=hist.slice(0,30).map(h=>{
-    const d=new Date(h.fecha+'T00:00:00');
-    const fecha=d.toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
-    return`<div style="background:var(--card);border:1px solid var(--borde);border-radius:12px;padding:16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-<div>
-  <div style="font-weight:700;font-size:15px">${fecha}</div>
-  <div style="font-size:12px;color:var(--muted)">${h.cantFacturas||0} comprobantes · Gastos: ${fmtFull(h.totGastos)}</div>
-</div>
-<div style="text-align:right">
-  <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--verde3)">${fmtFull(h.totVentas)}</div>
-  <div style="font-size:12px;color:${(h.saldo||0)>=0?'var(--verde3)':'var(--rojo3)'}">Saldo: ${fmtFull(h.saldo)}</div>
-</div>
-</div>`;}).join('');
-}
-
-// INIT
-initCaja();
-
-// Auditoría desde caja
-function auditCajaOp(accion, detalle){
-  try{
-    const reg = {
-      id: Date.now(),
-      fecha: new Date().toISOString(),
-      usuario: vAct, usuarioNom: vNombre, rol: vRol,
-      accion, detalle: detalle||''
+function registrarVentaCC(comp){
+  const ct = getCtaCte();
+  const key = getClienteKey(comp.cli);
+  if(!ct[key]){
+    ct[key] = {
+      key, nom: comp.cli.nom, cuit: comp.cli.cuit||'',
+      iva: comp.cli.iva||'Consumidor Final', dom: comp.cli.dom||'',
+      saldo: 0, movimientos: []
     };
-    const lista = JSON.parse(localStorage.getItem('yunco_audit_op')||'[]');
-    lista.unshift(reg);
-    localStorage.setItem('yunco_audit_op', JSON.stringify(lista));
-    // Also sys audit
-    const sys = JSON.parse(localStorage.getItem('yunco_audit_sys')||'[]');
-    sys.unshift({...reg, modulo:'caja'});
-    if(sys.length>2000) sys.splice(2000);
-    localStorage.setItem('yunco_audit_sys', JSON.stringify(sys));
-  } catch(e){}
-}
-
-
-// ══════════════════════════════════════════════════════════════
-// BACKUP AUTOMÁTICO AL CIERRE DE CAJA
-// ══════════════════════════════════════════════════════════════
-
-function generarBackup(){
-  const fecha = new Date().toISOString();
-  const fechaTag = fecha.split('T')[0];
-
-  // Recolectar todas las claves de caja del historial
-  const histCajas = S.g('yunco_hist_cajas',[]);
-  const cajaKeys = {};
-  histCajas.forEach(h => {
-    const key = 'yunco_caja_' + h.fecha;
-    const data = S.g(key, null);
-    if(data) cajaKeys[key] = data;
-  });
-  // También agregar caja de hoy
-  const hoy = new Date().toISOString().split('T')[0];
-  const cajaHoy = S.g('yunco_caja_' + hoy, null);
-  if(cajaHoy) cajaKeys['yunco_caja_' + hoy] = cajaHoy;
-
-  const backup = {
-    version: '2.0',
-    fecha: fecha,
-    generadoEn: 'cierre_caja',
+  }
+  const saldoAnt = ct[key].saldo;
+  const monto = parseFloat(comp.total)||0;
+  ct[key].saldo += monto;
+  ct[key].movimientos.unshift({
+    id: Date.now(),
+    fecha: comp.fecha,
+    tipo: 'venta_cc',
+    label: 'Venta CC',
+    compNro: comp.nro,
+    compId: comp.id,
+    monto: monto,
+    saldoAnterior: saldoAnt,
+    saldoResultante: ct[key].saldo,
     usuario: vAct,
     usuarioNom: vNombre,
-    datos: {
-      yunco_productos: S.g('yunco_productos', []),
-      yunco_inv: S.g('yunco_inv', []),
-      yunco_comp: S.g('yunco_comp', []),
-      yunco_clis: S.g('yunco_clis', []),
-      yunco_ctacte: S.g('yunco_ctacte', {}),
-      yunco_hist_cajas: histCajas,
-      yunco_audit_op: S.g('yunco_audit_op', []),
-      yunco_audit_sys: S.g('yunco_audit_sys', []),
-      yunco_config: S.g('yunco_config', {}),
-      yunco_vend: S.g('yunco_vend', {}),
-      yunco_autorizaciones: S.g('yunco_autorizaciones', []),
-      cajas: cajaKeys
-    }
-  };
-
-  // Descargar como JSON
-  const json = JSON.stringify(backup, null, 2);
-  const blob = new Blob([json], {type: 'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'YUNCO_Backup_' + fechaTag + '.json';
-  a.click();
-  URL.revokeObjectURL(url);
-
-  console.log('Backup generado: ' + a.download);
-  return a.download;
+    cajaId: comp.cajaId||'',
+    cajaFecha: comp.cajaFecha||''
+  });
+  saveCtaCte(ct);
 }
 
-
-// ══════════════════════════════════════════════════════════════
-// DÓLAR DEL DÍA
-// ══════════════════════════════════════════════════════════════
-
-function getDolarConfig(){
-  return S.g('yunco_config', {dolarHoy:0, dolarFecha:'', dolarHistorial:[], puntoVenta:'0006', ultimosNros:{A:0,B:0,NC:0,ND:0,PRES:0}});
-}
-
-function getDolarHoy(){
-  const cfg = getDolarConfig();
-  const hoy = getFechaHoy();
-  if(cfg.dolarFecha === hoy && parseFloat(cfg.dolarHoy) > 0) return parseFloat(cfg.dolarHoy);
-  return 0;
-}
-
-function abrirPanelDolar(modo){
-  // modo: 'apertura' (obligatorio) o 'modificacion' (excepcional)
-  document.getElementById('dolarModo').value = modo;
-  const actual = getDolarHoy();
-  document.getElementById('dolarValorInput').value = actual > 0 ? actual : '';
-  document.getElementById('dolarMotivoWrap').style.display = modo === 'modificacion' ? 'block' : 'none';
-  document.getElementById('dolarMotivo').value = '';
-  document.getElementById('dolarErr').style.display = 'none';
-  const titulo = modo === 'apertura' ? 'Carga del Dólar del Día' : 'Modificar Dólar del Día';
-  document.getElementById('dolarTitulo').textContent = titulo;
-  if(actual > 0 && modo === 'apertura'){
-    document.getElementById('dolarUltimo').textContent = 'Último valor registrado: $' + actual.toLocaleString('es-AR');
-    document.getElementById('dolarUltimo').style.display = 'block';
-  } else {
-    document.getElementById('dolarUltimo').style.display = 'none';
-  }
-  document.getElementById('overlayDolar').classList.add('abierto');
-  setTimeout(() => document.getElementById('dolarValorInput').focus(), 100);
-}
-
-function cerrarPanelDolar(){
-  document.getElementById('overlayDolar').classList.remove('abierto');
-}
-
-function confirmarDolar(){
-  const modo = document.getElementById('dolarModo').value;
-  const valor = parseFloat(document.getElementById('dolarValorInput').value);
-  const motivo = document.getElementById('dolarMotivo').value.trim();
-  const err = document.getElementById('dolarErr');
-
-  if(!valor || valor <= 0){
-    err.textContent = 'Ingresá un valor válido para el dólar.';
-    err.style.display = 'block';
-    return;
-  }
-
-  if(modo === 'modificacion' && !motivo){
-    err.textContent = 'Ingresá el motivo de la modificación.';
-    err.style.display = 'block';
-    return;
-  }
-
-  const cfg = getDolarConfig();
-  const hoy = getFechaHoy();
-  const anterior = parseFloat(cfg.dolarHoy) || 0;
-
-  // Register in history
-  if(!cfg.dolarHistorial) cfg.dolarHistorial = [];
-  cfg.dolarHistorial.unshift({
+function registrarCobroCC(clienteKey, monto, medio, cajaActiva){
+  const ct = getCtaCte();
+  if(!ct[clienteKey]) return false;
+  const saldoAnt = ct[clienteKey].saldo;
+  const montoReal = Math.min(parseFloat(monto)||0, saldoAnt);
+  if(montoReal <= 0) return false;
+  ct[clienteKey].saldo -= montoReal;
+  const mov = {
+    id: Date.now(),
     fecha: new Date().toISOString(),
-    fechaDia: hoy,
-    valorAnterior: anterior,
-    valorNuevo: valor,
+    tipo: ct[clienteKey].saldo <= 0 ? 'cobro_total' : 'cobro_parcial',
+    label: ct[clienteKey].saldo <= 0 ? 'Cobro total' : 'Cobro parcial',
+    compNro: '',
+    compId: null,
+    monto: montoReal,
+    saldoAnterior: saldoAnt,
+    saldoResultante: ct[clienteKey].saldo,
+    medioPago: medio,
     usuario: vAct,
     usuarioNom: vNombre,
-    motivo: modo === 'apertura' ? 'Apertura de caja' : motivo
+    cajaId: cajaActiva?.id||'',
+    cajaFecha: cajaActiva?.fecha||''
+  };
+  ct[clienteKey].movimientos.unshift(mov);
+  saveCtaCte(ct);
+  // Register cobro in caja
+  if(cajaActiva){
+    const hoy = getFechaHoy();
+    const cajaDatos = S.g('yunco_caja_' + hoy, null);
+    if(cajaDatos){
+      if(!cajaDatos.cobros_cte) cajaDatos.cobros_cte = [];
+      cajaDatos.cobros_cte.push({
+        id: mov.id,
+        fecha: mov.fecha,
+        cliente: ct[clienteKey].nom,
+        clienteKey,
+        monto: montoReal,
+        medio,
+        usuario: vAct,
+        usuarioNom: vNombre
+      });
+      S.s('yunco_caja_' + hoy, cajaDatos);
+    }
+  }
+  return { ok: true, montoReal, saldoNuevo: ct[clienteKey].saldo, cancelada: ct[clienteKey].saldo <= 0 };
+}
+
+
+function confirmarCobro(){
+  const key = document.getElementById('cobroClienteKey').value;
+  const monto = parseFloat(document.getElementById('cobroMonto').value)||0;
+  const medio = document.getElementById('cobroMedio').value;
+  if(!key){ alert('Error: cliente no identificado.'); return; }
+  if(monto <= 0){ alert('Ingresa un monto valido mayor a cero.'); return; }
+  const ct = getCtaCte();
+  if(!ct[key]){ alert('Cliente no encontrado en cuenta corriente.'); return; }
+  if(monto > ct[key].saldo + 0.01){
+    alert('El monto ($' + monto.toLocaleString('es-AR',{minimumFractionDigits:2}) + ') supera el saldo pendiente ($' + ct[key].saldo.toLocaleString('es-AR',{minimumFractionDigits:2}) + ').');
+    return;
+  }
+  const cajaActiva = getCajaActiva();
+  if(!cajaActiva){
+    alert('No hay caja abierta. El cobro no puede registrarse sin una caja activa.');
+    return;
+  }
+  const resultado = registrarCobroCC(key, monto, medio, cajaActiva);
+  if(resultado && resultado.ok){
+    document.getElementById('overlayCobroCte').classList.remove('abierto');
+    const saldoNuevo = resultado.saldoNuevo;
+    auditOp('COBRO_CC', 'Cobro de $'+monto.toLocaleString('es-AR')+' a '+ct[key].nom, {clienteKey:key,monto,medio});
+    const msg = resultado.cancelada
+      ? 'Cobro registrado correctamente. La cuenta quedó cancelada.'
+      : 'Cobro registrado. Saldo restante: $' + saldoNuevo.toLocaleString('es-AR',{minimumFractionDigits:2});
+    alert(msg);
+    renderCtaCte();
+  } else {
+    alert('Error al registrar el cobro. Verificá los datos e intentá nuevamente.');
+  }
+}
+
+function procesar(modo){
+  // Verificar caja abierta para CUALQUIER modo de registro
+  const cajaCheck = verificarCajaParaVender();
+  if(!cajaCheck.ok){
+    mostrarAlertaCaja(cajaCheck.mensaje, cajaCheck.tipo);
+    return;
+  }
+
+  // Vendedor necesita autorización para venta en Cuenta Corriente
+  const pagoSel = document.getElementById('medioPago')?.value || '';
+  if(vRol === 'vendedor' && pagoSel === 'cuenta_corriente'){
+    requiereAutorizacion('cuenta_corriente', function(auth){
+      auditSys('ventas', 'VENTA_CC', 'Cuenta Corriente autorizado por ' + auth.nomAut);
+      // Re-run procesar after authorization
+      procesar(modo);
+    });
+    return;
+  }
+  const items=getItemsFrom('itemsBody');
+  if(!items.length){alert('Agregá al menos un producto.');return;}
+  const esVentaInterna = document.getElementById('ventaInterna')?.checked;
+  // Validar NC/ND tienen referencia obligatoria (no aplica a venta interna)
+  const tipoActual = document.getElementById('tipoComp').value;
+  if(!esVentaInterna && (tipoActual==='NC'||tipoActual==='ND')){
+    const refId = document.getElementById('ncndFacturaRefId')?.value;
+    const motivo = document.getElementById('ncndMotivo')?.value;
+    const motivoOtro = document.getElementById('ncndMotivoOtro')?.value;
+    if(!refId){
+      alert('⚠️ Las Notas de Crédito y Débito deben referenciar una factura original.\nBuscá el cliente y seleccioná la factura correspondiente.');
+      return;
+    }
+    if(!motivo){
+      alert('⚠️ Debe seleccionar un motivo para la Nota de ' + (tipoActual==='NC'?'Crédito':'Débito') + '.');
+      return;
+    }
+    if(motivo==='otro'&&!motivoOtro.trim()){
+      alert('⚠️ Especificá el motivo en el campo de texto.');
+      return;
+    }
+  }
+  // VALIDACION STOCK INSUFICIENTE
+  let prods=[];
+  try{prods=JSON.parse(localStorage.getItem('yunco_inv')||'[]');}catch{}
+  const sinStock=[];
+  items.forEach(it=>{
+    const cod=parseInt(it.cod);
+    if(!cod)return;
+    const p=prods.find(x=>x.id===cod);
+    if(!p)return;
+    if(p.stock<parseFloat(it.cant)){
+      sinStock.push(p.nombre+' (disponible: '+p.stock.toLocaleString('es-AR')+' '+p.unidad+', pedido: '+it.cant+')');
+    }
+  });
+  if(sinStock.length){
+    alert('⚠️ Stock insuficiente para los siguientes productos:\n\n'+sinStock.join('\n')+'\n\nCorregí las cantidades antes de continuar.');
+    return;
+  }
+  const data=getVentaData();
+  // Agregar referencia NC/ND si corresponde (no aplica a venta interna)
+  const tipoV = document.getElementById('tipoComp').value;
+  if(!esVentaInterna && (tipoV==='NC'||tipoV==='ND')){
+    const refId = document.getElementById('ncndFacturaRefId')?.value;
+    const refNro = document.getElementById('ncndFacturaRefNro')?.value;
+    const motivo = document.getElementById('ncndMotivo')?.value;
+    const motivoOtro = document.getElementById('ncndMotivoOtro')?.value;
+    data.refFacturaId = parseInt(refId)||null;
+    data.refFacturaNro = refNro||'';
+    data.motivo = motivo==='otro' ? motivoOtro : motivo;
+  }
+  data.modo=modo;
+  // AUTO-GUARDAR CLIENTE NUEVO
+  const nomCli = document.getElementById('cliNombre').value.trim();
+  const cuitCli = document.getElementById('cliCuit').value.trim();
+  if(nomCli && nomCli !== 'Consumidor Final' && nomCli !== ''){
+    const clientes = S.g('yunco_clis',[]);
+    // Chequear duplicado por CUIT o nombre
+    const existe = clientes.find(c=>{
+      if(cuitCli && c.cuit && c.cuit===cuitCli) return true;
+      return c.nom.toLowerCase()===nomCli.toLowerCase();
+    });
+    if(!existe){
+      clientes.push({nom:nomCli,cuit:cuitCli,iva:document.getElementById('cliIva').value||'Consumidor Final',dom:document.getElementById('cliDom').value||''});
+      S.s('yunco_clis',clientes);
+    }
+  }
+
+  // Asociar venta a caja activa
+  const cajaActiva = getCajaActiva();
+  if(cajaActiva){
+    data.cajaId = cajaActiva.id;
+    data.cajaFecha = cajaActiva.fecha;
+  }
+  const comp=S.g('yunco_comp',[]);comp.unshift(data);S.s('yunco_comp',comp);
+  // Descontar stock solo al registrar
+  if(data.tipo !== 'NC' && data.tipo !== 'ND'){
+    descontarStockVenta(data.items||[], data.nro);
+  }
+  // Auditoría operativa
+  // Refrescar consulta de stock si está visible
+  if(typeof renderConsulta === 'function'){
+    setTimeout(function(){ renderConsulta(); }, 200);
+  }
+  const totalBonif = (data.items||[]).reduce((s,it)=>s+(it.bonif&&parseFloat(it.bonif)>0?(it.precioOriginal-it.precio)*it.cant:0),0);
+  const bonifResumen = totalBonif > 0 ? ' — Bonif: $' + totalBonif.toLocaleString('es-AR') : '';
+  auditOp('VENTA_REGISTRADA',
+    data.tipo + ' ' + data.nro + ' — ' + (data.cli?.nom||'CF') + ' — $' + parseFloat(data.total||0).toLocaleString('es-AR') + bonifResumen,
+    {compId: data.id, tipo: data.tipo, total: data.total, pago: data.pago, totalBonificacion: totalBonif}
+  );
+  // Auditoría sistema
+  auditSys('ventas', 'COMPROBANTE_' + data.modo.toUpperCase(), data.tipo + ' ' + data.nro);
+  // Si es venta en cuenta corriente, registrar en ctacte
+  if(data.pago === 'cuenta_corriente' && data.modo === 'registrar'){
+    registrarVentaCC(data);
+  }
+  if(modo==='registrar'){
+    const nums=S.g('yunco_nums',{B:1228,A:0,OV:0,NC:0,ND:0,PRES:0});
+    nums[data.tipo]=(nums[data.tipo]||0)+1;S.s('yunco_nums',nums);
+    // DESCONTAR STOCK
+    try{
+      let prods=JSON.parse(localStorage.getItem('yunco_inv')||'[]');
+      data.items.forEach(it=>{
+        const cod=parseInt(it.cod);
+        if(!cod)return;
+        const idx=prods.findIndex(p=>p.id===cod);
+        if(idx===-1)return;
+        const cant=parseFloat(it.cant)||0;
+        prods[idx].stock=Math.max(0,prods[idx].stock-cant);
+      });
+      localStorage.setItem('yunco_inv',JSON.stringify(prods));
+    }catch(e){console.error('Error descontando stock:',e);}
+    // Mostrar modal de confirmación con opción de impresión
+    mostrarConfirmacionVenta(data.nro, data.tipo, function(){
+      const html = buildFacturaHTML(data, false);
+      abrirVentanaImpresion(html, (data.tipo==='OV'?'Orden de Venta ':'Comprobante ') + data.nro);
+    });
+    resetVenta(data);
+    return;
+  }
+  // Fallback si no hay impresión
+  mostrarConfirmacionVenta(data.nro, data.tipo, null);
+  resetVenta(data);
+}
+
+function resetVenta(data){
+  limpiarNcNd();
+  const panel=document.getElementById('ncndPanel');
+  if(panel) panel.style.display='none';
+  document.getElementById('itemsBody').innerHTML='';iCnt=0;
+  ['cliCuit','cliNombre','cliDom','obsVenta','pagoExtraVal','dolarCotiz','cliBusq'].forEach(f=>document.getElementById(f).value='');
+  document.getElementById('cliIva').value='Consumidor Final';
+  document.getElementById('medioPago').value='efectivo';document.getElementById('pagoExtraWrap').style.display='none';
+  document.getElementById('tipoComp').value='B';document.getElementById('tipoComp').disabled=false;document.getElementById('tipoComp').style.opacity='1';document.getElementById('dolarWrap').style.display='none';
+  const chkInterna = document.getElementById('ventaInterna');
+  if(chkInterna) chkInterna.checked = false;
+  // Show post-op modal
+  const _tipoLabel = {A:'Factura A',B:'Factura B',OV:'Orden de Venta',NC:'Nota de Crédito',ND:'Nota de Débito',INTERNO:'Venta Interna (sin factura)'};
+  if(data) mostrarPostOp((_tipoLabel[data.tipo]||data.tipo) + ' <strong>' + data.nro + '</strong> generada correctamente.', data.id);
+  updNro();recalc();addItem('itemsBody','recalc');
+}
+
+// PRESUPUESTO
+function emitirPres(imprimir){
+  const items=getItemsFrom('presBody');
+  if(!items.length){alert('Agregá al menos un producto.');return;}
+  const nums=S.g('yunco_nums',{B:1228,A:0,OV:0,NC:0,ND:0,PRES:0});
+  const nro=(nums.PRES||0)+1,nroStr='PRES-'+String(nro).padStart(6,'0');
+  const vig=parseInt(document.getElementById('presVig').value)||15;
+  let neto=0,ivaT=0;
+  items.forEach(it=>{const sub=it.cant*it.precio,pct=parseFloat(it.iva)||21;neto+=sub/(1+pct/100);ivaT+=sub-sub/(1+pct/100);});
+  const fe=new Date(),fv=new Date(fe.getTime()+vig*86400000);
+  const p={id:Date.now(),nro:nroStr,tipo:'PRES',modo:'presupuesto',
+    cli:{nom:document.getElementById('presCliNom').value||'Consumidor Final',cuit:document.getElementById('presCliCuit').value,iva:document.getElementById('presCliIva').value,dom:document.getElementById('presCliDom').value},
+    items,obs:document.getElementById('presObs').value,vig,
+    neto,iva:ivaT,total:neto+ivaT,vend:vAct,fecha:fe.toISOString(),fechaVto:fv.toISOString()};
+  const comp=S.g('yunco_comp',[]);comp.unshift(p);S.s('yunco_comp',comp);
+  nums.PRES=nro;S.s('yunco_nums',nums);
+  if(imprimir){
+    const html=buildFacturaHTML(p,true);
+    
+  }else alert('✅ Presupuesto '+nroStr+' guardado.');
+  updNroPres();
+}
+
+// COMPROBANTES
+
+function goTab(t){
+  // Ocultar todos los panels
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('activo'));
+  document.querySelectorAll('.tab').forEach(tb => tb.classList.remove('activo'));
+
+  // Mostrar panel seleccionado
+  const panel = document.getElementById('panel-' + t);
+  if(panel) panel.classList.add('activo');
+
+  // Marcar tab activo
+  document.querySelectorAll('.tab').forEach(tb => {
+    if(tb.getAttribute('onclick') === "goTab('" + t + "')") tb.classList.add('activo');
   });
 
-  cfg.dolarHoy = valor;
-  cfg.dolarFecha = hoy;
-  S.s('yunco_config', cfg);
-
-  // Audit
-  auditCajaOp('DOLAR_' + modo.toUpperCase(),
-    'Dólar ' + (modo === 'apertura' ? 'cargado' : 'modificado') +
-    ': $' + anterior + ' → $' + valor +
-    (motivo ? ' — ' + motivo : '')
-  );
-
-  cerrarPanelDolar();
-
-  if(modo === 'apertura'){
-    // Proceed with opening caja
-    ejecutarAperturaCaja();
-  } else {
-    alert('✅ Dólar actualizado: $' + valor.toLocaleString('es-AR') + '\nSolo afecta operaciones nuevas.');
-    mostrarDolarActual();
-  }
+  // Render por tab
+  if(t === 'comprobantes' && typeof renderComp === 'function') renderComp();
+  if(t === 'clientes' && typeof renderClis === 'function') renderClis();
+  if(t === 'consulta' && typeof renderConsulta === 'function') renderConsulta();
+  // Render específico por tab
+  if(t === 'presupuesto' && typeof updNroPres === 'function') updNroPres();
+  // Auditoría sistema
+  if(typeof auditSys === 'function') auditSys('ventas', 'TAB_' + t.toUpperCase(), 'Pestaña activa: ' + t);
 }
 
-function ejecutarAperturaCaja(){
-  const hoy = getFechaHoy();
-  const cajaDatos = {
-    abierta: true,
-    fecha: hoy,
-    apertura: new Date().toISOString(),
-    gastos: [],
-    cobros_cte: [],
-    usuario: vAct,
-    nombreUsuario: vNombre,
-    dolarApertura: getDolarHoy()
-  };
-  S.s('yunco_caja_' + hoy, cajaDatos);
-  auditCajaOp('CAJA_APERTURA', 'Caja abierta para el día ' + hoy + ' — Dólar: $' + cajaDatos.dolarApertura);
-  mostrarCajaAbierta(cajaDatos, hoy);
-  mostrarDolarActual();
-}
+function renderComp(){
+  const q=(document.getElementById('busqComp').value||'').toLowerCase();
+  const tipo=document.getElementById('filtTipo').value,est=document.getElementById('filtEstado').value;
+  let comp=S.g('yunco_comp',[]);
+  // Vendedor solo ve sus propios comprobantes
+  if(vRol==='vendedor') comp=comp.filter(c=>c.vend===vAct);
+  if(q)comp=comp.filter(c=>(c.cli?.nom||'').toLowerCase().includes(q)||(c.nro||'').includes(q));
+  if(tipo)comp=comp.filter(c=>c.tipo===tipo);
+  if(est)comp=comp.filter(c=>c.modo===est);
+  const tbody=document.getElementById('tablaComp');
+  if(!comp.length){tbody.innerHTML='<tr><td colspan="9"><div class="vacio"><div class="vacio-icon">📋</div><p>No hay comprobantes.</p></div></td></tr>';return;}
+  const pi={efectivo:'💵',transferencia:'🏦',qr:'📱',tarjeta:'💳',cheque:'📄',cuenta_corriente:'📒'};
+  const vends=S.g('yunco_vend',{});
+  tbody.innerHTML=comp.map(c=>{
+    const tb={A:'badge-a',B:'badge-b',NC:'badge-nc',ND:'badge-nd',PRES:'badge-pres',INTERNO:'badge-nd'}[c.tipo]||'';
+    const eb=c.modo==='registrar'?'badge-reg':c.modo==='presupuesto'?'badge-pres':'badge-grab';
+    const eL=c.modo==='registrar'?'Registrada':c.modo==='presupuesto'?'Presupuesto':'Grabada';
+    const vN=vends[c.vend]?.nombre||(c.vend==='admin'?'Admin':c.vend==='gerente'?'Gerente':'V'+c.vend);
+    const f=new Date(c.fecha).toLocaleDateString('es-AR');
+    return`<tr>
+<td style="font-family:'Bebas Neue',sans-serif;font-size:12px">${c.nro}</td>
+<td><span class="badge ${tb}">${c.tipo==='NC'?'N.Créd':c.tipo==='ND'?'N.Déb':c.tipo==='PRES'?'Presup':c.tipo==='INTERNO'?'🧾 Interno':'Fact.'+c.tipo}</span></td>
+<td>${f}</td><td>${c.cli?.nom||'-'}</td>
+<td>${c.pago?pi[c.pago]||'':''} ${c.pago?pagoLbl(c.pago):'-'}</td>
+<td style="font-weight:700">${fmt(c.total)}</td>
+<td><span class="badge ${eb}">${eL}</span></td>
+<td>${vN}</td>
+<td><div style="display:flex;gap:4px">
+  <button class="btn btn-verde btn-sm" onclick="prevComp('${c.id}')" title="Ver comprobante">👁</button>
+  <button class="btn btn-outline btn-sm" onclick="printComp('${c.id}')" title="Imprimir comprobante">🖨</button>
+  <button class="btn btn-rojo btn-sm" onclick="solAuth('Eliminar comprobante',function(){delComp('${c.id}')})" title="Eliminar comprobante">🗑</button>
+</div></td>
+</tr>`;}).join('');}
 
-function mostrarDolarActual(){
-  const dolar = getDolarHoy();
-  const el = document.getElementById('dolarActualDisplay');
+function prevComp(id){
+  const c=S.g('yunco_comp',[]).find(x=>x.id==id);if(!c)return;
+  previewData=c;
+  const box=document.getElementById('previewBox');
+  if(box) box.innerHTML=buildFacturaHTML(c,c.tipo==='PRES');
+  const overlay=document.getElementById('previewOverlay');
+  if(overlay){ overlay.style.display='flex'; overlay.classList.add('abierto'); }
+}
+function printComp(id){
+  const c=S.g('yunco_comp',[]).find(x=>x.id==id);if(!c)return;
+  const html=buildFacturaHTML(c,c.tipo==='PRES');
+  abrirVentanaImpresion(html,'Comprobante '+c.nro);
+}
+function delComp(id){S.s('yunco_comp',S.g('yunco_comp',[]).filter(c=>c.id!==id));renderComp();}
+
+// CLIENTES
+function renderClis(){
+  const q = (document.getElementById('busqCli')?.value||'').toLowerCase();
+  const clis = S.g('yunco_clis',[]);
+  const ct = S.g('yunco_ctacte',{});
+  const filtrados = q ? clis.filter(c =>
+    (c.nom||'').toLowerCase().includes(q) ||
+    (c.cuit||'').toLowerCase().includes(q)
+  ) : clis;
+  const el = document.getElementById('listaClis');
   if(!el) return;
-  const puedeModificar = (vRol === 'gerente' || vRol === 'dueno');
-  if(dolar > 0){
-    el.innerHTML = '<span style="color:var(--success);font-weight:700">💵 Dólar hoy: $' +
-      dolar.toLocaleString('es-AR') + '</span>';
-    if(puedeModificar){
-      const btn = document.createElement('button');
-      btn.className = 'btn btn-outline btn-sm';
-      btn.textContent = 'Modificar';
-      btn.style.marginLeft = '10px';
-      btn.onclick = function(){ abrirPanelDolar('modificacion'); };
-      el.appendChild(btn);
+  const fmt = n => '$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2});
+  const tbody = filtrados.length ? filtrados.map(c => {
+    const key = c.cuit ? 'cuit_' + c.cuit.replace(/[^0-9]/g,'') : 'nom_' + (c.nom||'').toLowerCase().replace(/\s+/g,'_');
+    const saldo = ct[key]?.saldo||0;
+    return '<tr>' +
+      '<td><strong>' + c.nom + '</strong></td>' +
+      '<td style="color:var(--text-secondary)">' + (c.cuit||'—') + '</td>' +
+      '<td><span class="cat-tag">' + (c.iva||'CF') + '</span></td>' +
+      '<td style="color:var(--text-muted)">' + (c.dom||'—') + '</td>' +
+      '<td style="color:' + (saldo>0?'var(--warning)':'var(--text-muted)') + ';font-weight:' + (saldo>0?'700':'400') + '">' + (saldo>0?fmt(saldo):'$0,00') + '</td>' +
+      '</tr>';
+  }).join('') : '<tr><td colspan="5" class="vacio">No hay clientes registrados aún.</td></tr>';
+  el.innerHTML = '<div class="tabla-wrap"><table><thead><tr>' +
+    '<th>Nombre / Razón Social</th><th>CUIT / DNI</th><th>Condición IVA</th><th>Domicilio</th><th>Saldo CC</th>' +
+    '</tr></thead><tbody>' + tbody + '</tbody></table></div>';
+}
+function editCliModal(i){openModalCli(i);}
+function closeModalCli(){document.getElementById('overlayCli').classList.remove('abierto');editCli=null;}
+function saveCli(){
+  const nom=document.getElementById('mcNom').value.trim();if(!nom){alert('Ingresá el nombre.');return;}
+  const cl=S.g('yunco_clis',[]);
+  const obj={nom,cuit:document.getElementById('mcCuit').value,iva:document.getElementById('mcIva').value,dom:document.getElementById('mcDom').value,tel:document.getElementById('mcTel').value,mail:document.getElementById('mcMail').value};
+  if(editCli!==null)cl[editCli]=obj;else cl.push(obj);
+  S.s('yunco_clis',cl);closeModalCli();renderClis();
+}
+function delCliByIdx(i){const cl=S.g('yunco_clis',[]);cl.splice(i,1);S.s('yunco_clis',cl);renderClis();}
+
+// CONFIG
+function renderConfig(){
+  const v=S.g('yunco_vend',{}),n=S.g('yunco_nums',{B:1228,A:0,OV:0,NC:0,ND:0,PRES:0});
+  let h='';
+  const todos=[1,2,3,4,5,6,7,8,9,'gerente'];
+  todos.forEach(i=>{const vv=v[i]||{};h+=`<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--borde)"><span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--azul3);width:60px">${i==='gerente'?'GERENTE':'#'+i}</span><span style="flex:1">${vv.nombre||(i==='gerente'?'Gerente':'Vendedor '+i)}</span><span style="color:#8bbadd;font-size:12px">${vv.claveSet?'Clave personalizada':'Clave default'}</span></div>`;});
+  document.getElementById('listaVend').innerHTML=h;
+  document.getElementById('cfgNroB').value=n.B||1228;
+  document.getElementById('cfgNroA').value=n.A||0;
+  document.getElementById('cfgNroNC').value=n.NC||0;
+}
+function saveVend(){
+  const vi=document.getElementById('cfgVend').value,nom=document.getElementById('cfgNom').value.trim(),cl=document.getElementById('cfgClaveV').value;
+  const v=S.g('yunco_vend',{}),claves={...CD,...S.g('yunco_claves',{})};
+  if(nom)v[vi]={...(v[vi]||{}),nombre:nom,claveSet:!!cl};
+  if(cl)claves[vi]=cl;
+  S.s('yunco_vend',v);S.s('yunco_claves',claves);renderConfig();alert('✅ Vendedor actualizado.');
+}
+function eliminarVendedor(){
+  const vi=document.getElementById('cfgVend').value;
+  const v=S.g('yunco_vend',{});delete v[vi];S.s('yunco_vend',v);
+  const claves=S.g('yunco_claves',{});delete claves[vi];S.s('yunco_claves',claves);
+  renderConfig();alert('✅ Vendedor eliminado. Usará clave default.');
+}
+function saveNum(){
+  const n=S.g('yunco_nums',{B:1228,A:0,OV:0,NC:0,ND:0,PRES:0});
+  n.B=parseInt(document.getElementById('cfgNroB').value)||1228;
+  n.A=parseInt(document.getElementById('cfgNroA').value)||0;
+  n.NC=parseInt(document.getElementById('cfgNroNC').value)||0;
+  S.s('yunco_nums',n);updNro();alert('✅ Numeración guardada.');
+}
+function cambiarClaveMaestra(){
+  const nueva=document.getElementById('nuevaClaveMaestra').value;
+  const conf=document.getElementById('confirmarClaveMaestra').value;
+  if(!nueva){alert('Ingresá la nueva clave.');return;}
+  if(nueva!==conf){alert('Las claves no coinciden.');return;}
+  S.s('yunco_cm',nueva);alert('✅ Clave maestra actualizada.');
+  document.getElementById('nuevaClaveMaestra').value='';
+  document.getElementById('confirmarClaveMaestra').value='';
+}
+
+document.getElementById('overlayCli').addEventListener('click',function(e){if(e.target===this)closeModalCli();});
+document.getElementById('previewOverlay').addEventListener('click',function(e){if(e.target===this)closePreview();});
+recalc();
+
+
+function verificarEstadoCajaAlCargar(){
+  const check = verificarCajaParaVender();
+  const pantalla = document.getElementById('cajaBloqueoPantalla');
+  if(!pantalla) return;
+
+  if(!check.ok){
+    // Mostrar pantalla de bloqueo
+    pantalla.style.display = 'flex';
+    document.getElementById('cajaBloqueMsg').textContent = check.mensaje;
+    const accion = document.getElementById('cajaBloqueAccion');
+
+    if(vRol === 'vendedor'){
+      // Mostrar mensaje y cerrar sesión después de 3 segundos
+      accion.innerHTML = '<div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:14px;font-size:13px;color:#f59e0b">Esperá a que el Gerente o Dueño abra la caja para comenzar a operar.<br><br>Tu sesión se cerrará en unos segundos...</div>';
+      setTimeout(function(){
+        localStorage.removeItem('yunco_session');
+        window.location.href = 'index.html';
+      }, 3000);
+    } else {
+      accion.innerHTML = '<a href="caja.html" style="display:inline-block;background:#f59e0b;color:#000;padding:12px 24px;border-radius:10px;font-weight:700;font-size:14px;text-decoration:none">Ir a Caja →</a>';
     }
-    el.style.display = 'block';
   } else {
-    el.innerHTML = '<span style="color:var(--warning)">⚠️ Dólar del día no cargado</span>';
-    el.style.display = 'block';
+    pantalla.style.display = 'none';
   }
 }
 
+window.addEventListener('load', function(){
+  setTimeout(function(){
+    if(typeof verificarCajaParaVender === 'function'){
+      verificarEstadoCajaAlCargar();
+    }
+  }, 400);
+});
 
-function verCompCaja(id){
-  const comp = S.g('yunco_comp',[]).find(function(c){return c.id===id;});
-  if(!comp){ alert('Comprobante no encontrado.'); return; }
-  const tipos = {A:'FACTURA A',B:'FACTURA B',OV:'ORDEN DE VENTA',NC:'NOTA DE CRÉDITO',ND:'NOTA DE DÉBITO',PRES:'PRESUPUESTO'};
-  const fmt = function(n){ return '$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2}); };
-  const items = (comp.items||[]).map(function(it){
-    const tieneBonif = it.bonif && parseFloat(it.bonif) > 0;
-    return '<tr><td>'+(it.desc||'')+'</td><td style="text-align:right">'+it.cant+'</td><td style="text-align:right">'+fmt(it.precioOriginal||it.precio)+'</td><td style="text-align:center;color:#f59e0b">'+(tieneBonif?it.bonif+'%':'-')+'</td><td style="text-align:right">'+fmt(it.precio)+'</td><td style="text-align:right">'+fmt(it.cant*it.precio)+'</td></tr>';
+function renderHistorialCliente(c){
+  var fmt = function(n){ return '$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2}); };
+  if(!c.movimientos||!c.movimientos.length) return '<div style="color:var(--text-muted);font-size:13px">Sin movimientos registrados.</div>';
+  var iconos = {venta_cc:'Venta',cobro_parcial:'Cobro parcial',cobro_total:'Cobro total'};
+  return c.movimientos.slice(0,20).map(function(m){
+    var f = new Date(m.fecha).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+    var signo = m.tipo==='venta_cc'?'+':'-';
+    return '<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border-subtle);font-size:12px">'
+      +'<div><div style="font-weight:600">'+m.label+(m.compNro?' - '+m.compNro:'')+'</div>'
+      +'<div style="color:var(--text-muted)">'+f+' · '+(m.usuarioNom||m.usuario||'')+'</div></div>'
+      +'<div style="text-align:right"><div style="font-weight:700">'+signo+fmt(m.monto)+'</div>'
+      +'<div style="color:var(--text-muted)">Saldo: '+fmt(m.saldoResultante)+'</div></div>'
+      +'</div>';
   }).join('');
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto';
-  const box = document.createElement('div');
-  box.style.cssText = 'background:#111f33;border:1px solid rgba(74,159,212,.3);border-radius:12px;padding:24px;max-width:700px;width:100%;margin:auto';
-  box.innerHTML = '<h3 style="color:#4a9fd4;margin-bottom:4px">'+(tipos[comp.tipo]||comp.tipo)+' '+comp.nro+'</h3>'
-    +'<p style="color:#8baec8;font-size:12px;margin-bottom:16px">'+new Date(comp.fecha).toLocaleString('es-AR')+' — '+(comp.cli&&comp.cli.nom?comp.cli.nom:'Consumidor Final')+'</p>'
-    +'<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="border-bottom:1px solid rgba(255,255,255,.1)">'
-    +'<th style="text-align:left;padding:6px">Producto</th><th style="text-align:right;padding:6px">Cant.</th><th style="text-align:right;padding:6px">P.Unit.</th><th style="text-align:center;padding:6px">Bonif.</th><th style="text-align:right;padding:6px">P.c/Desc.</th><th style="text-align:right;padding:6px">Subtotal</th></tr></thead>'
-    +'<tbody>'+items+'</tbody></table>'
-    +'<div style="margin-top:16px;text-align:right;font-size:15px;font-weight:700;color:#22c55e">TOTAL: '+fmt(comp.total)+'</div>'
-    +'<div style="text-align:center;margin-top:20px;display:flex;gap:10px;justify-content:center"></div>';
-  const btnCerrar = document.createElement('button');
-  btnCerrar.textContent = 'Cerrar';
-  btnCerrar.style.cssText = 'background:transparent;border:1px solid rgba(74,159,212,.3);color:#4a9fd4;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:13px';
-  btnCerrar.onclick = function(){ overlay.remove(); };
-  const btnPrint = document.createElement('button');
-  btnPrint.textContent = '🖨 Imprimir';
-  btnPrint.style.cssText = 'background:linear-gradient(135deg,#1a6fa8,#2d7fba);color:#fff;border:none;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:13px';
-  btnPrint.onclick = function(){ overlay.remove(); printCompCaja(id); };
-  box.querySelector('div:last-child').appendChild(btnCerrar);
-  box.querySelector('div:last-child').appendChild(btnPrint);
-  overlay.appendChild(box);
-  document.body.appendChild(overlay);
-  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
 }
 
-function printCompCaja(id){
-  const comp = S.g('yunco_comp',[]).find(c=>c.id===id);
-  if(!comp){ alert('Comprobante no encontrado.'); return; }
-  // Use ventas buildFacturaHTML if available, otherwise basic print
-  if(typeof buildFacturaHTML === 'function'){
-    const html = buildFacturaHTML(comp, comp.tipo==='PRES');
-    const w = window.open('','_blank','width=800,height=600');
-    w.document.write(html);
-    w.document.close();
-    setTimeout(()=>{ w.print(); }, 500);
-  } else {
-    window.print();
+
+function renderCtaCte(){
+  const q = (document.getElementById('ctaBusq')?.value||'').toLowerCase();
+  const filtro = document.getElementById('ctaFiltro')?.value||'todos';
+  const ct = S.g('yunco_ctacte',{});
+  let clientes = Object.values(ct);
+  if(q) clientes = clientes.filter(c => c.nom.toLowerCase().includes(q)||(c.cuit||'').includes(q));
+  if(filtro==='deuda') clientes = clientes.filter(c => c.saldo > 0);
+  if(filtro==='cancelado') clientes = clientes.filter(c => c.saldo <= 0);
+  const el = document.getElementById('listaCtaCte');
+  if(!el) return;
+  if(!clientes.length){
+    el.innerHTML='<div style="background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:12px;padding:32px;text-align:center;color:var(--text-muted)"><div style="font-size:32px;margin-bottom:12px">📒</div><div style="font-size:14px">No hay clientes con cuenta corriente todavía.</div><div style="font-size:12px;margin-top:6px">Las ventas en cuenta corriente aparecerán aquí.</div></div>';
+    return;
   }
+  const fmt = n => '$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2});
+  el.innerHTML = clientes.sort((a,b)=>b.saldo-a.saldo).map(c => {
+    const saldoColor = c.saldo>0 ? 'var(--warning)' : 'var(--success)';
+    const borderColor = c.saldo>0 ? 'rgba(245,158,11,.3)' : 'rgba(34,197,94,.2)';
+    return '<div style="background:var(--bg-card);border:1px solid '+borderColor+';border-radius:12px;padding:16px;margin-bottom:10px">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px">' +
+      '<div><div style="font-size:15px;font-weight:700">'+c.nom+'</div>' +
+      '<div style="font-size:12px;color:var(--text-muted)">'+(c.cuit||'Sin CUIT')+' · '+(c.iva||'CF')+'</div></div>' +
+      '<div style="text-align:right">' +
+      '<div style="font-family:Bebas Neue,sans-serif;font-size:24px;color:'+saldoColor+'">'+fmt(c.saldo)+'</div>' +
+      '<div style="font-size:11px;color:var(--text-muted)">'+(c.saldo>0?'saldo pendiente':'cuenta cancelada')+'</div></div></div>' +
+      (c.saldo>0?'<button class="btn btn-verde btn-sm" onclick="abrirCobroCte(this)" data-key="'+c.key+'">💰 Registrar cobro</button>':'') +
+      '<button class="btn btn-outline btn-sm" style="margin-left:'+(c.saldo>0?'8px':'0')+'" onclick="toggleHistorial(this)" data-target="hist_'+c.key+'">📋 Ver historial</button>' +
+      '<div id="hist_'+c.key+'" style="display:none;margin-top:12px;border-top:1px solid var(--border-subtle);padding-top:12px">' +
+      renderHistorialCliente(c) + '</div></div>';
+  }).join('');
+}
+
+function toggleHistorial(btn){
+  const id = typeof btn === 'string' ? btn : btn.dataset.target;
+  const el = document.getElementById(id);
+  if(el) el.style.display = el.style.display==='none' ? 'block' : 'none';
+}
+
+function abrirCobroCte(el){
+  const key = typeof el === 'string' ? el : el.dataset.key;
+  const ct = S.g('yunco_ctacte',{});
+  const c = ct[key];
+  if(!c) return;
+  document.getElementById('cobroClienteKey').value = key;
+  document.getElementById('cobroClienteNom').textContent = c.nom;
+  document.getElementById('cobroSaldoActual').textContent = 'Saldo pendiente: $'+parseFloat(c.saldo).toLocaleString('es-AR',{minimumFractionDigits:2});
+  document.getElementById('cobroMonto').value = '';
+  document.getElementById('overlayCobroCte').classList.add('abierto');
+  setTimeout(()=>document.getElementById('cobroMonto').focus(),100);
+}
+
+
+function exportarStockExcel(){
+  const prods = JSON.parse(localStorage.getItem('yunco_inv')||'[]');
+  const rows = prods.map(p=>({
+    Producto:p.nombre, Categoria:p.categoria,
+    Stock:parseFloat(p.stock||0), Minimo:parseFloat(p.min||0),
+    Unidad:p.unidad, PrecioVenta:parseFloat(p.venta||0)
+  }));
+  const wb = typeof XLSX !== 'undefined' ? XLSX.utils.book_new() : null;
+  if(!wb){ alert('Exportación no disponible.'); return; }
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Stock');
+  XLSX.writeFile(wb, 'YUNCO_Stock_'+new Date().toLocaleDateString('es-AR').replace(/\//g,'-')+'.xlsx');
+}
+
+function imprimirStock(){
+  const prods = JSON.parse(localStorage.getItem('yunco_inv')||'[]');
+  const busq = (document.getElementById('consultaBusq')?.value||'').toLowerCase();
+  const filtrados = busq ? prods.filter(p=>(p.nombre||'').toLowerCase().includes(busq)||(p.categoria||'').toLowerCase().includes(busq)) : prods;
+  const rows = filtrados.map(p=>{
+    const s=parseFloat(p.stock||0),m=parseFloat(p.min||0);
+    const estado=s<=0?'SIN STOCK':s<=m?'STOCK BAJO':'OK';
+    return '<tr><td>'+p.nombre+'</td><td>'+p.categoria+'</td><td style="text-align:right;font-weight:700">'+s+'</td><td style="text-align:right">'+m+'</td><td>'+p.unidad+'</td><td style="text-align:right">'+(p.venta>0?'$'+parseFloat(p.venta).toLocaleString('es-AR',{minimumFractionDigits:2}):'—')+'</td><td>'+estado+'</td></tr>';
+  }).join('');
+  const w = window.open('','_blank');
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Stock YUNCO</title><style>*{font-family:Arial,sans-serif;font-size:11px;}h1{font-size:16px;margin-bottom:4px;}p{color:#555;margin-bottom:12px;}table{width:100%;border-collapse:collapse;}th{background:#1a3a5c;color:#fff;padding:6px 8px;text-align:left;}td{padding:5px 8px;border-bottom:1px solid #eee;}tr:nth-child(even) td{background:#f5f5f5;}@media print{@page{size:A4 landscape;margin:10mm;}}</style></head><body>');
+  w.document.write('<h1>YUNCO — Listado de Stock</h1><p>'+new Date().toLocaleString('es-AR')+' · '+filtrados.length+' productos</p>');
+  w.document.write('<table><thead><tr><th>Producto</th><th>Categoría</th><th>Stock</th><th>Mínimo</th><th>Unidad</th><th>Precio Venta</th><th>Estado</th></tr></thead><tbody>'+rows+'</tbody></table>');
+  w.document.write('</body></html>');
+  w.document.close();
+  setTimeout(()=>w.print(),500);
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// SISTEMA DE AUDITORÍA
+// ══════════════════════════════════════════════════════════════
+
+// ── Auditoría Operativa (permanente, sin rotación) ────────────
+function auditOp(accion, detalle, extra){
+  const reg = {
+    id: Date.now(),
+    fecha: new Date().toISOString(),
+    usuario: vAct,
+    usuarioNom: vNombre,
+    rol: vRol,
+    accion,
+    detalle: detalle||'',
+    ...( extra||{} )
+  };
+  const lista = S.g('yunco_audit_op',[]);
+  lista.unshift(reg);
+  S.s('yunco_audit_op', lista);
+}
+
+// ── Auditoría del Sistema (rotación cada 2000 registros) ──────
+function auditSys(modulo, accion, detalle){
+  const reg = {
+    id: Date.now(),
+    fecha: new Date().toISOString(),
+    usuario: vAct||'?',
+    usuarioNom: vNombre||'?',
+    rol: vRol||'?',
+    modulo: modulo||'ventas',
+    accion,
+    detalle: detalle||''
+  };
+  const lista = S.g('yunco_audit_sys',[]);
+  lista.unshift(reg);
+  // Rotación: conservar 2000 registros
+  if(lista.length > 2000) lista.splice(2000);
+  S.s('yunco_audit_sys', lista);
+}
+
+// ══════════════════════════════════════════════════════════════
+// SISTEMA DE AUTORIZACIÓN
+// ══════════════════════════════════════════════════════════════
+
+let _authPendiente = null; // { tipo, callback }
+
+function requiereAutorizacion(tipo, callback){
+  _authPendiente = { tipo, callback };
+
+  const labels = {
+    'OV': 'Orden de Venta',
+    'NC': 'Nota de Crédito',
+    'ND': 'Nota de Débito',
+    'cuenta_corriente': 'Venta en Cuenta Corriente'
+  };
+
+  document.getElementById('authOp_tipo').textContent = labels[tipo] || tipo;
+  document.getElementById('authOp_usuario').value = '';
+  document.getElementById('authOp_clave').value = '';
+  document.getElementById('authOp_err').style.display = 'none';
+  document.getElementById('authOpOverlay').classList.add('abierto');
+  setTimeout(()=>document.getElementById('authOp_usuario').focus(), 100);
+}
+
+function confirmarAuthOp(){
+  const usuario = document.getElementById('authOp_usuario').value;
+  const clave = document.getElementById('authOp_clave').value;
+  const err = document.getElementById('authOp_err');
+
+  if(!usuario || !clave){
+    err.textContent = 'Ingresá usuario y clave.';
+    err.style.display = 'block';
+    return;
+  }
+
+  // Validar que sea gerente o dueno
+  const CD_BASE={'1':'1111','2':'2222','3':'3333','4':'4444','5':'5555','6':'6666','7':'7777','8':'8888','9':'9999','gerente':'gerente2024','dueno':'dueno2024','admin':'yunco2024'};
+  const claves = { ...CD_BASE, ...S.g('yunco_claves',{}) };
+  const vends = S.g('yunco_vend',{});
+  const esGerente = usuario === 'gerente' && clave === claves['gerente'];
+  const esDueno = usuario === 'dueno' && clave === claves['dueno'];
+
+  if(!esGerente && !esDueno){
+    err.textContent = 'Credenciales incorrectas. Solo Gerente o Dueño pueden autorizar.';
+    err.style.display = 'block';
+    document.getElementById('authOp_clave').value = '';
+    return;
+  }
+
+  // Registrar autorización en auditoría operativa
+  const autorizante = esGerente ? 'gerente' : 'dueno';
+  const nomAut = autorizante === 'gerente' ? 'Gerente General' : 'Dueño';
+
+  auditOp('AUTORIZACION', 'Operación autorizada: ' + _authPendiente.tipo, {
+    vendedor: vAct,
+    vendedorNom: vNombre,
+    autorizante: autorizante,
+    autorizanteNom: nomAut,
+    tipoOperacion: _authPendiente.tipo
+  });
+
+  document.getElementById('authOpOverlay').classList.remove('abierto');
+
+  // Ejecutar callback con datos del autorizante
+  const cb = _authPendiente.callback;
+  _authPendiente = null;
+  if(cb) cb({ autorizante, nomAut });
+}
+
+
+function handleItemKey(e, id, calcFn){
+  const res = document.getElementById(id+'_res');
+  const dropdownOpen = res && res.style.display !== 'none';
+
+  if(dropdownOpen){
+    if(e.key === 'Enter' || e.key === 'Tab'){
+      e.preventDefault();
+      const firstItem = res.querySelector('[onclick], [data-prod-id]');
+      if(firstItem){
+        firstItem.click();
+        setTimeout(function(){
+          const tr = document.getElementById(id);
+          if(tr){
+            const inputs = tr.querySelectorAll('input');
+            if(inputs[1]) inputs[1].focus();
+          }
+        }, 100);
+      }
+      res.style.display = 'none';
+    }
+    if(e.key === 'ArrowDown'){
+      e.preventDefault();
+      const firstItem = res.querySelector('[onclick]');
+      if(firstItem) firstItem.focus();
+    }
+    if(e.key === 'Escape') res.style.display = 'none';
+    return;
+  }
+}
+
+// Enter on last input of item row adds new row
+
+function handleItemEnter(e, nextId, addRowOnEnter, calcFn){
+  if(e.key === 'Tab'){
+    if(nextId){
+      e.preventDefault();
+      const next = document.getElementById(nextId);
+      if(next){ next.focus(); if(next.select) next.select(); }
+    }
+    return;
+  }
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    if(nextId){
+      // Move to next field first
+      const next = document.getElementById(nextId);
+      if(next){ next.focus(); if(next.select) next.select(); }
+    } else if(addRowOnEnter && calcFn){
+      // Last field - add new row
+      const bodyId = calcFn==='recalc' ? 'itemsBody' : 'presBody';
+      addItem(bodyId, calcFn);
+      setTimeout(function(){
+        const body = document.getElementById(bodyId);
+        if(body){
+          const rows = body.querySelectorAll('tr');
+          const lastRow = rows[rows.length-1];
+          if(lastRow){
+            const desc = lastRow.querySelector('input[type="text"]:not([readonly])');
+            if(desc){ desc.focus(); }
+          }
+        }
+      }, 50);
+    }
+  }
+}
+
+
+function cancelarAuthOp(){
+  _authPendiente = null;
+  document.getElementById('authOpOverlay').classList.remove('abierto');
+  // Volver a factura B si el tipo no está permitido
+  if(vRol === 'vendedor'){
+    const sel = document.getElementById('tipoComp');
+    if(sel) sel.value = 'B';
+    onTipoChange();
+  }
+}
+
+
+function descontarStockVenta(items, nroComp){
+  try{
+    const prods = JSON.parse(localStorage.getItem('yunco_productos')||'[]');
+    if(!prods.length) return;
+    let modificado = false;
+    items.forEach(function(item){
+      if(!item.prodId) return;
+      const idx = prods.findIndex(function(p){ return p.id === item.prodId || String(p.idLegacy) === String(item.prodId); });
+      if(idx < 0) return;
+      const p = prods[idx];
+      const cant = parseFloat(item.cant||1);
+      const factor = parseFloat(item.factorStock||1);
+      const anterior = parseFloat(p.stock||0);
+      p.stock = Math.max(0, anterior - (cant * factor));
+      if(!p.historial) p.historial = [];
+      p.historial.unshift({
+        fecha: new Date().toISOString(),
+        usuario: vAct, usuarioNom: vNombre,
+        tipo: 'venta', anterior: anterior, nuevo: p.stock,
+        motivo: 'Venta: ' + (nroComp||'')
+      });
+      modificado = true;
+    });
+    if(modificado) localStorage.setItem('yunco_productos', JSON.stringify(prods));
+  } catch(e){ console.error('Error stock:', e); }
+}
+
+
+function confirmarVenta(){ procesar('registrar'); }
+
+var _postOpCompId = null;
+function mostrarPostOp(msg, compId){
+  _postOpCompId = compId;
+  document.getElementById('postOpMsg').innerHTML = msg;
+  document.getElementById('postOpOverlay').classList.add('abierto');
+}
+function cerrarPostOp(imprimir){
+  document.getElementById('postOpOverlay').classList.remove('abierto');
+  if(imprimir && _postOpCompId) prevComp(_postOpCompId);
+  _postOpCompId = null;
+}
+
+
+function mostrarConfirmacionVenta(nro, tipo, onPrint){
+  const tLabel = {B:'Factura B',A:'Factura A',NC:'Nota de Crédito',ND:'Nota de Débito',OV:'Orden de Venta'}[tipo]||tipo;
+  const msg = document.createElement('div');
+  msg.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:20px';
+  msg.innerHTML = `
+    <div style="background:#111f33;border:1px solid rgba(74,159,212,.3);border-radius:16px;padding:32px;max-width:420px;width:100%;text-align:center">
+      <div style="font-size:48px;margin-bottom:12px">✅</div>
+      <h3 style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:#4a9fd4;margin-bottom:8px">Operación realizada correctamente</h3>
+      <p style="color:#8baec8;font-size:14px;margin-bottom:24px">${tLabel} <strong style="color:#eef4fb">${nro}</strong> generada.</p>
+      <p style="color:#eef4fb;font-size:14px;margin-bottom:20px">¿Desea imprimir el comprobante?</p>
+      <div style="display:flex;gap:12px;justify-content:center">
+        <button onclick="this.closest('div[style*=fixed]').remove()" 
+          style="background:transparent;border:1px solid rgba(74,159,212,.3);color:#4a9fd4;padding:10px 24px;border-radius:10px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:14px;font-weight:700">
+          No imprimir
+        </button>
+        <button id="btnSiImprimir"
+          style="background:linear-gradient(135deg,#1a6fa8,#2d7fba);color:#fff;border:none;padding:10px 24px;border-radius:10px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:14px;font-weight:700">
+          🖨 Sí, imprimir
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(msg);
+  msg.querySelector('#btnSiImprimir').onclick = function(){
+    msg.remove();
+    if(onPrint) onPrint();
+  };
+}
+
+
+function printComp(id){
+  const c = S.g('yunco_comp',[]).find(x=>x.id===id);
+  if(!c) return;
+  const html = buildFacturaHTML(c, c.tipo==='PRES');
+  abrirVentanaImpresion(html, (c.tipo==='OV'?'Orden de Venta ':'Comprobante ') + c.nro);
+}
+
+
+function closePreview(){
+  const overlay=document.getElementById('previewOverlay');
+  if(overlay){ overlay.style.display='none'; overlay.classList.remove('abierto'); }
+  previewData = null;
+}
+
+function imprimirPreview(){
+  if(!previewData) return;
+  const html = buildFacturaHTML(previewData, previewData.tipo==='PRES');
+  abrirVentanaImpresion(html, 'Comprobante ' + previewData.nro);
+}
+
+
+// ── CARGA AUTOMÁTICA DE CLIENTES ─────────────────────────────
+function cargarClientesIniciales(){
+  try{
+    // Verificar si ya están cargados correctamente (con campo nom)
+    const existentes = S.g('yunco_clis', []);
+    if(existentes && existentes.length > 0 && existentes[0].nom) return;
+    // Cargar y formatear desde archivo JSON
+    fetch('clientes.json')
+      .then(r => r.json())
+      .then(clientes => {
+        const formatted = clientes.map(c => ({
+          id: 'CLI-' + String(c.legajo).padStart(4,'0'),
+          legajo: parseInt(c.legajo),
+          cuit: c.cuit || '',
+          nom: c.fantasia || c.razonSocial || '',
+          razonSocial: c.razonSocial || '',
+          domicilio: c.domicilio || '',
+          localidad: c.localidad || '',
+          provincia: c.provincia || 'Tucumán',
+          tel: '', email: '', ctaCte: false, activo: true
+        }));
+        formatted.sort((a,b) => a.nom.localeCompare(b.nom, 'es'));
+        S.s('yunco_clis', formatted);
+        console.log('✅ ' + formatted.length + ' clientes cargados.');
+      })
+      .catch(e => console.warn('No se pudo cargar clientes:', e));
+  }catch(e){}
 }
 
 </script>
+
+<div class="overlay" id="postOpOverlay">
+  <div class="modal" style="max-width:440px;text-align:center">
+    <div style="font-size:48px;margin-bottom:12px">✅</div>
+    <h2 style="color:#22c55e">Operación realizada</h2>
+    <p id="postOpMsg" style="color:var(--texto-sec);font-size:14px;margin:12px 0 20px;line-height:1.6"></p>
+    <p style="font-weight:700;margin-bottom:16px">¿Desea imprimir el comprobante?</p>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn btn-outline" onclick="cerrarPostOp(false)">No imprimir</button>
+      <button class="btn btn-primario" onclick="cerrarPostOp(true)">🖨 Sí, imprimir</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
